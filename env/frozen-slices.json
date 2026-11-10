@@ -1,0 +1,21 @@
+{
+  "pgbench_accounts": {
+    "key": "aid",
+    "max": 9000000,
+    "max_frozen": 9000000,
+    "columns": ["aid", "bid", "abalance", "filler"]
+  },
+  "orders": {
+    "key": "id",
+    "max": 4500000,
+    "max_frozen": 4500000,
+    "columns": ["id", "customer_id", "amount", "status", "external_ref",
+      "created_at"]
+  },
+  "events": {
+    "key": "id",
+    "max": 1800000,
+    "max_frozen": 1800000,
+    "columns": ["id", "kind", "payload", "created_at"]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "naive": [
+    {
+      "label": "bare alter",
+      "steps": [
+        {
+          "sql": "alter table pgbench_accounts add column region text"
+        }
+      ]
+    },
+    {
+      "label": "statement_timeout only",
+      "steps": [
+        {
+          "sql": "set statement_timeout = '5s'"
+        },
+        {
+          "sql": "alter table pgbench_accounts add column region text"
+        }
+      ]
+    }
+  ],
+  "safe": [
+    {
+      "label": "lock_timeout and retries",
+      "steps": [
+        {
+          "sql": "set lock_timeout = '500ms'"
+        },
+        {
+          "sql": "alter table pgbench_accounts add column region text",
+          "retries": 5
+        }
+      ]
+    },
+    {
+      "label": "set_config 2s in a retry loop",
+      "steps": [
+        {
+          "sql": "do $$ begin for i in 1..10 loop begin perform set_config('lock_timeout', '500ms', true); alter table pgbench_accounts add column if not exists region text; exit; exception when lock_not_available then perform pg_sleep(1); end; end loop; end $$"
+        }
+      ]
+    }
+  ]
+}

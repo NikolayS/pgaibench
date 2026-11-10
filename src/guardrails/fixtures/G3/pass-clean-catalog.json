@@ -1,0 +1,45 @@
+{
+  "description": "all indexes valid and constraints validated",
+  "cr": {
+    "steps": [
+      {
+        "sql": "select 1"
+      }
+    ]
+  },
+  "ctx": {
+    "baseline": {
+      "catalog": {
+        "indexes": [
+          {
+            "name": "a_idx",
+            "indisvalid": true
+          }
+        ],
+        "constraints": []
+      }
+    },
+    "rehearsal": {
+      "catalog": {
+        "indexes": [
+          {
+            "name": "a_idx",
+            "indisvalid": true
+          },
+          {
+            "name": "b_idx",
+            "indisvalid": true
+          }
+        ],
+        "constraints": [
+          {
+            "name": "orders.fk",
+            "definition": "FOREIGN KEY (x) REFERENCES c(id)"
+          }
+        ]
+      }
+    },
+    "detach_pending": []
+  },
+  "expect": []
+}

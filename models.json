@@ -1,0 +1,287 @@
+[
+  {
+    "id": "openai/gpt-6-astra",
+    "vendor": "OpenAI",
+    "tier": "large",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 10,
+    "price_out": 50,
+    "max_tokens": 32000,
+    "access": "codex-cli",
+    "cli_model": "gpt-6-astra",
+    "effort": "medium"
+  },
+  {
+    "id": "openai/gpt-6.1-sol",
+    "vendor": "OpenAI",
+    "tier": "mid",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 2,
+    "price_out": 10,
+    "max_tokens": 32000,
+    "access": "codex-cli",
+    "cli_model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  {
+    "id": "openai/gpt-6.1-terra",
+    "vendor": "OpenAI",
+    "tier": "mid",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 1,
+    "price_out": 5,
+    "max_tokens": 32000,
+    "access": "codex-cli",
+    "cli_model": "gpt-6.1-terra",
+    "effort": "medium",
+    "codex_catalog_base": "gpt-6.1-sol"
+  },
+  {
+    "id": "openai/gpt-6-luna",
+    "vendor": "OpenAI",
+    "tier": "small",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 0.1,
+    "price_out": 0.5,
+    "max_tokens": 32000,
+    "access": "codex-cli",
+    "cli_model": "gpt-6-luna",
+    "effort": "medium"
+  },
+  {
+    "id": "anthropic/claude-fable-5.2",
+    "vendor": "Anthropic",
+    "tier": "large",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 8,
+    "price_out": 40,
+    "max_tokens": 32000,
+    "access": "claude-cli",
+    "cli_model": "claude-fable-5-2",
+    "effort": "high"
+  },
+  {
+    "id": "anthropic/claude-opus-5.5",
+    "vendor": "Anthropic",
+    "tier": "large",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 4,
+    "price_out": 20,
+    "max_tokens": 32000,
+    "access": "claude-cli",
+    "cli_model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  {
+    "id": "anthropic/claude-sonnet-5.5",
+    "vendor": "Anthropic",
+    "tier": "mid",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 2,
+    "price_out": 10,
+    "max_tokens": 32000,
+    "access": "claude-cli",
+    "cli_model": "claude-sonnet-5-5",
+    "effort": "high"
+  },
+  {
+    "id": "anthropic/claude-haiku-5.5",
+    "vendor": "Anthropic",
+    "tier": "small",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 0.1,
+    "price_out": 0.5,
+    "max_tokens": 32000,
+    "access": "claude-cli",
+    "cli_model": "claude-haiku-5-5",
+    "effort": "medium"
+  },
+  {
+    "id": "google/gemini-4-argon",
+    "vendor": "Google",
+    "tier": "large",
+    "open_weights": false,
+    "provider": {
+      "order": [
+        "google-vertex"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 2,
+    "price_out": 10,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "google/gemini-3.8-flash",
+    "vendor": "Google",
+    "tier": "small",
+    "open_weights": false,
+    "provider": {
+      "order": [
+        "google-vertex"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 0.825,
+    "price_out": 4.125,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "x-ai/grok-4.7",
+    "vendor": "xAI",
+    "tier": "large",
+    "open_weights": false,
+    "provider": {
+      "order": [
+        "xai"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 2,
+    "price_out": 6,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "deepseek/deepseek-v4-pro-0813",
+    "vendor": "DeepSeek",
+    "tier": "large",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "deepinfra/fp8"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 1.3,
+    "price_out": 2.6,
+    "max_tokens": 32000,
+    "access": "openrouter",
+    "quantization": "fp8"
+  },
+  {
+    "id": "deepseek/deepseek-v4.1-flash-1017",
+    "vendor": "DeepSeek",
+    "tier": "small",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "deepinfra/fp8"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 0.098,
+    "price_out": 0.294,
+    "max_tokens": 32000,
+    "access": "openrouter",
+    "quantization": "fp8"
+  },
+  {
+    "id": "qwen/qwen3.8-27b",
+    "vendor": "Qwen",
+    "tier": "small",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "deepinfra"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "xhigh",
+    "price_in": 0.15,
+    "price_out": 1.875,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "z-ai/glm-5.3",
+    "vendor": "Z.ai",
+    "tier": "mid",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "z-ai"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "max",
+    "price_in": 1.4,
+    "price_out": 4.4,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "moonshotai/kimi-k3.1-pro",
+    "vendor": "Moonshot AI",
+    "tier": "large",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "moonshotai"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "max",
+    "price_in": 2,
+    "price_out": 10,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
+    "id": "mistralai/mistral-large-4-0",
+    "vendor": "Mistral",
+    "tier": "mid",
+    "open_weights": true,
+    "provider": {
+      "order": [
+        "mistral"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "high",
+    "price_in": 0.7,
+    "price_out": 2.1,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  }
+]

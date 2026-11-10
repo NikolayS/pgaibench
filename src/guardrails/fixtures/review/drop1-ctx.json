@@ -1,0 +1,9 @@
+{
+  "pgss_texts": [
+    "select id, payload from orders where id = $1"
+  ],
+  "dependents": {},
+  "relation_sizes": {
+    "big_log": 1100000000
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "description": "single update of two million rows",
+  "cr": {
+    "steps": [
+      {
+        "sql": "update events set kind = 'old' where created_at < '2020-01-01'",
+        "expected_rows": 2000000
+      }
+    ]
+  },
+  "expect": [
+    {
+      "rule": "G2.unbatched_dml",
+      "step_index": 0,
+      "severity": "block"
+    }
+  ]
+}

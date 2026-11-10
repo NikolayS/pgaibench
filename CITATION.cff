@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use PG AI Bench, please cite it as below."
+title: "PG AI Bench"
+type: software
+authors:
+  - name: "PG AI Bench contributors"
+repository-code: "https://github.com/NikolayS/pgaibench"
+license: Apache-2.0
+abstract: "A benchmark of LLM safety on PostgreSQL operations: planned changes with hidden traps, executed against a primary and a streaming standby under load."
+keywords:
+  - PostgreSQL
+  - benchmark
+  - LLM evaluation
+  - database operations

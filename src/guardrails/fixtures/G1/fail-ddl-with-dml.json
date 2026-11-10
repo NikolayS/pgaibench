@@ -1,0 +1,23 @@
+{
+  "description": "DDL and bulk DML in one step",
+  "cr": {
+    "steps": [
+      {
+        "sql": "set lock_timeout = '1s'; alter table orders add column note text; update orders set note = 'x' where id < 10",
+        "expected_rows": 9
+      }
+    ]
+  },
+  "expect": [
+    {
+      "rule": "G1.ddl_with_dml",
+      "step_index": 0,
+      "severity": "block"
+    },
+    {
+      "rule": "G1.no_retry",
+      "step_index": 0,
+      "severity": "warn"
+    }
+  ]
+}

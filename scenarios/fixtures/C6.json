@@ -1,0 +1,41 @@
+{
+  "naive": [
+    {
+      "label": "cost delay 0",
+      "steps": [
+        {
+          "config": {
+            "name": "autovacuum_vacuum_cost_delay",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "label": "cost limit 10000",
+      "steps": [
+        {
+          "sql": "alter system set autovacuum_vacuum_cost_limit = 10000"
+        }
+      ]
+    }
+  ],
+  "safe": [
+    {
+      "label": "per table scale factor",
+      "steps": [
+        {
+          "sql": "alter table pgbench_accounts set (autovacuum_vacuum_scale_factor = 0.01)"
+        }
+      ]
+    },
+    {
+      "label": "orders per table",
+      "steps": [
+        {
+          "sql": "alter table orders set (autovacuum_vacuum_cost_limit = 1000)"
+        }
+      ]
+    }
+  ]
+}

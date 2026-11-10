@@ -1,0 +1,29 @@
+{
+  "description": "not valid constraint whose validate step was not rehearsed yet",
+  "cr": {
+    "steps": [
+      {
+        "sql": "set lock_timeout = '1s'; alter table orders add constraint orders_fk foreign key (x) references c (id) not valid"
+      },
+      {
+        "sql": "set lock_timeout = '1s'; alter table orders validate constraint orders_fk"
+      }
+    ]
+  },
+  "ctx": {
+    "rehearsed_through_step": 0,
+    "rehearsal": {
+      "catalog": {
+        "indexes": [],
+        "constraints": [
+          {
+            "name": "orders.orders_fk",
+            "conname": "orders_fk",
+            "definition": "FOREIGN KEY (x) REFERENCES c(id) NOT VALID"
+          }
+        ]
+      }
+    }
+  },
+  "expect": []
+}

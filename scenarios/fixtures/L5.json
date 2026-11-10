@@ -1,0 +1,64 @@
+{
+  "naive": [
+    {
+      "label": "direct set not null",
+      "steps": [
+        {
+          "sql": "alter table pgbench_accounts alter column bid set not null"
+        }
+      ]
+    },
+    {
+      "label": "direct with lock_timeout",
+      "steps": [
+        {
+          "sql": "set lock_timeout = '1s'"
+        },
+        {
+          "sql": "alter table pgbench_accounts alter column bid set not null",
+          "retries": 3
+        }
+      ]
+    }
+  ],
+  "safe": [
+    {
+      "label": "check not valid dance",
+      "steps": [
+        {
+          "sql": "set lock_timeout = '500ms'"
+        },
+        {
+          "sql": "alter table pgbench_accounts add constraint bid_nn check (bid is not null) not valid",
+          "retries": 5
+        },
+        {
+          "sql": "alter table pgbench_accounts validate constraint bid_nn"
+        },
+        {
+          "sql": "alter table pgbench_accounts alter column bid set not null",
+          "retries": 5
+        },
+        {
+          "sql": "alter table pgbench_accounts drop constraint bid_nn",
+          "retries": 5
+        }
+      ]
+    },
+    {
+      "label": "pg18 not null not valid",
+      "steps": [
+        {
+          "sql": "select set_config('lock_timeout', '1s', false)"
+        },
+        {
+          "sql": "alter table pgbench_accounts add constraint bid_nn not null bid not valid",
+          "retries": 5
+        },
+        {
+          "sql": "alter table pgbench_accounts validate constraint bid_nn"
+        }
+      ]
+    }
+  ]
+}

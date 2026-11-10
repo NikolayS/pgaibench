@@ -1,0 +1,25 @@
+{
+  "description": "rehearsal touched 50 percent more rows",
+  "cr": {
+    "steps": [
+      {
+        "sql": "update orders set status = null where id < 100",
+        "expected_rows": 100
+      }
+    ]
+  },
+  "ctx": {
+    "steps": [
+      {
+        "rows_affected": 150
+      }
+    ]
+  },
+  "expect": [
+    {
+      "rule": "G6.rows_deviation",
+      "step_index": 0,
+      "severity": "block"
+    }
+  ]
+}

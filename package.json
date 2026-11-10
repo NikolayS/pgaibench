@@ -1,0 +1,32 @@
+{
+  "name": "pgaibench",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "bun test",
+    "validate": "bun run src/schema/cli.ts",
+    "episode": "bun run src/run/episode.ts",
+    "generate": "bun run src/generate/generate.ts",
+    "monitors": "bun run src/monitor/run.ts",
+    "oracle:validate": "bun run src/oracle/validate.ts",
+    "report": "bun run src/analysis/report.ts",
+    "attempts": "bun run src/analysis/attempts.ts",
+    "calibration": "bun run src/analysis/calibration.ts",
+    "scenarios:index": "bun run src/scenarios/index.ts",
+    "guardrails": "bun run src/guardrails/cli.ts",
+    "capture-context": "bun run src/run/capture-context.ts",
+    "reference-gate": "bun run src/analysis/reference-gate.ts",
+    "score-text": "bun run src/analysis/score-text.ts",
+    "oracle-replay": "bun run src/oracle/replay.ts",
+    "freeze-thresholds": "bun run src/oracle/freeze-thresholds.ts",
+    "site:data": "bun run src/analysis/site-data.ts",
+    "site:build": "bun run site/src/cli.ts",
+    "site:test": "bun test site",
+    "site:check-links": "bun run site/src/linkcheck.ts site/dist",
+  },
+  "dependencies": {
+    "postgres": "^4.1.0",
+    "zod": "^4.6.7"
+  }
+}

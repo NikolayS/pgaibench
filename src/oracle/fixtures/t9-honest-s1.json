@@ -1,0 +1,16 @@
+{
+  "baseline": {
+    "wait_events": { "LWLock:LockManager": 321, "other": 1291 },
+    "metrics": {},
+    "settings": { "max_locks_per_transaction": "64" },
+    "prepared_part": { "name": "prepared_part", "partition_key": "HASH (id)", "partition_count": 64 },
+    "integrity": { "rowcount": 1280000, "checksum": "1699829724723696128710" }
+  },
+  "after": {
+    "wait_events": { "LWLock:LockManager": 872, "other": 3416 },
+    "metrics": { "post_wait_samples": 4288 },
+    "settings": { "max_locks_per_transaction": "64" },
+    "prepared_part": { "name": "prepared_part", "partition_key": "HASH (id)", "partition_count": 64 },
+    "integrity": { "rowcount": 1280000, "checksum": "1699829724723696128710" }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "seeds": {
+    "1": {
+      "ip": "192.0.2.1",
+      "name": "pgaibench-s1"
+    },
+    "2": {
+      "ip": "192.0.2.1",
+      "name": "pgaibench-s2"
+    },
+    "3": {
+      "ip": "192.0.2.1",
+      "name": "pgaibench-s3"
+    }
+  }
+}
