@@ -1,7 +1,27 @@
 # Site generator
 
-Static site for PG AI Bench. TypeScript + Bun, no client framework. Tables
-and charts are plain HTML and SVG; `assets/sort.js` only adds column sorting.
+Static site for PG AI Bench. TypeScript + Bun, no client framework. The site
+is text first: one system monospace font stack, no images, no SVG, no web
+fonts, no external requests. Charts are horizontal bars of block characters
+in `<pre>` (linear from zero; `█` up to the low end of the Wilson 95 percent
+interval, `▒` inside the interval below the value, `░` inside it above the
+value), each followed by a table with the same numbers. Outcome classes carry
+ASCII tags (`[ok]`, `[harm]`, `[stop]`, `[risk]`, `[esc]`, `[miss]`, `[rev]`,
+`[n/a]`). Light and dark themes follow `prefers-color-scheme`. The layout
+sits on a character grid (widths in `ch`, rhythm in line heights) with a
+bordered header table on every page; parts of the CSS are adapted from The
+Monospace Web (MIT, notice in `assets/style.css` and `NOTICE`). The home page
+has an ASCII title block and a blinking cursor (CSS only, off under
+`prefers-reduced-motion`).
+`assets/sort.js` only adds column sorting; every page is complete without it.
+
+All internal links are relative (directory links name `index.html`, so the
+build also opens from `file://`). Only `404.html` has a `<base>` element set
+to `BASE`, because GitHub Pages serves it at any path. External links are the
+repository and the fixed `CITATIONS` list in `src/pages.ts`; other URLs (for
+example scenario provenance) are printed as text. The build writes
+`.nojekyll`, `leaderboard/index.txt` (plain-text twin of the results page)
+and, with results, `data/results.json`.
 
 ## Build
 
@@ -27,6 +47,7 @@ bun test site
 | `OUT_OF_SET` | Scenarios out of the set. Default `site/data/out-of-v01.json`. |
 | `BASE` | URL base path, default `/pgaibench/`. |
 | `OUT` | Output directory, default `site/dist`. |
+| `CNAME` | Custom domain for GitHub Pages, for example `pgaibench.dev` (use with `BASE=/`). Writes a `CNAME` file. Not set by default. |
 
 ## Inputs
 

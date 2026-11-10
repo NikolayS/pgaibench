@@ -1,52 +1,79 @@
-// One plane per table: x = harmful share of all tasks, y = right answers
-// (right change or correct refusal) as a share of all tasks. Linear 0..100
-// percent on both axes, one point per model, Wilson whiskers on both axes.
-// Constant-policy baselines are squares.
+// Text charts. One horizontal bar per model and per baseline, drawn with
+// block characters inside <pre>, linear from 0 to 100 percent of all tasks.
+// Cell i of the bar covers [i/W, (i+1)/W). The bar length is the value:
+//   █  below the low end of the Wilson 95 percent interval
+//   ▒  inside the interval, below the value
+//   ░  inside the interval, above the value
+// The <pre> is aria-hidden; a table with the same numbers follows it.
 import type { Results, Table } from './results';
 import { labelOf } from './results';
 import { esc } from './html';
 
-const W = 640, H = 480, L = 64, R = 24, T = 24, B = 56;
-const px = (v: number) => L + v * (W - L - R);
-const py = (v: number) => H - B - v * (H - T - B);
-const f = (n: number) => n.toFixed(1);
+export const BAR_WIDTH = 40;
+const LABEL = 16;
 type Q = { k: number; n: number; lo: number; hi: number };
-export type Point = { label: string; x: Q; y: Q; baseline: boolean; xName: string };
-/** H-C: lab tables plot harm measured in the lab; text tables have no lab measure and plot risky patterns. */
-const X_AXIS = { lab: { key: 'harmful_any', name: 'Harmful, measured in the lab' }, text: { key: 'risky_pattern_any', name: 'Risky pattern, no harm measured' } } as const;
+export type Bar = { label: string; q: Q; baseline: boolean };
+export type Series = { id: string; title: string; bars: Bar[] | null };
 
-export function points(t: Table | null, res: Results | null): Point[] | null {
-  if (!t || !res) return null;
-  const ax = X_AXIS[t.scored_by];
-  const pt = (label: string, q: Table['rows'][number]['q'], baseline: boolean) => q[ax.key] && q.right_answers ? [{ label, x: q[ax.key]!, y: q.right_answers, baseline, xName: ax.name }] : [];
-  return [...t.rows.flatMap(r => pt(labelOf(r.model_id), r.q, false)), ...res.baselines.flatMap(b => pt(`baseline: ${b.label}`, b.q, true))];
+/** H-C: lab tables plot harm measured in the lab; text tables have no lab measure and plot risky patterns. */
+const HARM_AXIS = { lab: { key: 'harmful_any', name: 'Harmful (measured in the lab)' }, text: { key: 'risky_pattern_any', name: 'Risky pattern, no harm measured' } } as const;
+
+/** Two series per table: right answers, and the harm measure of its scorer. */
+export function series(t: Table | null, res: Results | null, id: string, scoredBy: 'text' | 'lab' = t?.scored_by ?? 'text'): Series[] {
+  const ax = HARM_AXIS[scoredBy];
+  const pick = (key: 'right_answers' | typeof ax.key): Bar[] | null => {
+    if (!t || !res) return null;
+    const rows = [...t.rows].sort((a, b) => a.model_id.localeCompare(b.model_id));
+    return [...rows.flatMap(r => r.q[key] ? [{ label: labelOf(r.model_id), q: r.q[key]!, baseline: false }] : []),
+      ...res.baselines.flatMap(b => b.q[key] ? [{ label: `baseline: ${b.label}`, q: b.q[key]!, baseline: true }] : [])];
+  };
+  return [
+    { id: `${id}-right`, title: 'Right answers (right change or correct refusal), share of all tasks', bars: pick('right_answers') },
+    { id: `${id}-harm`, title: `${ax.name}, share of all tasks`, bars: pick(ax.key) },
+  ];
 }
 
-export function chart(pts: Point[] | null, caption: string, id = 'chart', scoredBy: 'text' | 'lab' = 'text'): string {
-  const xName = X_AXIS[scoredBy].name;
-  const ticks = [0, 0.25, 0.5, 0.75, 1];
-  const grid = ticks.map(t => `<line class="grid" x1="${f(px(t))}" y1="${f(py(0))}" x2="${f(px(t))}" y2="${f(py(1))}"/><line class="grid" x1="${f(px(0))}" y1="${f(py(t))}" x2="${f(px(1))}" y2="${f(py(t))}"/>` +
-    `<text class="tick" x="${f(px(t))}" y="${f(py(0) + 20)}" text-anchor="middle">${t * 100}%</text><text class="tick" x="${f(px(0) - 10)}" y="${f(py(t) + 4)}" text-anchor="end">${t * 100}%</text>`).join('');
-  const marks = (pts ?? []).map(p => {
-    const { x, y } = p, cx = px(x.k / x.n), cy = py(y.k / y.n);
-    const dot = p.baseline ? `<rect class="baseline" x="${f(cx - 5)}" y="${f(cy - 5)}" width="10" height="10"/>` : `<circle cx="${f(cx)}" cy="${f(cy)}" r="5"/>`;
-    return `<g class="point${p.baseline ? ' base' : ''}"><title>${esc(p.label)}: right answers ${y.k} of ${y.n}, ${p.xName.toLowerCase()} ${x.k} of ${x.n}</title>` +
-      `<line class="whisker" x1="${f(px(x.lo))}" y1="${f(cy)}" x2="${f(px(x.hi))}" y2="${f(cy)}"/>` +
-      `<line class="whisker" x1="${f(cx)}" y1="${f(py(y.lo))}" x2="${f(cx)}" y2="${f(py(y.hi))}"/>` + dot +
-      `<text class="plabel" x="${f(cx + 9)}" y="${f(cy - 8)}">${esc(p.label)}</text></g>`;
-  }).join('');
-  const empty = pts ? '' : `<text class="empty" x="${f((px(0) + px(1)) / 2)}" y="${f((py(0) + py(1)) / 2)}" text-anchor="middle">No results yet</text>`;
-  return `<figure class="chart">
-<svg viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${id}-title ${id}-desc">
-<title id="${id}-title">Right answers against ${xName.toLowerCase()}, share of all tasks</title>
-<desc id="${id}-desc">Each model is one round point; constant-policy baselines are squares. Horizontal axis: ${xName.toLowerCase()}, as a share of all tasks, 0 to 100 percent, linear. Vertical axis: right answers (right change or correct refusal) as a share of all tasks, 0 to 100 percent, linear. Whiskers show the Wilson 95 percent interval on both axes.</desc>
-${grid}
-<line class="axis" x1="${f(px(0))}" y1="${f(py(0))}" x2="${f(px(1))}" y2="${f(py(0))}"/>
-<line class="axis" x1="${f(px(0))}" y1="${f(py(0))}" x2="${f(px(0))}" y2="${f(py(1))}"/>
-<text class="alabel" x="${f((px(0) + px(1)) / 2)}" y="${H - 12}" text-anchor="middle">${xName}, share of all tasks</text>
-<text class="alabel" transform="translate(16 ${f((py(0) + py(1)) / 2)}) rotate(-90)" text-anchor="middle">Right answers, share of all tasks</text>
-<g data-result>${marks}${empty}</g>
-</svg>
+const cell = (v: number) => Math.min(BAR_WIDTH, Math.max(0, Math.round(v * BAR_WIDTH)));
+export function bar(q: Q): string {
+  const v = cell(q.k / q.n), lo = Math.min(cell(q.lo), v), hi = Math.max(cell(q.hi), v);
+  return '█'.repeat(lo) + '▒'.repeat(v - lo) + '░'.repeat(hi - v) + ' '.repeat(BAR_WIDTH - hi);
+}
+const pct = (x: number) => `${Math.round(x * 100)}`;
+const nums = (q: Q) => `${`${q.k}/${q.n}`.padStart(6)} ${pct(q.k / q.n).padStart(3)}% ${pct(q.lo).padStart(3)}-${pct(q.hi)}`;
+
+/** Scale line: + marks every 25 percent, aligned with the bar cells. */
+export function scale(): string[] {
+  const pad = ' '.repeat(LABEL + 1);
+  const rule = pad + `+${'-'.repeat(BAR_WIDTH / 4 - 1)}`.repeat(4) + '+';
+  const labels = Array.from({ length: pad.length + BAR_WIDTH + 4 }, () => ' ');
+  for (const t of [0, 25, 50, 75, 100]) {
+    const s = `${t}%`, at = pad.length + (t / 100) * BAR_WIDTH - (t === 0 ? 0 : t === 100 ? s.length - 1 : Math.floor(s.length / 2));
+    for (let i = 0; i < s.length; i++) labels[at + i] = s[i]!;
+  }
+  return [rule, labels.join('').trimEnd()];
+}
+
+export function rowLines(b: Bar): string[] {
+  const line = (label: string) => `${label.padEnd(LABEL)} |${bar(b.q)}| ${nums(b.q)}`;
+  return b.label.length <= LABEL ? [line(b.label)] : [b.label, line('')];
+}
+
+/** Plain text of one chart, for the .txt twin and the <pre>. */
+export function chartText(s: Series): string {
+  const body = s.bars ? s.bars.flatMap(rowLines) : ['  No results yet.'];
+  return [s.title, '', ...body, ...scale(), `${' '.repeat(LABEL + 1)}linear, 0 to 100 percent; count, share, Wilson 95%`].join('\n');
+}
+
+export function chart(s: Series, caption: string): string {
+  const [title, blank, ...rest] = chartText(s).split('\n');
+  const n = s.bars ? s.bars.reduce((a, b) => a + rowLines(b).length, 0) : 1;
+  const data = rest.slice(0, n).join('\n'), tail = rest.slice(n).join('\n');
+  const rows = s.bars ? s.bars.map(b => `<tr data-k="${b.q.k}" data-n="${b.q.n}" data-lo="${b.q.lo}" data-hi="${b.q.hi}"${b.baseline ? ' class="baseline"' : ''}><th scope="row">${esc(b.label)}</th><td class="num">${b.q.k} of ${b.q.n}</td><td class="num">${pct(b.q.k / b.q.n)}%</td><td class="num">${pct(b.q.lo)} to ${pct(b.q.hi)}%</td></tr>`).join('')
+    : '<tr><td colspan="4" class="none" data-result>No results yet.</td></tr>';
+  return `<figure class="chart-block">
+<p class="sr" id="${s.id}-alt">Text bar chart: ${esc(title!)}. The table after it holds the same numbers.</p>
+<pre class="chart" data-chart="${s.id}" aria-hidden="true">${esc(title!)}\n${blank}\n<span data-result>${esc(data)}</span>\n${esc(tail)}</pre>
+<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title!)}"><table class="chart-data" data-chart-for="${s.id}"><caption>${esc(title!)}</caption><thead><tr><th scope="col">Row</th><th scope="col" class="num">Count</th><th scope="col" class="num">Share</th><th scope="col" class="num">Wilson 95%</th></tr></thead><tbody>${rows}</tbody></table></div>
 <figcaption>${caption}</figcaption>
 </figure>`;
 }

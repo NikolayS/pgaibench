@@ -12,7 +12,7 @@ const html = (m: Map<string, string>) => [...m].filter(([p]) => p.endsWith('.htm
 
 describe('preview state', () => {
   test('every page shows the preview banner', () => {
-    for (const m of [plain, withFixture]) for (const [p, doc] of html(m)) expect(doc, p).toMatch(/<div class="banner"[^>]*>[\s\S]*Preview, not published\./);
+    for (const m of [plain, withFixture]) for (const [p, doc] of html(m)) expect(doc, p).toMatch(/<p class="banner"[^>]*>[\s\S]*Preview, not published\./);
   });
   test('a preview build can show fixture data and says so', () => {
     const lb = withFixture.get('leaderboard/index.html')!;

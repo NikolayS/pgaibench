@@ -34,14 +34,15 @@ describe('preview build (PUBLISHED=false)', () => {
   test('leaderboard has the column headers and an empty chart', () => {
     const lb = preview.get('leaderboard/index.html')!;
     for (const h of ['tracks by access path', 'never pooled', 'Wilson 95 percent interval']) expect(lb).toContain(h);
-    expect(lb).toContain('<svg');
-    expect(lb).not.toContain('class="point"');
+    expect(lb).toContain('<pre class="chart"');
+    expect(lb).not.toContain('data-k=');
     expect(lb).not.toMatch(/model-a/);
   });
-  test('links use the base path', () => {
+  test('links are relative to the page', () => {
     const home = preview.get('index.html')!;
-    expect(home).toContain('href="/pgaibench/method/"');
-    expect(home).not.toMatch(/href="\/(?!pgaibench\/)/);
+    expect(home).toContain('href="method/index.html"');
+    expect(preview.get('scenarios/L1/index.html')!).toContain('href="../../method/index.html"');
+    expect(home).not.toMatch(/href="\//);
   });
   test('no held-out id appears anywhere', () => {
     assertNoHeldOutSite(preview);
@@ -61,7 +62,7 @@ describe('preview build (PUBLISHED=false)', () => {
   });
   test('external links are full links', () => {
     for (const [p, doc] of html(preview))
-      for (const m of doc.matchAll(/href="([^"]+)"/g)) expect(m[1]!, p).toMatch(/^(https:\/\/|\/pgaibench\/|#)/);
+      for (const m of doc.replace(/<base href="[^"]*">/, '').matchAll(/href="([^"]+)"/g)) expect(m[1]!, p).toMatch(/^(https:\/\/|\.\.?\/|#|[A-Za-z0-9])/);
   });
   test('scenario page has task, fold, outcomes and placeholder grid', () => {
     const s = publicScenarios().find(x => x.id === 'L1')!;
@@ -87,8 +88,8 @@ describe('published build (fixture only)', () => {
     const lb = published.get('leaderboard/index.html')!;
     expect(lb).toContain('model-a');
     expect(lb).toMatch(/5 of 6 <small class="ci">44 to 97%/);
-    expect(lb.match(/class="point"/g)!.length).toBe(3);
-    expect(lb.match(/class="point base"/g)!.length).toBe(6);
+    expect(lb.match(/<tr data-k="\d+" data-n="\d+" data-lo="[\d.]+" data-hi="[\d.]+"><th/g)!.length).toBe(6); // text: 2 models x 2 charts, lab: 1 x 2
+    expect(lb.match(/<tr data-k[^>]*class="baseline">/g)!.length).toBe(12);
     expect(lb).not.toContain('No results yet.');
   });
   test('rows go by label, not by any rate', () => {
@@ -97,7 +98,7 @@ describe('published build (fixture only)', () => {
   });
   test('chart axes are linear 0 to 100 percent', () => {
     const lb = published.get('leaderboard/index.html')!;
-    for (const t of ['0%', '25%', '50%', '75%', '100%']) expect(lb).toContain(`>${t}<`);
+    expect(lb).toMatch(/<pre class="chart"[\s\S]*0%\s+25%\s+50%\s+75%\s+100%[\s\S]*linear, 0 to 100 percent/);
   });
   test('an invalid row fails the build', () => {
     expect(() => buildSite({ published: true, base: '/', resultsJson: { rows: [{ model_id: 'x' }] } })).toThrow();

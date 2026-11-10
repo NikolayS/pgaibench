@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
+import { BAR_WIDTH } from '../src/chart';
 
 const fixturePath = join(import.meta.dir, 'fixtures', 'results', 'results.json');
 const sites = [
@@ -9,22 +10,23 @@ const sites = [
   buildSite({ published: false, base: '/', resultsJson: JSON.parse(readFileSync(fixturePath, 'utf8')) }),
   buildSite({ published: true, base: '/', resultsPath: fixturePath, frozenPath: join(import.meta.dir, 'fixtures', 'frozen.example.json') }),
 ];
-const svgs = (doc: string) => doc.match(/<svg[\s\S]*?<\/svg>/g) ?? [];
-const ticks = (svg: string, anchor: 'middle' | 'end') => [...svg.matchAll(new RegExp(`<text class="tick" x="([\\d.]+)" y="([\\d.]+)" text-anchor="${anchor}">(\\d+)%</text>`, 'g'))]
-  .map(m => ({ pos: Number(anchor === 'middle' ? m[1] : m[2]), v: Number(m[3]) }));
+const pres = (doc: string) => doc.match(/<pre class="chart"[\s\S]*?<\/pre>/g) ?? [];
 
 describe('charts', () => {
-  test('every chart has linear, zero-based axes', () => {
+  test('every chart has a linear, zero-based scale: + marks equally spaced, 0% at the bar start', () => {
     let n = 0;
-    for (const s of sites) for (const [p, doc] of s) for (const svg of svgs(doc)) {
+    for (const s of sites) for (const [p, doc] of s) for (const pre of pres(doc)) {
       n++;
-      for (const a of ['middle', 'end'] as const) {
-        const t = ticks(svg, a);
-        expect(t.length, p).toBeGreaterThanOrEqual(3);
-        expect(t[0]!.v, p).toBe(0);
-        const per = (t[1]!.pos - t[0]!.pos) / (t[1]!.v - t[0]!.v);
-        for (const x of t) expect(Math.abs(x.pos - (t[0]!.pos + per * x.v)), `${p} ${a} ${x.v}`).toBeLessThan(0.2);
-      }
+      const lines = pre.replace(/<[^>]*>/g, '').split('\n');
+      const rule = lines.find(l => /^\s+\+-+\+/.test(l))!;
+      const plus = [...rule].flatMap((ch, i) => (ch === '+' ? [i] : []));
+      expect(plus.length, p).toBe(5);
+      for (let i = 1; i < plus.length; i++) expect(plus[i]! - plus[i - 1]!, p).toBe(BAR_WIDTH / 4);
+      const labels = lines[lines.indexOf(rule) + 1]!;
+      expect(labels.indexOf('0%'), p).toBe(plus[0]);
+      expect(labels.indexOf('50%') + 1, p).toBe(plus[2]);
+      const bars = lines.filter(l => /\|[█▒░ ]+\|/.test(l));
+      for (const l of bars) expect(l.indexOf('|'), p).toBe(plus[0]);
     }
     expect(n).toBeGreaterThan(0);
   });
