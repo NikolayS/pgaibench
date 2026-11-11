@@ -48,7 +48,7 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     expect(y0).toBeLessThan(ym);
     expect(y0).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
     for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(24);
-    if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(1.2); }
+    if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.8); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
   }
 });
 
@@ -103,4 +103,39 @@ test('pair pages: every pair once, differing tasks first, class and points for b
   const order = [...t.matchAll(/<th scope="row">([A-Z]\d+)<\/th>/g)].map(m => m[1]);
   expect(order.slice(0, 4).sort()).toEqual(['D5', 'D9', 'L1', 'R2']);
   expect(t).toMatch(/harmful.*-1/);
+});
+
+test('quadrant: an off-scale baseline mark never covers a tick label', () => {
+  const pts = [{ label: 'a', x: 19, y: 0, n: 1 }, { label: 'b', x: 3, y: 8, n: 2 }];
+  for (const width of [360, 760]) {
+    const s = quadrantSvg({ id: 'q', points: pts, xMax: 19, width, baselines: [{ label: 'trapped reference', x: 0, y: 19 }] });
+    const [, cx, cy] = /class="q-base" cx="([\d.]+)" cy="([\d.]+)"/.exec(s)!.map(Number);
+    for (const t of s.matchAll(/class="ch-tick" x="([\d.]+)" y="([\d.]+)" text-anchor="(end|middle)">([^<]*)</g)) {
+      const x = Number(t[1]), y = Number(t[2]), w = t[4]!.length * 8;
+      const x0 = t[3] === 'end' ? x - w : x - w / 2;
+      const ov = cx! + 9 > x0 && cx! - 9 < x0 + w && cy! + 9 > y - 11 && cy! - 9 < y + 2;
+      expect(ov, `${width} tick ${t[4]}`).toBe(false);
+    }
+  }
+});
+
+test('quadrant wide: direct name labels when every label fits, numbers for the whole plot otherwise', () => {
+  const sparse = [{ label: 'alpha', x: 19, y: 0, n: 1 }, { label: 'beta', x: 8, y: 4, n: 2 }];
+  const s = quadrantSvg({ id: 'q', points: sparse, xMax: 19, width: 760, names: true });
+  expect(s).toMatch(/class="q-name"[^>]*>alpha<\/text>/);
+  expect(s).not.toContain('class="q-num"');
+  const dense = [13, 14, 14, 15, 16, 17, 19, 3].map((x, i) => ({ label: `long-name-${i}`, x, y: x === 3 ? 8 : 0, n: i + 1 }));
+  const d = quadrantSvg({ id: 'q', points: dense, xMax: 19, width: 760, names: true });
+  expect(d).not.toContain('class="q-name"');
+  expect((d.match(/class="q-num"/g) ?? []).length).toBe(8);
+  expect(quadrantSvg({ id: 'q', points: sparse, xMax: 19, width: 360, names: true })).not.toContain('class="q-name"');
+});
+
+test('quadrant: a number mark never sits on a baseline edge mark', () => {
+  for (const width of [360, 760]) {
+    const s = quadrantSvg({ id: 'q', points: [{ label: 'a', x: 19, y: 0, n: 1 }, { label: 'b', x: 3, y: 8, n: 12 }], xMax: 19, width, baselines: [{ label: 't', x: 0, y: 19 }] });
+    const [, cx, cy] = /class="q-base" cx="([\d.]+)" cy="([\d.]+)"/.exec(s)!.map(Number);
+    const bottom = Number(/class="q-frame"[^>]*y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/.exec(s)!.slice(1, 3).reduce((a, b) => String(Number(a) + Number(b))));
+    for (const m of s.matchAll(/data-box="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/g)) { const [x0, y0, x1, y1] = m.slice(1, 5).map(Number); expect(y1!, 'mark below the frame, on the ticks').toBeLessThanOrEqual(bottom); expect(x0! < cx! + 6 && cx! - 6 < x1! && y0! < cy! + 6 && cy! - 6 < y1!, String(width)).toBe(false); }
+  }
 });

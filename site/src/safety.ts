@@ -50,8 +50,9 @@ type Box = { x0: number; y0: number; x1: number; y1: number };
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 /** Mark positions for numbered points: next to the point (above, below, right, left, then diagonals), never over another mark or point. Exported for the overlap test. */
-export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: number): { n: number; x: number; y: number; box: Box }[] {
-  const taken: Box[] = pts.map(p => ({ x0: p.cx - 5, y0: p.cy - 5, x1: p.cx + 5, y1: p.cy + 5 }));
+export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: number, extra: { cx: number; cy: number }[] = [], maxY = Infinity): { n: number; x: number; y: number; box: Box }[] {
+  const taken: Box[] = [...extra.map(p => ({ x0: p.cx - 11, y0: p.cy - 7, x1: p.cx + 7, y1: p.cy + 7 })), ...pts.map(p => ({ x0: p.cx - 5, y0: p.cy - 5, x1: p.cx + 5, y1: p.cy + 5 }))];
+  
   const out: { n: number; x: number; y: number; box: Box }[] = [];
   // points that share a row alternate above and below, left to right
   const order = [...pts].sort((a, b) => a.cy - b.cy || a.cx - b.cx);
@@ -63,16 +64,31 @@ export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: numb
     const cands = [...(k % 2 ? [below, above] : [above, below]), { x: p.cx + 7, y: p.cy + 5 }, { x: p.cx - 7 - w, y: p.cy + 5 },
       { x: p.cx + 5, y: p.cy - 7 }, { x: p.cx - 5 - w, y: p.cy - 7 }, { x: p.cx + 5, y: p.cy + 7 + h }, { x: p.cx - 5 - w, y: p.cy + 7 + h },
       { x: p.cx - w / 2, y: p.cy - 22 }, { x: p.cx - w / 2, y: p.cy + 21 + h }];
-    let c = cands.find(q => { const bx = { x0: q.x - 1, y0: q.y - h, x1: q.x + w + 1, y1: q.y + 1 }; return bx.x0 >= 0 && bx.x1 <= W && !taken.some(t => hit(t, bx)); }) ?? cands[0]!;
+    let c = cands.find(q => { const bx = { x0: q.x - 1, y0: q.y - h, x1: q.x + w + 1, y1: q.y + 1 }; return bx.x0 >= 0 && bx.x1 <= W && bx.y1 <= maxY && !taken.some(t => hit(t, bx)); }) ?? cands[0]!;
     const box = { x0: c.x - 1, y0: c.y - h, x1: c.x + w + 1, y1: c.y + 1 };
     taken.push(box); out.push({ n: p.n, x: c.x, y: c.y, box });
   }
   return out;
 }
 
+/** Direct name labels (wide plot): each label beside its point, inside the frame, clear of every point and label; null when any label does not fit. */
+export function placeNames(ps: { label: string; cx: number; cy: number }[], dots: { cx: number; cy: number }[], fr: Box): { label: string; x: number; y: number; box: Box }[] | null {
+  const taken: Box[] = dots.map(p => ({ x0: p.cx - 6, y0: p.cy - 6, x1: p.cx + 6, y1: p.cy + 6 }));
+  const out: { label: string; x: number; y: number; box: Box }[] = [];
+  for (const p of ps) {
+    const w = p.label.length * 8.4, h = 13;
+    const cands = [{ x: p.cx + 8, y: p.cy + 5 }, { x: p.cx - 8 - w, y: p.cy + 5 }, { x: p.cx - w / 2, y: p.cy - 9 }, { x: p.cx - w / 2, y: p.cy + 8 + h }];
+    const c = cands.find(q => { const b = { x0: q.x - 2, y0: q.y - h, x1: q.x + w + 2, y1: q.y + 2 }; return b.x0 >= fr.x0 && b.x1 <= fr.x1 && b.y0 >= fr.y0 - 14 && b.y1 <= fr.y1 && !taken.some(t => hit(t, b)); });
+    if (!c) return null;
+    const box = { x0: c.x - 2, y0: c.y - h, x1: c.x + w + 2, y1: c.y + 2 };
+    taken.push(box); out.push({ label: p.label, x: c.x, y: c.y, box });
+  }
+  return out;
+}
+
 /** Vertical: dangerous changes, 0 at the top, only the used range. Horizontal: tasks done, from the smallest done minus 1. Dashed lines at the medians (or the scale midpoints). Points carry numbers; the key is HTML under the plot. */
-export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMax?: number; width: number; origin?: 'median' | 'absolute'; baselines?: QPoint[]; line?: number }): string {
-  const W = o.width, phone = W < 500, L = 26, R = 14, TOP = 26, PH = Math.round(phone ? W * 1.2 : W * 0.5), PAD = 22, B = 34;
+export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMax?: number; width: number; origin?: 'median' | 'absolute'; baselines?: QPoint[]; line?: number; names?: boolean }): string {
+  const W = o.width, phone = W < 500, L = 26, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.68 : W * 0.5), PAD = 22, B = 34;
   const yMax = o.yMax ?? Math.max(1, Math.max(...o.points.map(p => p.y)));
   const xMin = Math.max(0, Math.min(...o.points.map(p => p.x)) - 1);
   const X = (v: number) => L + (Math.max(xMin, Math.min(o.xMax, v)) - xMin) / (o.xMax - xMin) * (W - L - R);
@@ -88,15 +104,20 @@ export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMa
   out.push(`<rect class="q-frame" x="${L}" y="${TOP}" width="${W - L - R}" height="${PH}"/>`);
   out.push(`<line class="q-mid" x1="${n1(X(ox))}" y1="${TOP}" x2="${n1(X(ox))}" y2="${TOP + PH}"/><line class="q-mid" x1="${L}" y1="${n1(Y(oy))}" x2="${W - R}" y2="${n1(Y(oy))}"/>`);
   out.push(`<text class="ch-group" x="${L}" y="16">dangerous changes</text><text class="ch-group" x="${W - R}" y="${TOP + PH + B - 2}" text-anchor="end">tasks done</text>`);
+  const bmarks: { cx: number; cy: number }[] = [];
   for (const b of o.baselines ?? []) {
-    const offX = b.x < xMin || b.x > o.xMax, offY = b.y > yMax || b.y < 0, cx = X(b.x), cy = Y(b.y);
-    out.push(`<circle class="q-base" cx="${n1(cx)}" cy="${n1(cy)}" r="5"/>`);
+    const offX = b.x < xMin || b.x > o.xMax, offY = b.y > yMax || b.y < 0;
+    // off-scale marks sit just inside the frame, clear of the tick labels outside it
+    const cx = X(b.x) + (b.x < xMin ? 9 : b.x > o.xMax ? -9 : 0), cy = Y(b.y) + (b.y > yMax ? -9 : 0);
+    out.push(`<circle class="q-base" cx="${n1(cx)}" cy="${n1(cy)}" r="5"/>`); bmarks.push({ cx, cy });
     if (offX) out.push(`<path class="q-arrow" d="M${n1(cx - 7)} ${n1(cy)}l6 -4v8z"/>`);
     if (offY) out.push(`<path class="q-arrow" d="M${n1(cx)} ${n1(cy + 7)}l-4 -6h8z"/>`);
   }
   const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: X(p.x), cy: Y(p.y) }));
   for (const p of pts) out.push(`<circle class="q-pt" cx="${n1(p.cx)}" cy="${n1(p.cy)}" r="4"/>`);
-  for (const m of placeMarks(pts, W)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
+  const named = !phone && o.names ? placeNames(o.points.map((p, i) => ({ label: p.label, cx: pts[i]!.cx, cy: pts[i]!.cy })), [...pts, ...(o.baselines ?? []).map(b => ({ cx: X(b.x), cy: Y(b.y) }))], { x0: L, y0: TOP, x1: W - R, y1: TOP + PH }) : null;
+  if (named) for (const m of named) out.push(`<text class="q-name" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${esc(m.label)}</text>`);
+  else for (const m of placeMarks(pts, W, bmarks, TOP + PH - 1)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
   const H = Math.ceil((TOP + PH + B + 6) / 20) * 20, k = Math.ceil(H / (o.line ?? 20));
   const aria = `Dangerous changes written against tasks done, one numbered point per configuration; the key under the plot names them. ${o.points.filter(p => p.y === 0).length} of ${o.points.length} configurations wrote no dangerous change.`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}" data-chart="${esc(o.id)}" data-origin-x="${ox}" data-origin-y="${oy}" data-xmin="${xMin}" data-y0="${n1(Y(0))}" data-ymax="${n1(Y(yMax))}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>Dangerous changes and tasks done</title><desc>Scatter plot. Vertical: dangerous changes written, 0 at the top. Horizontal: tasks done, from ${xMin} to ${o.xMax}. Dashed lines: ${origin === 'median' ? 'the medians of the configurations' : 'the middle of each scale'}.</desc>${out.join('')}</svg>`;
@@ -106,7 +127,7 @@ export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMa
 export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption: string }): string {
   const pts = o.points.map((p, i) => ({ ...p, n: p.n ?? i + 1 }));
   const narrow = quadrantSvg({ ...o, points: pts, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
-  const wide = quadrantSvg({ ...o, points: pts, width: 760 }).replace('<svg ', '<svg class="chart-wide" ');
+  const wide = quadrantSvg({ ...o, points: pts, width: 760, names: true }).replace('<svg ', '<svg class="chart-wide" ');
   const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}">${esc(p.label)} <span class="dim">(${p.y}, ${p.x})</span></li>`).join('')}</ol>`;
   const xMin = Math.max(0, Math.min(...o.points.map(p => p.x)) - 1), yMax = o.yMax ?? Math.max(1, ...o.points.map(p => p.y));
   const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${b.y}, ${b.x}${b.x < xMin || b.y > yMax ? ', off the scale' : ''})`).join(', ');
