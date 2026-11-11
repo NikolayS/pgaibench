@@ -43,14 +43,15 @@ test('profile: the table numbers equal the chart numbers; models alphabetical, n
       const line = chart.split('\n').find(l => l.startsWith(r.model_id.split('/')[1]!))!;
       const bar = /\|(.*)\|/.exec(line)![1]!;
       for (const k of PROFILE_CLASSES) expect([...bar].filter(ch => ch === PROFILE_CHAR[k]).length / PER_TASK).toBe(r.counts[k]);
-      const rowHtml = new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]}</th>(.*?)</tr>`).exec(doc)![1]!;
+      const prof = doc.slice(doc.indexOf('<figure class="profile" id="profile">'));
+      const rowHtml = [...prof.slice(0, prof.indexOf('</figure>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]}</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
       const nums = [...rowHtml.matchAll(/data-class="(\w+)">(\d+)</g)].map(m => [m[1], Number(m[2])]);
       expect(Object.fromEntries(nums)).toEqual(r.counts);
     }
   }
   expect(doc.indexOf('id="profile"')).toBeLessThan(doc.indexOf('Track: '));
   expect(finalSite.get('leaderboard/index.txt')).toContain('Outcome profile: what happened to each of the');
-  expect(finalSite.get('index.html')).toContain('id="profile-home"');
+  expect(finalSite.get('index.html')).toContain('id="rating-home"');
   expect(doc).toContain('We do not combine these classes into one score: the classes differ in cost, and at this sample size models are not separated.');
 });
 

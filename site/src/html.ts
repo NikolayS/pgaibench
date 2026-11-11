@@ -54,7 +54,7 @@ export function page(c: Ctx, o: { path: string; title: string; body: string; led
 ${o.path === '404' ? `<base href="${c.base}">\n` : ''}<link rel="stylesheet" href="${link(c, 'assets/style.css')}">
 </head>
 <body>
-<div class="wrap">
+<div class="wrap${/^(leaderboard|grid|data)\//.test(o.path) ? ' wide' : ''}">
 <a class="skip" href="#main">skip to content</a>
 ${banner}
 <header class="top"><nav class="nav" aria-label="Main">${navLine(c, NAV, o.path)}</nav></header>

@@ -24,9 +24,10 @@ describe('no ordering and no comparison claims in generated pages', () => {
   const { join } = require('node:path') as typeof import('node:path');
   const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
   const sites = [site, buildSite({ published: true, base: '/', resultsPath: fx('results/results.json'), frozenPath: fx('frozen.example.json') })];
-  const BANNED = /\bsafer\b|\bbetter than\b|\bworse than\b|\bbest model|\bworst model|\bwinner\b|\bmore reliable than\b|\branks?\b|\branked\b|\branking\b|\btiers?\b|over-?cautious|right-thing rate|leaderboard position/i;
+  const BANNED = /\bsafer\b|\bbetter than\b|\bworse than\b|\bbest model|\bworst model|\bwinner\b|\bmore reliable than\b|\branks?\b|\branked\b|\branking\b|\btiers?\b|\bbest\b|\bbeats?\b|\bmedals?\b|over-?cautious|right-thing rate|leaderboard position/i;
+  // The one ordered element is the rating chart with its fixed wording; nothing else orders models.
   test('no page says one model is safer or better, and no page ranks or tiers models', () => {
-    for (const s of sites) for (const [p, doc] of s) if (p.endsWith('.html')) expect(doc.replace(/<[^>]*>/g, ' '), p).not.toMatch(BANNED);
+    for (const s of sites) for (const [p, doc] of s) if (p.endsWith('.html')) expect(doc.replace(/<pre class="prompt"[\s\S]*?<\/pre>/g, '').replace(/<[^>]*>/g, ' '), p).not.toMatch(BANNED); // the frozen model input is quoted as is
   });
   test('the generated markdown report passes the same scan', async () => {
     const { buildModelReport, renderModelReport } = await import('../../src/analysis/model-report');

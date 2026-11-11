@@ -117,8 +117,8 @@ describe('text charts', () => {
   test('baselines are labelled rows in every result chart', () => {
     const lb = sites.published.get('leaderboard/index.html')!;
     for (const c of charts(lb)) {
-      expect(c.body).toContain('baseline: always escalate');
-      expect(c.body).toContain('baseline: always act with the good reference');
+      expect(c.body).toContain('Baseline (no model): always escalate');
+      expect(c.body).toContain('Baseline (no model): always our safe reference change');
     }
   });
   test('an empty chart shows the scale and no digit in its result region', () => {
@@ -205,7 +205,7 @@ describe('page structure', () => {
     const txt = sites.published.get('leaderboard/index.txt')!;
     expect(txt).not.toMatch(/<[a-z]/i);
     expect(txt).toContain('PG AI Bench');
-    expect(txt).toContain('baseline: always escalate');
+    expect(txt).toContain('Baseline (no model): always escalate');
     expect(txt).toContain('not separated at this sample size');
     expect(JSON.parse(sites.published.get('data/results.json')!).scenario_set).toBe(fixture().scenario_set);
     for (const m of lb.matchAll(/data-k="(\d+)" data-n="(\d+)"/g)) expect(txt).toContain(`${m[1]}/${m[2]}`);

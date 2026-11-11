@@ -46,6 +46,14 @@
 html { -webkit-text-size-adjust: 100%; overflow-x: hidden; background: var(--bg); color: var(--ink); }
 body { margin: 0; font-family: var(--mono); line-height: var(--lh); overflow-wrap: anywhere; }
 .wrap { width: 100%; max-width: calc(min(80ch, round(down, 100%, 1ch))); margin: 0 auto; padding: var(--lh) 2ch calc(var(--lh) * 2); }
+/* Results, grid and data pages: a wider measure for tables; prose stays near 80ch. */
+.wrap.wide { max-width: calc(min(112ch, round(down, 100%, 1ch))); }
+table, th, td { overflow-wrap: normal; word-break: normal; }
+th[scope="row"], thead th, td.num, .baseline th { white-space: nowrap; }
+.sep { border-left-width: calc(var(--bw) * 3); }
+.scroll-hint { display: none; margin: 0; color: var(--muted); }
+@media (max-width: 75rem) { .scroll-hint { display: block; } }
+ul.legend { columns: 2; max-width: none; } ul.legend li { break-inside: avoid; }
 a { color: var(--accent); text-decoration-thickness: var(--bw); text-underline-offset: 2px; }
 a[aria-current="page"] { color: var(--ink); text-decoration: none; font-weight: 800; }
 :focus-visible { outline: var(--bw) solid var(--accent); outline-offset: 1px; }
@@ -72,8 +80,6 @@ h1, h2, h3, h4 { font-family: inherit; font-weight: 800; font-size: 1rem; line-h
 h1 { font-size: 1.6rem; line-height: calc(var(--lh) * 2); text-transform: uppercase; margin: 0; }
 h2 { text-transform: uppercase; }
 h2::before { content: "# "; color: var(--muted); }
-h3::before { content: "## "; color: var(--muted); }
-h4::before { content: "### "; color: var(--muted); }
 h2 small, h1 small { font-weight: 400; color: var(--muted); }
 ul { padding-left: 2ch; list-style: none; } ul > li::before { content: "- "; margin-left: -2ch; }
 ol { padding-left: 4ch; }
