@@ -323,3 +323,9 @@ ol.qkey li { white-space: nowrap; }
 @media (max-width: 40rem) { .desk-only { display: none; } }
 @media (min-width: 40.01rem) { .phone-only { display: none; } }
 svg[data-chart] .q-name { fill: var(--ink); stroke: var(--bg); stroke-width: 3; paint-order: stroke; }
+
+/* A configuration that fails the inclusion rule: shown, greyed, no place. */
+tr.excluded th, tr.excluded td { color: var(--muted); }
+table.compact tr.excluded th[scope="row"] { white-space: normal; }
+/* 320 px phones: the compact tables shrink a little and row names may wrap, so they fit with decimals. */
+@media (max-width: 21rem) { .wrap table.compact { font-size: 0.8em; } .wrap table.compact th, .wrap table.compact td { padding-left: 0.25ch; padding-right: 0.25ch; } .wrap table.compact tbody th[scope="row"] { white-space: normal; } }
