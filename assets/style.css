@@ -83,7 +83,7 @@ p, li, dd { max-width: 80ch; }
 
 /* title block and report header */
 pre.title { margin: 0 0 var(--lh); line-height: 1; font-size: 1em; overflow: hidden; color: var(--ink); }
-pre.head .prompt { color: var(--muted); }
+.head .prompt { color: var(--muted); } .head p { margin: 0; } .head { margin: 0 0 var(--lh); }
 .cursor { animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
@@ -168,7 +168,6 @@ th[scope="row"], tbody th, td:first-child, th:first-child, td.num, .baseline th 
 thead th, thead th.num { white-space: normal; vertical-align: bottom; min-width: 4ch; }
 thead th:first-child { white-space: nowrap; }
 
-@media (max-width: 480px) { :root { font-size: 13px; } .wrap { padding: var(--lh) 1ch; } pre.title { font-size: 0.8em; } }
 @media print { .banner, .nav, .skip { display: none; } }
 
 /* Chart bar cells: spans of spaces with a pattern each, same width as text (bars.ts). */
@@ -188,3 +187,64 @@ thead th:first-child { white-space: nowrap; }
 .bx-empty { background: var(--soft); box-shadow: inset 0 0 0 1px var(--muted); }
 .bx-ring { background: radial-gradient(circle, transparent 1.2px, var(--c) 1.4px 2.2px, transparent 2.4px) 0 0 / 6px 6px; }
 .bx-diamond { background: repeating-linear-gradient(45deg, var(--c) 0 1px, transparent 1px 3px), linear-gradient(var(--soft), var(--soft)); }
+
+/* key: value blocks: two columns, the key column as wide as the longest key (--kw), values wrap in their column. */
+dl.kv-grid { display: grid; grid-template-columns: var(--kw, 20ch) minmax(0, 1fr); column-gap: 1ch; }
+dl.kv-grid dt { font-weight: 400; grid-column: 1; }
+dl.kv-grid:not(.nocolon) dt:not(:empty)::after { content: ":"; }
+dl.kv-grid dd { grid-column: 2; margin: 0; max-width: none; }
+
+/* Narrow-screen variants (charts, diagram): hidden on wide screens. */
+.narrow-only { display: none; }
+.nrow { margin: 0 0 calc(var(--lh) / 2); }
+.nrow-bar { display: flex; align-items: center; gap: 1ch; }
+.nrow-v { min-width: 4ch; text-align: right; white-space: nowrap; }
+.nrow-sub { color: var(--muted); }
+.nrow-track { margin: var(--lh) 0 calc(var(--lh) / 2); font-weight: 800; }
+.fb { position: relative; display: block; flex: 1 1 auto; min-width: 0; height: var(--lh); border-left: 1px solid var(--ink); border-right: 1px solid var(--ink); }
+.fb > .bx { position: absolute; top: 15%; bottom: 15%; }
+.fb-zero { position: absolute; top: 0; bottom: 0; width: 0; border-left: var(--bw) solid var(--ink); }
+.fb-axis { border: 0; border-top: 1px solid var(--ink); }
+.fb-tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; color: var(--muted); }
+.fb-tick.first { transform: none; } .fb-tick.last { transform: translateX(-100%); }
+.fb-tick::before { content: ""; position: absolute; left: 50%; top: -0.3em; height: 0.3em; border-left: 1px solid var(--ink); }
+.fb-tick.first::before { left: 0; } .fb-tick.last::before { left: auto; right: 0; }
+ol.aaa-list { padding-left: 4ch; }
+
+/* Phones: 40rem and below. Body text 15px, tables 13px, no sideways scrolling except the matrix. */
+@media (max-width: 40rem) {
+  :root { font-size: 15px; }
+  .wrap { padding: var(--lh) 1.25ch calc(var(--lh) * 2); }
+  pre.chart, pre.rating-chart, pre.profile-chart, pre.aaa { display: none; }
+  .narrow-only { display: block; margin: 0 0 var(--lh); }
+  pre.title { font-size: min(0.92em, calc((100vw - 3ch) / 33)); }
+  .nav a, .theme button { display: inline-flex; align-items: center; min-height: 40px; padding: 0 0.5ch; }
+  .nav { line-height: 40px; }
+  table { font-size: 0.875em; }
+  dl.kv-grid { display: block; }
+  dl.kv-grid dt { font-weight: 800; }
+  dl.kv-grid dt:empty { display: none; }
+  dl.kv-grid dd { margin: 0 0 calc(var(--lh) / 2); }
+  dl.kv-grid.nocolon dt { margin-top: calc(var(--lh) / 2); }
+  .facts > div { flex-wrap: wrap; } .facts dt { min-width: 0; }
+  ul.legend { columns: 1; }
+  .scroll-hint { display: none; } .scroll-hint.matrix-hint { display: block; }
+  .table-scroll:not(:has(table.matrix)) { overflow-x: visible; }
+  table:not(.header):not(.matrix), table:not(.header):not(.matrix) > tbody, table:not(.header):not(.matrix) > tfoot, table:not(.header):not(.matrix) > * > tr, table:not(.header):not(.matrix) > * > tr > td, table:not(.header):not(.matrix) > * > tr > th { display: block; width: auto; }
+  table:not(.header):not(.matrix) { border: 0; width: 100%; }
+  table:not(.header):not(.matrix) > thead, table:not(.header):not(.matrix) > caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  table:not(.header):not(.matrix) > * > tr { border: var(--bw) solid var(--line); padding: calc(var(--lh) / 4) 1ch; margin: 0 0 calc(var(--lh) / 2); }
+  table:not(.header):not(.matrix) > * > tr > td, table:not(.header):not(.matrix) > * > tr > th { border: 0; padding: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  table:not(.header):not(.matrix) > * > tr > th { font-weight: 800; }
+  table:not(.header):not(.matrix) td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 400; }
+  table:not(.header):not(.matrix) td:empty { display: none; }
+}
+@media (max-width: 40rem) {
+  table.header { width: 100%; }
+  table.header > tbody { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  table.header tr { display: contents; }
+  table.header th, table.header td { display: block; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  .header td.width-auto { grid-column: 1 / -1; width: auto; }
+  .header td:last-child { text-align: left; }
+}
+.ni { white-space: nowrap; }
