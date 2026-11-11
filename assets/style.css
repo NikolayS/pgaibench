@@ -32,7 +32,7 @@
   --bw: 2px;
   --bg: #fbfbf8; --ink: #141414; --muted: #5f5f5a; --line: #141414; --soft: #eeeee9;
   --accent: #1d43a6; --bar: var(--ink); --chart: #8094cc;
-  --fam-anthropic: #0b67a8; --fam-openai: #c4520b; --fam-google: #007a5a; --fam-open: #a8448a;
+  --fam-anthropic: #c4603c; --fam-openai: #0b7d62; --fam-google: #2b6fe0; --fam-open: #8e4ba8;
   color-scheme: light dark;
   font-family: var(--mono);
   font-size: 16px;
@@ -44,13 +44,13 @@
   :root:not([data-theme="light"]) {
     --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
     --accent: #93acff; --bar: #93acff; --chart: #4f64a6;
-    --fam-anthropic: #5cb8f0; --fam-openai: #f39a5c; --fam-google: #3fcf9f; --fam-open: #e79ad0;
+    --fam-anthropic: #e08a6a; --fam-openai: #3dc79e; --fam-google: #7baaf7; --fam-open: #c99be0;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
   --accent: #93acff; --bar: #93acff; --chart: #4f64a6; color-scheme: dark;
-  --fam-anthropic: #5cb8f0; --fam-openai: #f39a5c; --fam-google: #3fcf9f; --fam-open: #e79ad0;
+  --fam-anthropic: #e08a6a; --fam-openai: #3dc79e; --fam-google: #7baaf7; --fam-open: #c99be0;
 }
 :root[data-theme="light"] { color-scheme: light; }
 .theme { white-space: nowrap; }
