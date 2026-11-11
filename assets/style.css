@@ -81,6 +81,7 @@ li { margin: 0; }
 
 pre { overflow-x: auto; overflow-y: hidden; font-family: inherit; line-height: var(--lh); white-space: pre; }
 pre.head, pre.kv { white-space: pre-wrap; }
+pre.answer { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40rem; overflow-y: auto; }
 pre.prompt { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40rem; overflow-y: auto; padding: 0 1ch; border-left: var(--bw) solid var(--line); }
 .url { overflow-wrap: anywhere; }
 
