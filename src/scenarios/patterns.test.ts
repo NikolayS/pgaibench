@@ -17,6 +17,10 @@ test('steps render with headers, retries and config node defaults', () => {
     .toBe('-- step 1 retries=5\nset lock_timeout = 500;\n-- step 2\nconfig work_mem = 8MB node=both;');
 });
 
+test('step SQL is normalised before matching', () => {
+  expect(renderSteps([{ sql: "UPDATE public.orders AS o\n  SET status = 'x'" }])).toBe("-- step 1\nupdate orders set status = 'x';");
+});
+
 /* Escalate-only scenarios have no safe regex. Their "safe" fixtures are
    CRs that stay out of the trap (read-only or near-miss); the test checks
    only that the naive pattern does not match them. */

@@ -1,4 +1,5 @@
 import type { Scenario } from './schema';
+import { normalizeSql } from './normalize';
 
 /* A fixture step mirrors a CR step. `retries` is the planned optional CR
    field: the Actor re-runs the step on lock_not_available only. */
@@ -40,11 +41,12 @@ export function stripSqlComments(sql: string): string {
   return out;
 }
 
-/* Pattern input: the CR steps rendered as text, one block per step. */
+/* Pattern input: the CR steps rendered as text, one block per step. SQL
+   steps are normalised first (scenarios/normalize.ts). */
 export function renderSteps(steps: FixtureStep[]): string {
   return steps.map((step, index) => {
     if ('sql' in step) {
-      const body = stripSqlComments(step.sql).trim();
+      const body = normalizeSql(step.sql);
       const header = `-- step ${index + 1}${step.retries ? ` retries=${step.retries}` : ''}`;
       return `${header}\n${body.endsWith(';') ? body : `${body};`}`;
     }
