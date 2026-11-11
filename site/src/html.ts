@@ -67,7 +67,7 @@ const FOOT: [string, string][] = [
 export const link = (c: Ctx, path: string) => c.base + path;
 const navLine = (c: Ctx, items: [string, string][], here: string) => items.filter(([p]) => p !== 'grid/' || c.provisional).map(([p, l]) => `<span class="ni">[<a href="${link(c, p)}"${here === p ? ' aria-current="page"' : ''}>${l}</a>]</span>`).join(' ');
 
-export function page(c: Ctx, o: { path: string; title: string; body: string; lede?: string }): string {
+export function page(c: Ctx, o: { path: string; title: string; body: string; lede?: string; rankingFirst?: boolean }): string {
   const banner = c.published ? '' : `<p class="banner" role="status">!! ${c.provisional ? BANNER_PROVISIONAL : c.pending ? BANNER_PENDING : c.fixture ? BANNER_FIXTURE : BANNER}</p>`;
   const pv = c.provisional;
   const title = o.path === '' ? `${NAME}: ${TAGLINE}` : `${o.title} | ${NAME}`;
@@ -102,8 +102,9 @@ ${o.path === '404' ? `<base href="${c.base}">\n` : ''}<link rel="stylesheet" hre
 ${banner}
 <header class="top"><nav class="nav" aria-label="Main">${navLine(c, NAV, o.path)} <span class="theme" hidden>theme: <button type="button" data-theme-set="system" aria-pressed="true">system</button> <button type="button" data-theme-set="light" aria-pressed="false">light</button> <button type="button" data-theme-set="dark" aria-pressed="false">dark</button></span></nav></header>
 <main id="main">
-${head}
-${cardTables(o.body)}
+${o.rankingFirst ? `<h1 class="plain">${esc(home ? NAME : o.title)}</h1>` : head}
+${cardTables(o.body)}${o.rankingFirst ? `
+<section class="block" aria-label="Version and build">${head}</section>` : ''}
 </main>
 <footer class="foot">
 <nav class="nav" aria-label="More">${navLine(c, FOOT, o.path)}</nav>

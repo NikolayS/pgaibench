@@ -45,7 +45,7 @@ export function hbarSvg(s: HBarSpec & { width: number; line?: number }): string 
   };
   for (const r of s.rows) row(r, false);
   if (base.length) {
-    out.push(`<rect class="ch-bg" x="0" y="${y + 6}" width="${Math.ceil(20 * CW + 4)}" height="${ROW - 12}"/><text class="ch-group" x="0" y="${y + ROW / 2 + 5}">baselines (no model)</text>`); y += ROW;
+    out.push(`<rect class="ch-bg" x="0" y="${y + 6}" width="${Math.ceil(20 * CW + 4)}" height="${ROW - 12}"/><text class="ch-group" x="0" y="${y + ROW / 2 + 5}">baselines</text>`); y += ROW;
     for (const r of base) row(r, true);
   }
   const axisY = y + 4;
@@ -74,7 +74,7 @@ export function stackedSvg(s: { id: string; title: string; desc: string; aria: s
   const out: string[] = [];
   let y = TOP;
   for (const g of s.groups) {
-    if (s.groups.length > 1) { out.push(`<text class="ch-group" x="0" y="${y + 17}">${esc(`track: ${g.name}`)}</text>`); y += 24; }
+    if (s.groups.length > 1) { out.push(`<text class="ch-group" x="0" y="${y + 17}">${esc(g.name.slice(0, 24))}</text>`); y += 24; }
     for (const r of g.rows) {
       const cy = y + ROW / 2;
       out.push(`<g class="pf-row" data-model="${esc(r.key)}"><text class="ch-lbl" x="${lw - 8}" y="${n1(cy + 5)}" text-anchor="end" font-weight="800">${esc(r.label)}</text>`);
@@ -92,11 +92,6 @@ export function stackedSvg(s: { id: string; title: string; desc: string; aria: s
   const ticks = [...new Set([...Array.from({ length: Math.floor(s.total / 5) + 1 }, (_, i) => i * 5).filter(t => s.total - t >= 3 || t === s.total), s.total])];
   const grid = ticks.map(t => `<line class="${t === 0 ? 'ch-zero' : 'ch-grid'}" x1="${n1(X(t))}" y1="${TOP}" x2="${n1(X(t))}" y2="${axisY}"/><text class="ch-tick" x="${n1(X(t))}" y="${axisY + 16}" text-anchor="middle">${t}${s.unit ?? ''}</text>`);
   y = axisY + 22;
-  out.push(`<text class="ch-note" x="${n1(x0)}" y="${y + 14}">tasks, linear from 0</text>`); y += 24;
-  for (const g of s.legend) {
-    out.push(`<text class="ch-group" x="0" y="${y + 14}">${esc(g.name)}</text>`); y += 20;
-    for (const it of g.items) { out.push(`<rect class="pf pf-${it.cls}" x="4" y="${y + 3}" width="22" height="13"/><text class="ch-lgd" x="34" y="${y + 14}">${esc(it.label)}</text>`); y += 20; }
-  }
   const H = Math.ceil((y + 6) / 20) * 20, k = Math.ceil(H / (s.line ?? 20));
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(s.aria)}" data-chart="${esc(s.id)}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>${esc(s.title)}</title><desc>${esc(s.desc)}</desc>${grid.join('')}${out.join('')}</svg>`;
 }
@@ -104,5 +99,7 @@ export function stackedSvg(s: { id: string; title: string; desc: string; aria: s
 export function stackedFigure(s: Omit<Parameters<typeof stackedSvg>[0], 'width' | 'line'> & { caption: string }): string {
   const narrow = stackedSvg({ ...s, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
   const wide = stackedSvg({ ...s, width: 760 }).replace('<svg ', '<svg class="chart-wide" ');
-  return `<figure class="svg-chart" id="${esc(s.id)}-fig">${narrow}${wide}<figcaption>${s.caption}</figcaption></figure>`;
+  // Legend as HTML: a swatch per class (a tiny SVG would repeat the fills; a span with the same class name is enough).
+  const legend = s.legend.map(g => `<li><span class="dim">${esc(g.name)}:</span> ${g.items.map(it => `<span class="sw pf-${it.cls}" aria-hidden="true"></span>${esc(it.label)}`).join('; ')}</li>`).join('');
+  return `<figure class="svg-chart" id="${esc(s.id)}-fig">${narrow}${wide}<figcaption>${s.caption}</figcaption><ul class="pf-legend">${legend}</ul></figure>`;
 }

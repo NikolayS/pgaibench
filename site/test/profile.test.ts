@@ -27,10 +27,11 @@ test('profile: every bar is all tasks long, segments are count times the per-tas
   }
 });
 
-test('profile: the SVG legend lists every class; harm has its own fill', () => {
-  const sv = svg(finalSite.get('leaderboard/index.html')!);
-  for (const k of PROFILE_CLASSES) expect(sv).toContain(`>${PROFILE_LABEL[k]}</text>`);
-  expect(sv).toMatch(/class="pf pf-harmful_lab"/);
+test('profile: the legend under the plot lists every class with its swatch; harm has its own fill', () => {
+  const doc = finalSite.get('leaderboard/index.html')!;
+  const lg = /<ul class="pf-legend">([\s\S]*?)<\/ul>/.exec(doc)![1]!;
+  for (const k of PROFILE_CLASSES) expect(lg).toContain(`<span class="sw pf-${k}" aria-hidden="true"></span>${PROFILE_LABEL[k].replace(/&/g, '&amp;')}`);
+  expect(svg(doc)).toMatch(/class="pf pf-harmful_lab"/);
 });
 
 test('profile: the table numbers equal the chart numbers; models alphabetical, not by score', () => {

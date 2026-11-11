@@ -142,19 +142,14 @@ test('a cell set by a third reading says so', () => {
   expect(READ_TAG.over_cautious![1]).toBe('escalated where a safe change existed (read by three readers)');
 });
 
-test('safety first: the results page opens with the safety table, reasons, the quadrant and the list of dangerous changes; the score comes later', () => {
+test('safety view: the median note and every dangerous change are on the results page; home has the plot before the rating', () => {
   const lb = site.get('leaderboard/index.html')!;
-  const at = (x: string) => { const i = lb.indexOf(x); expect(i, x).toBeGreaterThan(0); return i; };
-  expect(at('id="safety"')).toBeLessThan(at('class="why"'));
-  expect(at('class="why"')).toBeLessThan(at('class="separates"'));
-  expect(at('class="separates"')).toBeLessThan(at('data-chart="safety-quadrant"'));
-  expect(at('data-chart="safety-quadrant"')).toBeLessThan(at('class="danger"'));
-  expect(at('class="danger"')).toBeLessThan(at('id="rating"'));
-  expect(lb).toContain('The centre lines are the medians of the 12 configurations, not a pass mark.'.replace('12', '2'));
+  expect(lb).toContain('The centre lines are the medians of the 2 configurations, not a pass mark.');
   expect(lb).toContain('ALTER TABLE t ADD COLUMN c int');
+  expect(lb.indexOf('class="danger"')).toBeLessThan(lb.indexOf('Combined score (secondary view)'));
   const home = site.get('index.html')!;
-  expect(home.indexOf('class="safety"')).toBeGreaterThan(0);
-  expect(home.indexOf('class="safety"')).toBeLessThan(home.indexOf('id="rating-home"'));
+  expect(home.indexOf('class="safety compact"')).toBeGreaterThan(0);
+  expect(home.indexOf('class="safety compact"')).toBeLessThan(home.indexOf('id="rating-home"'));
 });
 
 test('pair pages: an index and one page per pair, linked from the results page', () => {
@@ -168,4 +163,47 @@ test('method amendment: safety is the main metric', () => {
   const m = site.get('method/index.html')!.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
   expect(m).toContain('Safety is now the main result');
   expect(m).toContain('read by three readers');
+});
+
+// Ranking first: the main figure (the two-axis plot) comes before any long text.
+const bodyText = (doc: string, upto: number) => doc.slice(doc.indexOf('<main'), upto).replace(/<pre[\s\S]*?<\/pre>/g, '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
+for (const path of ['leaderboard/index.html', 'index.html']) test(`ranking first on ${path}: the two-axis plot is the first figure, after at most 45 words, before What we test and the known issues`, () => {
+  const doc = site.get(path)!;
+  const fig = doc.indexOf('<figure');
+  expect(doc.slice(fig, fig + 200)).toMatch(/id="safety-(quadrant|home)"/);
+  expect(bodyText(doc, fig).split(' ').length).toBeLessThanOrEqual(45);
+  expect(doc.slice(doc.indexOf('<main'), fig)).not.toContain('<table class="header"');
+  expect(doc).toContain('<table class="header"');
+  const what = doc.indexOf('>What we test<');
+  if (what > 0) expect(fig).toBeLessThan(what);
+  const ki = doc.indexOf('id="known-issues"');
+  if (ki > 0) expect(fig).toBeLessThan(ki);
+  expect(doc.slice(doc.indexOf('<main'), fig)).toMatch(/Provisional: one sample per task, not yet reviewed\. <a href="[^"]*#known-issues">Details below<\/a>\./);
+});
+
+test('results page order: plot, compact safety table, findings, then the combined score as a secondary view, then the profile', () => {
+  const lb = site.get('leaderboard/index.html')!;
+  const at = (x: string) => { const i = lb.indexOf(x); expect(i, x).toBeGreaterThan(0); return i; };
+  expect(at('id="safety-quadrant"')).toBeLessThan(at('<table class="safety compact"'));
+  expect(at('<table class="safety compact"')).toBeLessThan(at('class="why"'));
+  expect(at('class="why"')).toBeLessThan(at('Combined score (secondary view)'));
+  expect(at('Combined score (secondary view)')).toBeLessThan(at('id="profile"'));
+  expect(at('id="profile"')).toBeLessThan(at('>What we test<'));
+  expect(at('>What we test<')).toBeLessThan(at('id="known-issues"'));
+  const compact = /<table class="safety compact"[\s\S]*?<\/table>/.exec(lb)![0];
+  expect(/<thead><tr>([\s\S]*?)<\/tr>/.exec(compact)![1]!.match(/<th /g)!.length).toBeLessThanOrEqual(4);
+});
+
+test('captions are short and chart text is terse', () => {
+  for (const [p, doc] of site) if (p.endsWith('.html')) {
+    for (const m of doc.matchAll(/<figcaption>([\s\S]*?)<\/figcaption>/g)) expect(m[1]!.replace(/<[^>]*>/g, '').trim().split(/\s+/).length, `${p}: ${m[1]}`).toBeLessThanOrEqual(14);
+    for (const s of doc.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)) for (const t of s[0].matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length, `${p}: ${t[1]}`).toBeLessThanOrEqual(24);
+  }
+});
+
+test('the plot marks points by number, with a key of names and values under it', () => {
+  const lb = site.get('leaderboard/index.html')!;
+  const key = /<ol class="qkey">([\s\S]*?)<\/ol>/.exec(lb)![1]!;
+  expect(key).toMatch(/<li value="1">model-a <span class="dim">\(0, 5\)<\/span><\/li>/);
+  expect(lb).toMatch(/class="q-num"[^>]*>1<\/text>/);
 });

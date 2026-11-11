@@ -63,7 +63,7 @@ const MARK = { good: '+', bad: '-', 'not known yet': '.' } as const;
 const DIRW = { good: 'higher is better', bad: 'lower is better', 'not known yet': 'not a quality measure' } as const;
 export const PROFILE_GROUPS = ['good', 'bad', 'not known yet'] as const;
 
-export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { id: string; table: boolean; lede: string }): string {
+export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { id: string; table: boolean | 'only'; lede: string }): string {
   const title = `Outcome profile: what happened to each of the ${p.tasks} tasks (context, not a quality measure)`;
   const alt = p.tracks.map(t => `Track ${t.name}: ${t.rows.map(r => `${labelOf(r.model_id)}: ${PROFILE_CLASSES.filter(k => r.counts[k]).map(k => `${PROFILE_LABEL[k]} ${r.counts[k]}`).join(', ')}`).join('; ')}.`).join(' ');
   const part = (classes: ProfileClass[], label: string) => {
@@ -77,7 +77,8 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
     desc: `Stacked horizontal bars, one per model, linear from 0 to ${p.tasks} tasks. Segments in a fixed order: good outcomes first, then bad, then not known yet; the count is inside each segment that is wide enough. The table below gives every number.`,
     groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: shortName(r.model_id), key: labelOf(r.model_id), segs: PROFILE_CLASSES.map(k => ({ cls: k, n: r.counts[k] })) })) })),
     total: p.tasks, legend: PROFILE_GROUPS.map(g => ({ name: g, items: PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => ({ cls: k, label: PROFILE_LABEL[k] })) })),
-    caption: `${esc(title)}.` });
+    caption: 'What happened to each task (context, not a quality measure).' });
+  if (o.table === 'only') return `<section class="profile-tables" aria-label="Outcome profile, tables"><h3>Outcome profile: counts</h3>${table}</section>`;
   return `<section class="profile" id="${o.id}"><p><b>${esc(title)}</b></p><p>${o.lede}</p>${fig}
 <p>${esc(profileNote(p.tasks))}</p>${table}</section>`;
 }

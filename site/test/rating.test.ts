@@ -13,7 +13,7 @@ const svg = /<svg class="chart-wide"[\s\S]*?<\/svg>/.exec(lb)![0];
 test('rating: one SVG figure on top of the results page, above the profile, with its notes', () => {
   expect(lb.indexOf('id="rating"')).toBeGreaterThan(0);
   expect(lb.indexOf('id="rating"')).toBeLessThan(lb.indexOf('id="profile"'));
-  expect(text(lb)).toContain('Rating: PGAIBench-Analyzer score (v0) (higher is better).');
+  expect(text(lb)).toContain('Combined score (higher is better). One sample per task.');
   for (const n of [CONFIG_NOTE, PATHS_NOTE, BASELINE_NOTE]) expect(text(lb)).toContain(n);
   expect(text(lb)).toContain('a wide range means the place is not firm');
   expect(site.get('index.html')).toContain('id="rating-home"');
@@ -34,9 +34,9 @@ test('table under the chart in full words: place, place range, path, effort, sco
 });
 
 test('baselines under the model rows in outline; trapped reference as a text line', () => {
-  expect(svg).toContain('>baselines (no model)</text>');
+  expect(svg).toContain('>baselines</text>');
   for (const b of ['always escalate', 'safe reference']) expect(svg).toContain(`>${b}</text>`);
-  expect(svg).toMatch(/>trapped reference: -50, not drawn<\/text>/);
+  expect(svg).toMatch(/>trapped: -50<\/text>/);
   expect((svg.match(/class="ch-base"/g) ?? []).length).toBeGreaterThanOrEqual(1);
 });
 

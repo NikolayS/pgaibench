@@ -81,6 +81,6 @@ export function chart(s: Series, caption: string): string {
     desc: 'Horizontal bars, linear from 0 to 100 percent of all tasks; a thin line with caps marks the Wilson 95 percent interval.',
     rows: s.bars.filter(b => !b.baseline).map(toRow), baselines: s.bars.filter(b => b.baseline).map(toRow) } : null;
   const svgs = spec ? `${hbarSvg({ ...spec, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ')}${hbarSvg({ ...spec, width: 760 }).replace('<svg ', '<svg class="chart-wide" ')}` : '<p class="none" data-result>No results yet.</p>';
-  return `<figure class="svg-chart chart-block" id="${s.id}-fig"><p><b>${esc(title)}</b></p>${svgs}<figcaption>${caption}${dir ? ` ${dir}` : ''}</figcaption></figure>
-${table}`;
+  return `<figure class="svg-chart chart-block" id="${s.id}-fig">${svgs}<figcaption>${esc(title)}</figcaption></figure>
+${table}<p class="chart-note">${caption}</p>`;
 }
