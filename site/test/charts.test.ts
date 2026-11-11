@@ -37,7 +37,7 @@ describe('charts', () => {
       expect(readFileSync(join(import.meta.dir, '..', dir, f), 'utf8'), f).not.toMatch(bad);
   });
   test('no emojis in any built file', () => {
-    for (const s of sites) for (const [p, doc] of s) expect(doc, p).not.toMatch(/\p{Extended_Pictographic}/u);
+    for (const s of sites) for (const [p, doc] of s) expect(doc, p).not.toMatch(/(?![©®])\p{Extended_Pictographic}/u);
   });
   test('tables are in the HTML without JavaScript', () => {
     const lb = sites[1]!.get('leaderboard/index.html')!.replace(/<script[\s\S]*?<\/script>/g, '');

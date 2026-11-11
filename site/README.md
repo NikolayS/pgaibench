@@ -1,6 +1,6 @@
 # Site generator
 
-Static site for PG AI Bench. TypeScript + Bun, no client framework. The site
+Static site for PGAIBench. TypeScript + Bun, no client framework. The site
 is text first: one system monospace font stack, no images, no SVG, no web
 fonts, no external requests. Charts are horizontal bars of block characters
 in `<pre>` (linear from zero; `█` up to the low end of the Wilson 95 percent

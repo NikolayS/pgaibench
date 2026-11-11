@@ -22,7 +22,7 @@ export const provisionalSchema = z.object({
   data_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/),
   harness_commit: z.string().regex(/^[0-9a-f]{7,40}$/),
   lab_planned: z.number().int().positive(), lab_finished: z.number().int().nonnegative(), lab_counted: z.number().int().nonnegative(),
-  rerun_pending: z.number().int().nonnegative(), not_run: z.number().int().nonnegative(),
+  rerun_pending: z.number().int().nonnegative(), not_run: z.number().int().nonnegative(), not_requested: z.array(z.object({ model_id: z.string(), scenario: z.string() })).default([]),
   under_review: z.array(z.object({ id: z.string().regex(/^[A-Z]\d+$/), cells_finished: z.number().int().nonnegative() }).strict()),
   cells: z.array(z.object({
     model_id: z.string().min(1), scenario: z.string().regex(/^[A-Z]\d+$/),
@@ -98,12 +98,13 @@ export function progressLine(p: Provisional): string {
 export function knownIssues(c: Ctx, p: Provisional, scenarios: PublicScenario[]): string {
   const ur = p.under_review.map(u => `<li>Scenario ${u.id} is under review: nearly all its cells stop at rehearsal, on a speed threshold that is judged over a window the index build fills. We show its ${u.cells_finished} finished cells on the grid, but we keep the scenario out of every lab count for now. The text tables still include it.</li>`).join('');
   const noAnswer = p.cells.filter(x => x.text?.outcome === 'unscorable');
-  const na = noAnswer.length ? `<li>${noAnswer.length === 1 ? 'One answer' : `${noAnswer.length} answers`} timed out at the router and never arrived: ${noAnswer.map(x => `${esc(labelOf(x.model_id))} on ${x.scenario}`).join(', ')}. These cells are unscorable in the text table and in the lab table, and stay in the denominators.</li>` : '';
+  const nr = p.not_requested.length ? `<li>Not requested: ${p.not_requested.map(x => `${esc(labelOf(x.model_id))} on ${x.scenario}`).join(', ')}. Our generation run stopped at its spend cap before it sent ${p.not_requested.length === 1 ? 'this request' : 'these requests'}. ${p.not_requested.length === 1 ? 'The cell counts' : 'The cells count'} as not run, not as a failure of the model.</li>` : '';
+  const na = noAnswer.length ? `<li>${noAnswer.length === 1 ? 'One answer' : `${noAnswer.length} answers`} timed out at the router (the request was sent; no answer arrived): ${noAnswer.map(x => `${esc(labelOf(x.model_id))} on ${x.scenario}`).join(', ')}. These cells are unscorable in the text table and in the lab table, and stay in the denominators.</li>` : '';
   void scenarios;
   return `<section aria-labelledby="known-issues"><h2 id="known-issues">Known issues in this provisional data</h2><ul>
 <li>The lab run is in progress: ${progressLine(p)}. Lab denominators are the cells finished and scored so far, not the planned cells.</li>
 <li>Reruns pending: ${p.rerun_pending} lab cells. A harness defect decided their result, so we will run them again. They show as ${PTAG.rerun} and are not in any count until the rerun exists.</li>
-${ur}${na}<li>One sample per cell. A single run of a model on a scenario can differ from the next run.</li>
+${ur}${na}${nr}<li>One sample per cell. A single run of a model on a scenario can differ from the next run.</li>
 <li>The text scores have many "pending review" answers: the patterns match neither the safe nor the risky form. The lab result and a later human reading resolve them.</li>
 <li>Nobody has reviewed these results yet. Read the <a href="${link(c, 'limits/')}">list of limits</a> before you use any number here.</li>
 </ul></section>`;
@@ -153,7 +154,7 @@ export function gridPage(c: Ctx, p: Provisional, res: Results, scenarios: Public
   const body = `<p class="meta">Data as of ${esc(p.data_at)} (UTC). ${progressLine(p)}. Harness commit <code>${esc(p.harness_commit)}</code>.</p>
 <p>One tag per model and scenario, sample 1. Each tag links to the page of the cell: the outcome, the checks that fired, the stage the change reached, and the model's answer. Models are in alphabetical order inside a track; tracks are not compared. The held-out row shows counts only, and only when the whole held-out set is finished for that model.</p>
 ${keyBlock()}${sections}<p>-&gt; <a href="${link(c, 'leaderboard/')}">results tables</a></p>`;
-  return page(c, { path: 'grid/', title: 'Results grid', lede: 'Every model on every public scenario, one tag per cell.', body });
+  return page(c, { path: 'grid/', title: 'Results grid', lede: 'Every model on every public scenario, one tag per cell. Open a cell to read the answer and its lab values.', body });
 }
 
 // ---------- cell pages ----------

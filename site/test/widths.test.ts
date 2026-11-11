@@ -52,5 +52,5 @@ test('every numeric results header has a direction mark; every chart caption has
   }
   const caps = [...lb.matchAll(/<figcaption>([\s\S]*?)<\/figcaption>/g)].map(m => cellText(m[1]!));
   expect(caps.length).toBeGreaterThan(2);
-  for (const c of caps) expect(c).toMatch(/\((higher is better|lower is better|neither is better: context)\)/);
+  for (const c of caps) expect(c).toMatch(/\((higher is better|lower is better|context, not a quality measure)\)/);
 });

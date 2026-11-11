@@ -15,7 +15,7 @@ export const PROFILE_CHAR: Record<ProfileClass, string> = {
   pending_review: '?', invalid_answer: 'x', unscorable: '_', rerun: '·', under_review: ':', not_run: '.',
 };
 export const PER_TASK = 2;
-export const profileNote = (tasks: number) => `Each bar is one model's ${tasks} tasks. We do not combine these classes into one score: the classes differ in cost, and at this sample size models are not separated.`;
+export const profileNote = (tasks: number) => `Each bar is one model's ${tasks} tasks. This chart keeps the classes apart, because they differ in cost. The rating combines them with fixed weights, and at this sample size most models are not separated.`;
 
 export type ProfileRow = { model_id: string; counts: Record<ProfileClass, number> };
 export type ProfileTrack = { name: string; rows: ProfileRow[] };
@@ -74,7 +74,7 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   let ticks = ' '.repeat(W + 2);
   for (let i = 0; i <= p.tasks; i += 5) ticks = ticks.padEnd(W + 2 + i * PER_TASK) + String(i);
   const legendText = PROFILE_GROUPS.map(g => `${g}:\n${PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => `  ${PROFILE_CHAR[k]} ${PROFILE_LABEL[k]}`).join('\n')}`).join('\n');
-  const title = `Outcome profile: what happened to each of the ${p.tasks} tasks (neither is better: context)`;
+  const title = `Outcome profile: what happened to each of the ${p.tasks} tasks (context, not a quality measure)`;
   const alt = p.tracks.map(t => `Track ${t.name}: ${t.rows.map(r => `${labelOf(r.model_id)}: ${PROFILE_CLASSES.filter(k => r.counts[k]).map(k => `${PROFILE_LABEL[k]} ${r.counts[k]}`).join(', ')}`).join('; ')}.`).join(' ');
   const part = (classes: ProfileClass[], label: string) => {
     const head = classes.map((k, i) => `<th scope="col" class="num${i > 0 && PROFILE_GROUP[k] !== PROFILE_GROUP[classes[i - 1]!] ? ' sep' : ''}" title="${esc(`${PROFILE_LABEL[k]} (${DIRW[PROFILE_GROUP[k]]})`)}"><abbr title="${esc(PROFILE_LABEL[k])}">${esc(SHORT[k])}</abbr>${MARK[PROFILE_GROUP[k]]}</th>`).join('');

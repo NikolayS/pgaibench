@@ -1,3 +1,4 @@
+import { THEME_HEAD } from '../src/html';
 // Text-first style: monospace, no images, text charts with tables,
 // relative links, GitHub Pages files, two colour themes.
 import { describe, expect, test } from 'bun:test';
@@ -187,7 +188,7 @@ describe('page structure', () => {
   test('the home page opens with a header block of key: value lines', () => {
     for (const s of [sites.plain, sites.published]) {
       const h = /<pre class="head"[^>]*>([\s\S]*?)<\/pre>/.exec(s.get('index.html')!)![1]!;
-      for (const k of ['run date:', 'scenarios:', 'models:', 'tracks:', 'licence:']) expect(h).toContain(k);
+      for (const k of ['run date:', 'scenarios:', 'models:', 'tracks:', 'license:']) expect(h).toContain(k);
     }
     expect(sites.plain.get('index.html')!).toContain('How to read this');
   });
@@ -204,7 +205,7 @@ describe('page structure', () => {
     expect(lb).toContain('href="../data/results.json"');
     const txt = sites.published.get('leaderboard/index.txt')!;
     expect(txt).not.toMatch(/<[a-z]/i);
-    expect(txt).toContain('PG AI Bench');
+    expect(txt).toContain('PGAIBench');
     expect(txt).toContain('Baseline (no model): always escalate');
     expect(txt).toContain('not separated at this sample size');
     expect(JSON.parse(sites.published.get('data/results.json')!).scenario_set).toBe(fixture().scenario_set);
@@ -219,7 +220,12 @@ describe('page structure', () => {
     expect(doc).toMatch(/<pre class="prompt" id="system-prompt">/);
     expect(css).toMatch(/pre\.prompt\s*\{[^}]*white-space:\s*pre-wrap/);
   });
-  test('no script is needed: the page has no inline script and tables are in the HTML', () => {
-    for (const [p, doc] of html(sites.published)) expect(doc, p).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+  test('no script is needed: the only inline script is the theme line; the switcher is hidden without JavaScript', () => {
+    for (const [p, doc] of html(sites.published)) {
+      const inline = [...doc.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+      expect(inline, p).toEqual([THEME_HEAD]);
+      expect(doc, p).toMatch(/<span class="theme" hidden>theme: <button type="button" data-theme-set="system" aria-pressed="true">system<\/button>/);
+      expect([...doc.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]!.replace(/^(\.\.\/)*/, ''))).toEqual(['assets/sort.js', 'assets/theme.js']);
+    }
   });
 });

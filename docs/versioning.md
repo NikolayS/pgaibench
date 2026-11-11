@@ -9,10 +9,10 @@ versioning (https://semver.org/). Every result row names both versions.
   typo in a task, a clearer success check that gives the same result for
   both references).
 - MINOR: scenarios added or retired.
-- MAJOR: a change of scoring: outcome definitions, the headline number or
-  how evidence levels count.
+- MAJOR: a change of scoring: outcome definitions, the rating or how
+  evidence levels count.
 
-Rows from different MINOR versions are not ranked together. A model that
+We never put rows from different MINOR versions in one table. A model that
 was run on an older MINOR version stays in the table of that version until
 it is re-run.
 

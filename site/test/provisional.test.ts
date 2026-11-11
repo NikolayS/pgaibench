@@ -110,7 +110,7 @@ test('provisional: refuses non-provisional results and PUBLISHED', () => {
 
 test('provisional: the outcome profile is at the top of the results page and on home, with rerun and not-run segments', () => {
   const lb = site.get('leaderboard/index.html')!;
-  expect(lb.indexOf('Outcome profile: what happened to each of the')).toBeLessThan(lb.indexOf('Known issues in this provisional data'));
+  expect(lb.indexOf('Outcome profile: what happened to each of the')).toBeLessThan(lb.indexOf('id="prereg-analyses"'));
   const chart = /<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!;
   expect(chart).toContain('!!');
   expect(chart).toContain('··');

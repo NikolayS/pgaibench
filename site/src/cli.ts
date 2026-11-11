@@ -12,9 +12,10 @@
 //                         provisional.json); real data, provisional banner; never PUBLISHED
 //   CNAME=<host>          custom domain for GitHub Pages (writes CNAME), e.g. pgaibench.dev with BASE=/
 //   OUT=<dir>             output directory (default site/dist)
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readdirSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { buildSite } from './build';
+import { BINARY_ASSETS } from './html';
 import { assertRealResults, parseResults } from './results';
 
 const published = process.env.PUBLISHED === 'true';
@@ -31,9 +32,12 @@ const cellsPath = dir ? join(dir, 'cells.json') : undefined;
 const read = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
 if (published || provisional) assertRealResults(resultsPath!, parseResults(read(resultsPath!)));
 const withheld: string[] = [];
+// SNAPSHOTS=<dir>: earlier data/provisional.json copies (<UTC time>.json), listed on the updates page.
+const snapDir = process.env.SNAPSHOTS;
+const snapshots = snapDir && existsSync(snapDir) ? readdirSync(snapDir).filter(f => f.endsWith('.json')).map(f => { const j = read(join(snapDir, f)); return { at: j.data_at, file: `data/snapshots/${f}`, lab_finished: j.lab_finished, lab_planned: j.lab_planned, lab_counted: j.lab_counted }; }) : [];
 const inputs = { pending, frozenPath: process.env.FROZEN, outOfSetPath: process.env.OUT_OF_SET, cname: process.env.CNAME || undefined };
 const files = buildSite(provisional
-  ? { published: false, base, ...inputs, resultsJson: read(resultsPath!), cellsJson: read(cellsPath!), provisionalJson: read(join(dir!, 'provisional.json')), withheld }
+  ? { published: false, base, ...inputs, resultsJson: read(resultsPath!), cellsJson: read(cellsPath!), provisionalJson: read(join(dir!, 'provisional.json')), withheld, snapshots }
   : published
   ? { published, base, resultsPath, cellsPath, ...inputs }
   : { published, base, ...inputs,
@@ -45,6 +49,10 @@ for (const [p, doc] of files) {
   mkdirSync(dirname(f), { recursive: true });
   writeFileSync(f, doc);
 }
+// Favicon files: binary, copied as is; favicon.ico also at the root (the .txt views have no <link>).
+for (const f of BINARY_ASSETS) { mkdirSync(join(out, 'assets'), { recursive: true }); copyFileSync(join(import.meta.dir, '..', 'assets', f), join(out, 'assets', f)); }
+copyFileSync(join(import.meta.dir, '..', 'assets', 'favicon.ico'), join(out, 'favicon.ico'));
+if (snapDir && existsSync(snapDir)) for (const f of readdirSync(snapDir).filter(f => f.endsWith('.json'))) { mkdirSync(join(out, 'data', 'snapshots'), { recursive: true }); if (!existsSync(join(out, 'data', 'snapshots', f))) copyFileSync(join(snapDir, f), join(out, 'data', 'snapshots', f)); }
 writeFileSync(join(out, '.base'), base);
 const pages = [...files.keys()].filter(p => p.endsWith('.html')).length;
 if (withheld.length) console.log(`answers withheld (publication scan): ${withheld.length}\n${withheld.map(w => `  ${w}`).join('\n')}`);

@@ -55,7 +55,7 @@ describe('preview build (PUBLISHED=false)', () => {
     for (const [p, doc] of preview) {
       expect(doc, p).not.toMatch(/<(?:script|img|link|iframe)[^>]+(?:src|href)="(?:https?:)?\/\//i);
       expect(doc, p).not.toMatch(/@import|url\(\s*['"]?https?:/i);
-      expect(doc, p).not.toMatch(/\p{Extended_Pictographic}/u);
+      expect(doc, p).not.toMatch(/(?![©®])\p{Extended_Pictographic}/u);
       // The verbatim prompt holds SQL placeholders ($1); check the rest.
       expect(doc.replace(/<pre class="prompt"[\s\S]*?<\/pre>/g, ''), p).not.toMatch(/planned change|300 episodes|\$\s?\d|budget|log scale|logarithmic/i);
     }

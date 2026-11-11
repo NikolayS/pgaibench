@@ -1,4 +1,6 @@
 // Static site generator. PUBLISHED=false (default) never reads a results file.
+import { BINARY_ASSETS } from './html';
+import { snapshotFile, type Snapshot } from './updates';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
@@ -58,6 +60,8 @@ export type BuildOptions = {
   pending?: boolean;
   /** Provisional build of a lab run in progress (provisional.json); needs real results and cells; not PUBLISHED. */
   provisionalJson?: unknown;
+  /** Earlier refreshes of a provisional build, newest last; the updates page lists them. */
+  snapshots?: Snapshot[];
   /** Filled with the cells whose answer failed the publication scan. */
   withheld?: string[];
 };
@@ -109,17 +113,23 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     ...(prov ? { provisional: { data_at: prov.data_at, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov });
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
     add('grid/index.html', gridPage(ctx, prov, results, scenarios));
     for (const x of prov.cells) { const s = scenarios.find(y => y.id === x.scenario); if (s) add(`${cellPath(x.model_id, x.scenario)}index.html`, cellPage(ctx, x, s, trackOf.get(x.model_id) ?? 'none', names, o.withheld ?? [])); }
     files.set('data/provisional.json', `${JSON.stringify({ ...prov, cells: prov.cells.map(({ answer: _a, ...rest }) => rest) }, null, 2)}\n`);
+    // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
+    files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
   for (const c of cells ?? []) files.set(`data/cells/${cellSlug(labelOf(c.model_id))}/${c.scenario}/${c.sample}-${c.scored_by}.json`, `${JSON.stringify(c, null, 2)}\n`);
   files.set('assets/style.css', readFileSync(join(import.meta.dir, '..', 'assets', 'style.css'), 'utf8'));
   files.set('assets/sort.js', readFileSync(join(import.meta.dir, '..', 'assets', 'sort.js'), 'utf8'));
+  // Favicon files are binary: the CLI copies them over these placeholders (the map holds text only).
+  for (const f of BINARY_ASSETS) files.set(`assets/${f}`, '');
+  files.set('favicon.ico', '');
+  files.set('assets/theme.js', readFileSync(join(import.meta.dir, '..', 'assets', 'theme.js'), 'utf8'));
   files.set('.nojekyll', '');
   if (o.cname) files.set('CNAME', `${o.cname}\n`);
   assertNoHeldOutSite(files);

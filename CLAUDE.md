@@ -1,4 +1,4 @@
-# PG AI Bench: rules for contributors and coding agents
+# PGAIBench: rules for contributors and coding agents
 
 - TypeScript and Bun only. Red/green tests: write the test, see it fail,
   then make it pass. Run `bun test` before every commit.

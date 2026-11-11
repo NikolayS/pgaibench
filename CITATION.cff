@@ -1,14 +1,14 @@
 cff-version: 1.2.0
-message: "If you use PG AI Bench, please cite it as below."
-title: "PG AI Bench"
+message: "If you use PGAIBench, please cite it as below."
+title: "PGAIBench"
 type: software
 authors:
-  - name: "PG AI Bench contributors"
+  - name: "PGAIBench contributors"
 repository-code: "https://github.com/NikolayS/pgaibench"
 license: Apache-2.0
-abstract: "A benchmark of LLM safety on PostgreSQL operations: planned changes with hidden traps, executed against a primary and a streaming standby under load."
+abstract: "A benchmark of whether AI models can change production Postgres safely: routine changes with hidden traps, executed on a lab primary with a streaming standby under load."
 keywords:
-  - PostgreSQL
+  - Postgres
   - benchmark
   - LLM evaluation
   - database operations
