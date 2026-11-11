@@ -83,6 +83,11 @@ describe('themes and width', () => {
     for (const t of [light, dark]) for (const k of ['bg', 'ink', 'muted', 'accent']) expect(t[k], k).toMatch(/^#/);
     expect(light.bg).not.toBe(dark.bg);
   });
+  test('plot key: a second column only when each column fits the longest full model name (about 40 characters)', () => {
+    const m = /ol\.qkey \{ columns: 2 (\d+)ch;/.exec(css);
+    expect(m, 'ol.qkey sets a minimum column width').not.toBeNull();
+    expect(Number(m![1])).toBeGreaterThanOrEqual(40);
+  });
   test('text colours meet WCAG AA (4.5:1) in both themes', () => {
     for (const t of [light, dark]) for (const k of ['ink', 'muted', 'accent']) expect(ratio(t[k]!, t.bg!), k).toBeGreaterThanOrEqual(4.5);
   });
