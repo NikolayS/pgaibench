@@ -12,6 +12,7 @@ import { cellSlug, crossCheck, parseCells, type Cell } from './cells';
 import { assertNoHeldOutSite, heldOutNames, isHeldOut } from './heldout';
 import { cellPage, cellPath, gridPage, parseProvisional, type Provisional } from './provisional';
 import { comparePages, safetyRows } from './safety';
+import { parsePooled } from './pooled';
 
 const ROOT = join(import.meta.dir, '..', '..');
 
@@ -61,6 +62,8 @@ export type BuildOptions = {
   pending?: boolean;
   /** Provisional build of a lab run in progress (provisional.json); needs real results and cells; not PUBLISHED. */
   provisionalJson?: unknown;
+  /** Three-run averages (pooled.json from site-data --pooled); provisional builds only. */
+  pooledJson?: unknown;
   /** Earlier refreshes of a provisional build, newest last; the updates page lists them. */
   snapshots?: Snapshot[];
   /** Filled with the cells whose answer failed the publication scan. */
@@ -77,6 +80,8 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   if (o.pending && (o.published || o.resultsJson !== undefined || o.resultsPath || o.cellsJson !== undefined || o.cellsPath)) throw new Error('a pending build takes no results data and is not PUBLISHED');
   let results: Results | null = null;
   const prov: Provisional | null = o.provisionalJson === undefined ? null : parseProvisional(o.provisionalJson);
+  const pooled = o.pooledJson === undefined ? null : parsePooled(o.pooledJson);
+  if (pooled && !prov) throw new Error('pooled data needs a provisional build');
   if (prov && (o.published || o.pending || o.resultsJson === undefined || o.cellsJson === undefined)) throw new Error('a provisional build needs results and cell data and is neither PUBLISHED nor PENDING');
   if (prov) {
     results = parseResults(o.resultsJson);
@@ -114,15 +119,16 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     ...(prov ? { provisional: { data_at: prov.data_at, lab_commit: prov.lab_commit, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, snapshots: o.snapshots ?? [] });
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
-    add('grid/index.html', gridPage(ctx, prov, results, scenarios));
+    add('grid/index.html', gridPage(ctx, prov, results, scenarios, !!pooled));
     for (const x of prov.cells) { const s = scenarios.find(y => y.id === x.scenario); if (s) add(`${cellPath(x.model_id, x.scenario)}index.html`, cellPage(ctx, x, s, trackOf.get(x.model_id) ?? 'none', names, o.withheld ?? [])); }
-    const sr = safetyRows(results, prov);
+    const sr = safetyRows(results, prov, pooled);
     if (sr) for (const [k, v] of comparePages(ctx, sr)) add(k, v);
     files.set('data/provisional.json', `${JSON.stringify({ ...prov, cells: prov.cells.map(({ answer: _a, ...rest }) => rest) }, null, 2)}\n`);
+    if (pooled) files.set('data/pooled.json', `${JSON.stringify(pooled, null, 2)}\n`);
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
