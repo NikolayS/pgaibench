@@ -81,3 +81,13 @@ test('phone typography: body 15px or more, table text 13px or more, nav tap targ
   expect(b).toMatch(/pre\.title \{[^}]*font-size: min\(/);
   expect(css).not.toMatch(/font-size: 13px/);
 });
+
+test('narrow profile axis: no two tick labels closer than 15 percent', async () => {
+  const { profileChart } = await import('../src/profile');
+  const counts = Object.fromEntries((await import('../../src/analysis/outcome-map')).PROFILE_CLASSES.map(k => [k, 0])) as any;
+  counts.right = 22;
+  const h = profileChart({ tasks: 22, tracks: [{ name: 't', rows: [{ model_id: 'x/m', counts }] }] }, { id: 'p', table: false, lede: '' });
+  const at = [...h.matchAll(/class="fb-tick[^"]*" style="left: ([\d.]+)%">/g)].map(m => Number(m[1]));
+  for (let i = 1; i < at.length; i++) expect(at[i]! - at[i - 1]!).toBeGreaterThanOrEqual(15);
+  expect(at[at.length - 1]).toBe(100);
+});
