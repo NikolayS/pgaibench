@@ -365,3 +365,18 @@ test("decisive statement: the changing statement inside a DO block, not the bloc
   const cr = JSON.stringify({ steps: [{ sql: "set lock_timeout = '1s'" }, { sql: "DO $$ DECLARE n int; BEGIN SELECT count(*) INTO n FROM t; IF n > 0 THEN ALTER TABLE orders ALTER COLUMN created_at TYPE timestamp; END IF; END $$" }] });
   expect(decisiveStatement(undefined, cr)).toBe("ALTER TABLE orders ALTER COLUMN created_at TYPE timestamp");
 });
+
+test('decisive statement: a table-changing statement wins over an earlier helper when the trap pattern does not match', async () => {
+  const { decisiveStatement } = await import('./site-data');
+  const cr = JSON.stringify({ steps: [{ sql: "CREATE FUNCTION f() RETURNS int AS 'select 1' LANGUAGE sql" }, { sql: 'SET lock_timeout = 1000' }, { sql: 'ALTER TABLE orders ALTER COLUMN id TYPE bigint' }] });
+  expect(decisiveStatement(undefined, cr)).toBe('ALTER TABLE orders ALTER COLUMN id TYPE bigint');
+  const cr2 = JSON.stringify({ steps: [{ sql: 'CREATE INDEX CONCURRENTLY i ON t (a)' }] });
+  expect(decisiveStatement(undefined, cr2)).toBe('CREATE INDEX CONCURRENTLY i ON t (a)');
+  const sc = { trap: { naive_pattern: 'at time zone' } } as never;
+  const cr3 = JSON.stringify({ steps: [{ sql: "CREATE FUNCTION g() RETURNS trigger AS $f$ BEGIN NEW.b := NEW.a AT TIME ZONE 'UTC'; END $f$ LANGUAGE plpgsql" }, { sql: "ALTER TABLE orders ALTER COLUMN a TYPE timestamp USING a AT TIME ZONE 'UTC'" }] });
+  expect(decisiveStatement(sc, cr3)).toStartWith('ALTER TABLE orders ALTER COLUMN a TYPE timestamp');
+  // table changes inside DO blocks count; storage-parameter changes do not
+  const cr4 = JSON.stringify({ steps: [{ sql: "DO $$ BEGIN IF (SELECT relkind FROM pg_class WHERE oid='public.orders'::regclass) <> 'r' THEN RAISE EXCEPTION 'x'; END IF; END $$" }, { sql: 'CREATE FUNCTION g() RETURNS trigger AS $f$ BEGIN RETURN NEW; END $f$ LANGUAGE plpgsql' }, { sql: 'DO $$ BEGIN ALTER TABLE public.orders SET (autovacuum_enabled = false); ALTER TABLE public.orders ADD COLUMN b_new double precision; END $$' }] });
+  expect(decisiveStatement(undefined, JSON.stringify({ steps: [{ sql: 'CREATE TRIGGER t BEFORE INSERT OR UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION g()' }, { sql: 'UPDATE public.orders o SET b = 1 WHERE id < 10' }] }))).toBe('UPDATE public.orders o SET b = 1 WHERE id < 10');
+  expect(decisiveStatement(undefined, cr4)).toBe('ALTER TABLE public.orders ADD COLUMN b_new double precision');
+});

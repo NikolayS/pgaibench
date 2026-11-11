@@ -207,3 +207,12 @@ test('the plot marks points by number, with a key of names and values under it',
   expect(key).toMatch(/<li value="1">model-a <span class="dim">\(0, 5\)<\/span><\/li>/);
   expect(lb).toMatch(/class="q-num"[^>]*>1<\/text>/);
 });
+
+test('safety table: compact on phones, full under the plot on desktop, full again in the details for phones', () => {
+  const lb = site.get('leaderboard/index.html')!;
+  const top = lb.slice(lb.indexOf('id="safety-quadrant"'), lb.indexOf('class="why"'));
+  expect(top).toMatch(/<div class="phone-only">[\s\S]*class="safety compact"/);
+  expect(top).toMatch(/<div class="desk-only">[\s\S]*<table class="safety"/);
+  expect(lb.slice(lb.indexOf('id="safety-notes"'))).toMatch(/<div class="phone-only">[\s\S]*<table class="safety"/);
+  expect(lb).not.toContain('>fixed<');
+});

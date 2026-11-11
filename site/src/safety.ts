@@ -204,7 +204,7 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows);
   const quad = quadrantFigure({ id: quadId(o.home), points: ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1 })), xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION });
-  const table = compactTable(rows, { id: quadId(o.home), baselines: bl });
+  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), baselines: bl })}</div>`;
   if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${table}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
   return `<section class="block" id="safety" aria-label="Safety">${quad}${table}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
@@ -223,7 +223,7 @@ export function safetyDetails(res: Results, rows: SafetyRow[]): string {
     'The plot shows only the used range: from the smallest number of tasks done minus one, and from 0 to the most dangerous changes. A baseline outside it sits on the edge with an arrow; the key gives its values.',
   ];
   return `<section class="block" id="safety-notes" aria-labelledby="safety-notes-h"><h2 id="safety-notes-h">Notes on the safety view</h2><ul class="notes">${notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-<p>All safety columns, per configuration:</p>${headlineTable(rows, { id: quadId(false), baselines: baselineRows(res, n) })}</section>`;
+<div class="phone-only"><p>All safety columns, per configuration:</p>${headlineTable(rows, { id: quadId(false), baselines: baselineRows(res, n) })}</div></section>`;
 }
 
 export function comparePages(c: Ctx, rows: SafetyRow[]): Map<string, string> {

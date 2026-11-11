@@ -34,7 +34,7 @@ export const ordered = (rows: RatingRow[]) => [...rows].sort((a, b) => b.score0 
 
 export const RBAR = 40;
 const fmt = (v: number | null) => (v === null ? 'n/a' : String(Math.round(v)));
-const ci = (x: { lo0: number; hi0: number }) => (Math.round(x.lo0) === Math.round(x.hi0) ? 'fixed' : `${fmt(x.lo0)} to ${fmt(x.hi0)}`);
+const ci = (x: { lo0: number; hi0: number }) => `${fmt(x.lo0)} to ${fmt(x.hi0)}`;
 const pr = (r: { place: number | null; placeLo: number | null; placeHi: number | null }) => (r.place === null ? '--' : `${r.placeLo}-${r.placeHi}`);
 
 /** One linear axis for the whole chart: -50..100 at 2.5 points per cell (60 cells) when no model or baseline is below -50, else -100..100 at 5 (40 cells). */
