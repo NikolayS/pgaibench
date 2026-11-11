@@ -37,7 +37,7 @@ test('every table body cell carries data-label, except the header box and the ma
   let n = 0;
   for (const [p, doc] of html()) for (const t of doc.matchAll(/<table( class="([^"]*)")?[^>]*>([\s\S]*?)<\/table>/g)) {
     const cls = t[2] ?? '';
-    if (/\b(header|matrix)\b/.test(cls)) continue;
+    if (/\b(header|matrix|compact)\b/.test(cls)) continue;
     const body = /<tbody>([\s\S]*?)<\/tbody>/.exec(t[3]!)?.[1] ?? '';
     for (const tr of body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
       const cells = [...tr[1]!.matchAll(/<(td|th)([^>]*)>/g)];
@@ -46,7 +46,7 @@ test('every table body cell carries data-label, except the header box and the ma
     }
   }
   expect(n).toBeGreaterThan(100);
-  expect(css).toMatch(/table:not\(\.header\):not\(\.matrix\) td\[data-label\]::before/);
+  expect(css).toMatch(/table:not\(\.header\):not\(\.matrix\):not\(\.compact\) td\[data-label\]::before/);
 });
 
 test('key: value blocks are definition lists with a key width, aligned in the .txt twin', () => {
@@ -82,16 +82,6 @@ test('phone typography: body 15px or more, table text 13px or more, nav tap targ
   expect(css).not.toMatch(/font-size: 13px/);
 });
 
-test('narrow profile axis: no two tick labels closer than 15 percent', async () => {
-  const { profileChart } = await import('../src/profile');
-  const counts = Object.fromEntries((await import('../../src/analysis/outcome-map')).PROFILE_CLASSES.map(k => [k, 0])) as any;
-  counts.right = 22;
-  const h = profileChart({ tasks: 22, tracks: [{ name: 't', rows: [{ model_id: 'x/m', counts }] }] }, { id: 'p', table: false, lede: '' });
-  const at = [...h.matchAll(/class="fb-tick[^"]*" style="left: ([\d.]+)%">/g)].map(m => Number(m[1]));
-  for (let i = 1; i < at.length; i++) expect(at[i]! - at[i - 1]!).toBeGreaterThanOrEqual(15);
-  expect(at[at.length - 1]).toBe(100);
-});
-
 test('rating chart: SVG figure, phone and wide sizes, mid-tone fill from a theme variable, caption italic', () => {
   const lb = published.get('leaderboard/index.html')!;
   expect(lb).toContain('<svg class="chart-narrow"');
@@ -105,4 +95,9 @@ test('rating chart: SVG figure, phone and wide sizes, mid-tone fill from a theme
   expect(chart.length).toBe(3);
   expect(chart).not.toContain('#ffffff');
   expect(chart).not.toContain('#e6e6e1');
+});
+
+test('the role-flow diagram stays box-drawing text in a <pre>, inside a figure with a caption', () => {
+  const home = published.get('index.html')!;
+  expect(home).toMatch(/<figure class="aaa-fig"><pre class="aaa"[\s\S]*?<\/pre>[\s\S]*?<figcaption>[^<]+<\/figcaption><\/figure>/);
 });

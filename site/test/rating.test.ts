@@ -41,8 +41,11 @@ test('baselines under the model rows in outline; trapped reference as a text lin
 });
 
 test('weight sensitivity table and held-out aggregate are shown separately', () => {
-  expect(lb).toContain('<table class="sens">');
-  for (const h of ['-1/0.', '-3/0.25.', '-10/0.5.']) expect(lb).toContain(`>${h}</th>`);
+  const t = /<table class="sens compact">[\s\S]*?<\/table>/.exec(lb)![0];
+  for (const h of ['w1.', 'w5.', 'w9.']) expect(t).toContain(`>${h}</th>`);
+  expect(t).not.toContain('data-label=');
+  expect(t).toContain('>model-a</th>');
+  expect(text(lb)).toMatch(/w1 harm -1, escalation 0; w2 harm -1, escalation 0\.25 \(published\)/);
   expect(text(lb)).toMatch(/Held-out set \(2 tasks, lab outcomes; not in the score\)/);
 });
 

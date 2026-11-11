@@ -33,7 +33,7 @@ export function kvList(xs: [string, string][], o: { cls?: string; colon?: boolea
  *  The header box and the matrix (class "matrix", scrolls in its own box) are left as they are. */
 export function cardTables(doc: string): string {
   return doc.replace(/<table(?: class="([^"]*)")?([^>]*)>([\s\S]*?)<\/table>/g, (m, cls: string | undefined, rest: string, inner: string) => {
-    if (/\b(header|matrix)\b/.test(cls ?? '')) return m;
+    if (/\b(header|matrix|compact)\b/.test(cls ?? '')) return m;
     const span = (a: string) => Number(/colspan="(\d+)"/.exec(a)?.[1] ?? 1);
     const head = /<thead>[\s\S]*?<tr[^>]*>([\s\S]*?)<\/tr>/.exec(inner);
     const labels = head ? [...head[1]!.matchAll(/<th((?:\s[^>]*)?)>([\s\S]*?)<\/th>/g)].flatMap(c => Array<string>(span(c[1]!)).fill(plain(c[2]!).replace(/\s+/g, ' ').trim())) : [];

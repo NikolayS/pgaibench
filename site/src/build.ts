@@ -11,6 +11,7 @@ import { parseFrozen, parseOutOfSet } from './inputs';
 import { cellSlug, crossCheck, parseCells, type Cell } from './cells';
 import { assertNoHeldOutSite, heldOutNames, isHeldOut } from './heldout';
 import { cellPage, cellPath, gridPage, parseProvisional, type Provisional } from './provisional';
+import { comparePages, safetyRows } from './safety';
 
 const ROOT = join(import.meta.dir, '..', '..');
 
@@ -119,6 +120,8 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
     add('grid/index.html', gridPage(ctx, prov, results, scenarios));
     for (const x of prov.cells) { const s = scenarios.find(y => y.id === x.scenario); if (s) add(`${cellPath(x.model_id, x.scenario)}index.html`, cellPage(ctx, x, s, trackOf.get(x.model_id) ?? 'none', names, o.withheld ?? [])); }
+    const sr = safetyRows(results, prov);
+    if (sr) for (const [k, v] of comparePages(ctx, sr)) add(k, v);
     files.set('data/provisional.json', `${JSON.stringify({ ...prov, cells: prov.cells.map(({ answer: _a, ...rest }) => rest) }, null, 2)}\n`);
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);

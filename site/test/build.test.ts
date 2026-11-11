@@ -34,7 +34,7 @@ describe('preview build (PUBLISHED=false)', () => {
   test('leaderboard has the column headers and an empty chart', () => {
     const lb = preview.get('leaderboard/index.html')!;
     for (const h of ['tracks by access path', 'never pooled', 'Wilson 95 percent interval']) expect(lb).toContain(h);
-    expect(lb).toContain('<pre class="chart"');
+    expect(lb).toContain('class="svg-chart chart-block"');
     expect(lb).not.toContain('data-k=');
     expect(lb).not.toMatch(/model-a/);
   });
@@ -98,7 +98,7 @@ describe('published build (fixture only)', () => {
   });
   test('chart axes are linear 0 to 100 percent', () => {
     const lb = published.get('leaderboard/index.html')!;
-    expect(lb).toMatch(/<pre class="chart"[\s\S]*0%\s+25%\s+50%\s+75%\s+100%[\s\S]*linear, 0 to 100 percent/);
+    expect(lb).toMatch(/data-chart="[^"]*-right"[\s\S]*?>0%<\/text>[\s\S]*?>25%<\/text>[\s\S]*?>50%<\/text>[\s\S]*?>75%<\/text>[\s\S]*?>100%<\/text>/);
   });
   test('an invalid row fails the build', () => {
     expect(() => buildSite({ published: true, base: '/', resultsJson: { rows: [{ model_id: 'x' }] } })).toThrow();

@@ -12,7 +12,8 @@ const finalSite = buildSite({ published: true, base: '/', resultsPath: fx('resul
 const res = parseResults(require(fx('results/results.json')));
 const cells = parseCells(require(fx('results/cells.json')));
 const unesc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-const pre = (doc: string) => unesc(barsToText(/<figure class="profile" id="profile">[\s\S]*?<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(doc)![1]!));
+const svg = (doc: string) => unesc(/<svg class="chart-wide"[^>]*data-chart="profile"[\s\S]*?<\/svg>/.exec(doc)![0]);
+const segs = (sv: string, label: string) => { const g = new RegExp(`<g class="pf-row" data-model="${label}">([\\s\\S]*?)</g>`).exec(sv)![1]!; return [...g.matchAll(/data-class="(\w+)" data-n="(\d+)"/g)].map(m => [m[1]!, Number(m[2])] as const); };
 const N = res.public_tasks + res.heldout_tasks;
 
 test('profile: every bar is all tasks long, segments are count times the per-task width, in the fixed order', () => {
@@ -26,26 +27,25 @@ test('profile: every bar is all tasks long, segments are count times the per-tas
   }
 });
 
-test('profile: distinct characters, harm is "!", the legend lists every class', () => {
-  expect(new Set(Object.values(PROFILE_CHAR)).size).toBe(PROFILE_CLASSES.length);
-  expect(PROFILE_CHAR.harmful_lab).toBe('!');
-  const chart = pre(finalSite.get('leaderboard/index.html')!);
-  for (const k of PROFILE_CLASSES) expect(chart).toContain(`|${PROFILE_CHAR[k].repeat(PER_TASK)}| ${PROFILE_LABEL[k]}`);
+test('profile: the SVG legend lists every class; harm has its own fill', () => {
+  const sv = svg(finalSite.get('leaderboard/index.html')!);
+  for (const k of PROFILE_CLASSES) expect(sv).toContain(`>${PROFILE_LABEL[k]}</text>`);
+  expect(sv).toMatch(/class="pf pf-harmful_lab"/);
 });
 
 test('profile: the table numbers equal the chart numbers; models alphabetical, not by score', () => {
   const doc = finalSite.get('leaderboard/index.html')!;
-  const chart = pre(doc);
+  const chart = svg(doc);
   const p = profiles(res, cells, null);
   for (const t of p.tracks) {
     const labels = t.rows.map(r => r.model_id);
     expect(labels).toEqual([...labels].sort());
     for (const r of t.rows) {
-      const line = chart.split('\n').find(l => l.startsWith(r.model_id.split('/')[1]!))!;
-      const bar = /\|(.*)\|/.exec(line)![1]!;
-      for (const k of PROFILE_CLASSES) expect([...bar].filter(ch => ch === PROFILE_CHAR[k]).length / PER_TASK).toBe(r.counts[k]);
-      const prof = doc.slice(doc.indexOf('<figure class="profile" id="profile">'));
-      const rowHtml = [...prof.slice(0, prof.indexOf('</figure>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]}</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
+      const sg = segs(chart, r.model_id.split('/')[1]!);
+      expect(sg.map(x => x[0])).toEqual(PROFILE_CLASSES.filter(k => r.counts[k]));
+      for (const [k, n] of sg) expect(n).toBe(r.counts[k as keyof typeof r.counts]);
+      const prof = doc.slice(doc.indexOf('<section class="profile" id="profile">'));
+      const rowHtml = [...prof.slice(0, prof.indexOf('</section>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]}</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
       const nums = [...rowHtml.matchAll(/data-class="(\w+)">(\d+)</g)].map(m => [m[1], Number(m[2])]);
       expect(Object.fromEntries(nums)).toEqual(r.counts);
     }

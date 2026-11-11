@@ -230,14 +230,14 @@ ol.aaa-list { padding-left: 4ch; }
   ul.legend { columns: 1; }
   .scroll-hint { display: none; } .scroll-hint.matrix-hint { display: block; }
   .table-scroll:not(:has(table.matrix)) { overflow-x: visible; }
-  table:not(.header):not(.matrix), table:not(.header):not(.matrix) > tbody, table:not(.header):not(.matrix) > tfoot, table:not(.header):not(.matrix) > * > tr, table:not(.header):not(.matrix) > * > tr > td, table:not(.header):not(.matrix) > * > tr > th { display: block; width: auto; }
-  table:not(.header):not(.matrix) { border: 0; width: 100%; }
-  table:not(.header):not(.matrix) > thead, table:not(.header):not(.matrix) > caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  table:not(.header):not(.matrix) > * > tr { border: var(--bw) solid var(--line); padding: calc(var(--lh) / 4) 1ch; margin: 0 0 calc(var(--lh) / 2); }
-  table:not(.header):not(.matrix) > * > tr > td, table:not(.header):not(.matrix) > * > tr > th { border: 0; padding: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
-  table:not(.header):not(.matrix) > * > tr > th { font-weight: 800; }
-  table:not(.header):not(.matrix) td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 400; }
-  table:not(.header):not(.matrix) td:empty { display: none; }
+  table:not(.header):not(.matrix):not(.compact), table:not(.header):not(.matrix):not(.compact) > tbody, table:not(.header):not(.matrix):not(.compact) > tfoot, table:not(.header):not(.matrix):not(.compact) > * > tr, table:not(.header):not(.matrix):not(.compact) > * > tr > td, table:not(.header):not(.matrix):not(.compact) > * > tr > th { display: block; width: auto; }
+  table:not(.header):not(.matrix):not(.compact) { border: 0; width: 100%; }
+  table:not(.header):not(.matrix):not(.compact) > thead, table:not(.header):not(.matrix):not(.compact) > caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  table:not(.header):not(.matrix):not(.compact) > * > tr { border: var(--bw) solid var(--line); padding: calc(var(--lh) / 4) 1ch; margin: 0 0 calc(var(--lh) / 2); }
+  table:not(.header):not(.matrix):not(.compact) > * > tr > td, table:not(.header):not(.matrix):not(.compact) > * > tr > th { border: 0; padding: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  table:not(.header):not(.matrix):not(.compact) > * > tr > th { font-weight: 800; }
+  table:not(.header):not(.matrix):not(.compact) td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 400; }
+  table:not(.header):not(.matrix):not(.compact) td:empty { display: none; }
 }
 @media (max-width: 40rem) {
   table.header { width: 100%; }
@@ -276,3 +276,23 @@ svg.chart-narrow { display: none; }
   svg.chart-narrow { display: block; }
   svg.chart-wide { display: none; }
 }
+/* Outcome profile segments (svg.ts stackedSvg): good in the chart tone, bad in ink, not known yet outlined. */
+.pf { stroke: var(--bg); stroke-width: 1; }
+.pf-right { fill: var(--chart); } .pf-correct_refusal { fill: var(--chart); fill-opacity: 0.75; } .pf-right_with_reservation { fill: var(--chart); fill-opacity: 0.55; } .pf-correct_stop { fill: var(--chart); fill-opacity: 0.4; }
+.pf-harmful_lab { fill: var(--ink); } .pf-risky_pattern { fill: var(--ink); fill-opacity: 0.75; } .pf-stopped_at_rehearsal { fill: var(--ink); fill-opacity: 0.6; } .pf-ineffective { fill: var(--ink); fill-opacity: 0.4; }
+.pf-over_cautious { fill: var(--ink); fill-opacity: 0.25; } .pf-invalid_answer { fill: var(--ink); fill-opacity: 0.15; } .pf-unscorable { fill: var(--ink); fill-opacity: 0.1; }
+.pf-pending_review, .pf-rerun, .pf-under_review, .pf-not_run { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.pf-pending_review { stroke-dasharray: 4 2; } .pf-rerun { stroke-dasharray: 1 2; } .pf-under_review { stroke-dasharray: 6 2 1 2; }
+svg[data-chart] .pf-n { fill: var(--ink); stroke: var(--bg); stroke-width: 3; paint-order: stroke; font-weight: 800; }
+svg[data-chart] .ch-lgd { fill: var(--ink); }
+/* Four-quadrant plot (safety.ts). */
+.q-pt { fill: var(--ink); }
+.q-base { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.q-arrow { fill: var(--ink); }
+.q-mid { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.q-lead { stroke: var(--muted); stroke-width: 1; }
+svg[data-chart] .q-midl { fill: var(--muted); font-size: 11px; }
+table.danger code { white-space: normal; overflow-wrap: anywhere; }
+ul.why li, ul.separates li { max-width: 100ch; }
+table.compact th, table.compact td { padding-left: 0.5ch; padding-right: 0.5ch; }
+figure.aaa-fig figcaption { font-style: italic; color: var(--muted); }

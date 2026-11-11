@@ -19,9 +19,10 @@ test('no block, shade or middle-dot characters anywhere in the built site', () =
   for (const [p, s] of site) if (/\.(html|txt)$/.test(p)) expect(NON_ASCII_ART.test(s), p).toBe(false);
 });
 
-test('every .txt twin is pure ASCII inside its charts', () => {
+test('the .txt twin is pure ASCII and keeps the chart numbers as tables', () => {
   const t = site.get('leaderboard/index.txt')!;
-  expect(t).toMatch(/\|[#= ]+\|/);
+  expect(t).toMatch(/^[\x00-\x7f]*$/);
+  expect(t).toMatch(/\d+ of \d+ +\d+%/);
 });
 
 test('rating axis: -50..100 when nothing is below -50, else -100..100; linear', () => {

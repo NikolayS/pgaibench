@@ -9,7 +9,7 @@
 import type { Results, Table } from './results';
 import { labelOf } from './results';
 import { esc } from './html';
-import { fluidAxis, fluidBar, narrow, spanBars } from './bars';
+import { hbarSvg, shortName } from './svg';
 import { baselineLabel } from './rating';
 
 export const BAR_WIDTH = 40;
@@ -67,18 +67,20 @@ export function chartText(s: Series): string {
   return [s.title, '', ...body, ...scale(), `${' '.repeat(LABEL + 1)}linear, 0 to 100 percent; count, share, Wilson 95%`].join('\n');
 }
 
+const SHORT_BASE: Record<string, string> = { 'Baseline (no model): always escalate': 'always escalate', 'Baseline (no model): always our safe reference change': 'safe reference', 'Baseline (no model): always our trapped reference change': 'trapped reference' };
+const shortLabel = (b: Bar) => (b.baseline ? SHORT_BASE[b.label] ?? b.label.replace(/^Baseline \(no model\): /, '') : shortName(`x/${b.label}`));
+
 export function chart(s: Series, caption: string): string {
-  const [title, blank, ...rest] = chartText(s).split('\n');
-  const n = s.bars ? s.bars.reduce((a, b) => a + rowLines(b).length, 0) : 1;
-  const data = rest.slice(0, n).join('\n'), tail = rest.slice(n).join('\n');
-  const dir = /\((higher|lower) is better\)$/.exec(title!)?.[0] ?? '', m = dir.startsWith('(higher') ? '+' : dir ? '-' : '.';
+  const title = s.title;
+  const dir = /\((higher|lower) is better\)$/.exec(title)?.[0] ?? '', m = dir.startsWith('(higher') ? '+' : dir ? '-' : '.';
   const rows = s.bars ? s.bars.map(b => `<tr data-k="${b.q.k}" data-n="${b.q.n}" data-lo="${b.q.lo}" data-hi="${b.q.hi}"${b.baseline ? ' class="baseline"' : ''}><th scope="row">${esc(b.label)}</th><td class="num">${b.q.k} of ${b.q.n}</td><td class="num">${pct(b.q.k / b.q.n)}%</td><td class="num">${pct(b.q.lo)} to ${pct(b.q.hi)}%</td></tr>`).join('')
     : '<tr><td colspan="4" class="none" data-result>No results yet.</td></tr>';
-  const compact = narrow(`<p><b>${esc(title!)}</b></p>${s.bars ? s.bars.map(b => `<div class="nrow"><div class="nrow-name">${esc(b.label)} <span class="nrow-sub">${esc(nums(b.q).trim().replace(/ +/g, ' '))}</span></div><div class="nrow-bar">${fluidBar(bar(b.q))}</div></div>`).join('') : '<p>No results yet.</p>'}<div class="nrow-bar">${fluidAxis([0, 25, 50, 75, 100].map(t => ({ at: t, label: `${t}%` })))}</div><p class="nrow-sub">linear, 0 to 100 percent; count, share, Wilson 95%</p>`);
-  return `<figure class="chart-block">
-<p class="sr" id="${s.id}-alt">Text bar chart: ${esc(title!)}. The table after it holds the same numbers.</p>
-<pre class="chart" data-chart="${s.id}" aria-hidden="true">${esc(title!)}\n${blank}\n<span data-result>${spanBars(esc(data), BAR_WIDTH)}</span>\n${esc(tail)}</pre>${compact}
-<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title!)}"><table class="chart-data" data-chart-for="${s.id}"><caption>${esc(title!)}</caption><thead><tr><th scope="col">Row</th><th scope="col" class="num" title="count ${dir}">count${m}</th><th scope="col" class="num" title="share of all tasks ${dir}">share${m}</th><th scope="col" class="num" title="Wilson 95 percent interval ${dir}">ci${m}</th></tr></thead><tbody>${rows}</tbody></table></div>
-<figcaption>${caption}${dir ? ` ${dir}` : ''}</figcaption>
-</figure>`;
+  const table = `<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title)}"><table class="chart-data" data-chart-for="${s.id}"><caption>${esc(title)}</caption><thead><tr><th scope="col">Row</th><th scope="col" class="num" title="count ${dir}">count${m}</th><th scope="col" class="num" title="share of all tasks ${dir}">share${m}</th><th scope="col" class="num" title="Wilson 95 percent interval ${dir}">ci${m}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const toRow = (b: Bar) => ({ label: shortLabel(b), value: 100 * b.q.k / b.q.n, lo: 100 * b.q.lo, hi: 100 * b.q.hi });
+  const spec = s.bars ? { id: s.id, title, unit: '%', aria: `${title}. ${s.bars.map(b => `${b.label} ${pct(b.q.k / b.q.n)}%`).join(', ')}. The table below gives every number.`,
+    desc: 'Horizontal bars, linear from 0 to 100 percent of all tasks; a thin line with caps marks the Wilson 95 percent interval.',
+    rows: s.bars.filter(b => !b.baseline).map(toRow), baselines: s.bars.filter(b => b.baseline).map(toRow) } : null;
+  const svgs = spec ? `${hbarSvg({ ...spec, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ')}${hbarSvg({ ...spec, width: 760 }).replace('<svg ', '<svg class="chart-wide" ')}` : '<p class="none" data-result>No results yet.</p>';
+  return `<figure class="svg-chart chart-block" id="${s.id}-fig"><p><b>${esc(title)}</b></p>${svgs}<figcaption>${caption}${dir ? ` ${dir}` : ''}</figcaption></figure>
+${table}`;
 }

@@ -95,61 +95,33 @@ describe('themes and width', () => {
   });
 });
 
-describe('text charts', () => {
-  const charts = (doc: string) => [...doc.matchAll(/<pre class="chart" data-chart="([^"]+)" aria-hidden="true">([\s\S]*?)<\/pre>/g)].map(m => ({ id: m[1]!, body: unesc(barsToText(m[2]!).replace(/<[^>]*>/g, '')) }));
+describe('per-metric charts', () => {
+  const charts = (doc: string) => [...doc.matchAll(/<svg class="chart-wide"[^>]*data-chart="([^"]+)"[^>]*>([\s\S]*?)<\/svg>/g)].map(m => ({ id: m[1]!, body: m[2]! }));
   const tableFor = (doc: string, id: string) => {
     const t = new RegExp(`<table[^>]*data-chart-for="${id}"[^>]*>([\\s\\S]*?)</table>`).exec(doc);
     if (!t) return null;
     return [...t[1]!.matchAll(/<tr[^>]*data-k="(\d+)" data-n="(\d+)" data-lo="([\d.]+)" data-hi="([\d.]+)"[^>]*><th scope="row">([^<]+)<\/th>/g)]
       .map(m => ({ k: +m[1]!, n: +m[2]!, lo: +m[3]!, hi: +m[4]!, label: unesc(m[5]!) }));
   };
-  const rows = (body: string) => [...body.matchAll(/^(.*?)\|([#=\- ]+)\|\s+(\d+)\/(\d+)\s/gm)].map(m => ({ bar: m[2]!, k: +m[3]!, n: +m[4]! }));
-  test('no SVG chart is left and charts exist', () => {
-    let n = 0;
-    for (const [, s] of all) for (const [, doc] of html(s)) n += charts(doc).length;
-    expect(n).toBeGreaterThan(0);
-    expect(sites.plain.get('leaderboard/index.html')!).toContain('<pre class="chart"');
-  });
-  test('every chart pre is aria-hidden, has a text alternative and a table with the same numbers', () => {
-    for (const [n, s] of [['fixture', sites.fixture], ['published', sites.published]] as const) for (const [p, doc] of html(s)) for (const c of charts(doc)) {
-      expect(doc, `${n} ${p} ${c.id}`).toContain(`id="${c.id}-alt"`);
-      const t = tableFor(doc, c.id);
-      expect(t, `${n} ${p} ${c.id}`).not.toBeNull();
-      const r = rows(c.body);
-      expect(r.length, `${p} ${c.id}`).toBe(t!.length);
-      expect(r.length).toBeGreaterThan(0);
-      r.forEach((x, i) => { expect(x.k).toBe(t![i]!.k); expect(x.n).toBe(t![i]!.n); });
-    }
-  });
-  test('bars are linear from zero: length proportional to the value within one character', () => {
+  test('per-metric charts are SVG figures with a table of the same numbers; bars linear from zero', () => {
     let checked = 0;
     for (const [, s] of [['fixture', sites.fixture], ['published', sites.published]] as const) for (const [p, doc] of html(s)) for (const c of charts(doc)) {
+      if (!/-(right|harm)$/.test(c.id)) continue;
       const t = tableFor(doc, c.id)!;
-      rows(c.body).forEach((x, i) => {
-        expect(x.bar.length, p).toBe(BAR_WIDTH);
-        const count = (re: RegExp) => (x.bar.match(re) ?? []).length;
-        const len = count(/[#=]/g), band = count(/[=-]/g);
-        expect(Math.abs(len - BAR_WIDTH * x.k / x.n), `${p} ${c.id} row ${i}`).toBeLessThanOrEqual(1);
-        expect(Math.abs(band - BAR_WIDTH * (t[i]!.hi - t[i]!.lo)), `${p} ${c.id} band ${i}`).toBeLessThanOrEqual(1.5);
-        expect(x.bar).toMatch(/^#*=*-* *$/);
-        checked++;
-      });
-      expect(c.body, `${p} ${c.id}`).toMatch(/0%\s+25%\s+50%\s+75%\s+100%/);
-      expect(c.body).toContain('linear');
+      expect(t, `${p} ${c.id}`).not.toBeNull();
+      const x0 = Number(/data-x0="([\d.]+)"/.exec(doc.slice(doc.indexOf(`data-chart="${c.id}"`) - 400))![1]);
+      const ticks = [...c.body.matchAll(/<line class="ch-(?:zero|grid)" x1="([\d.]+)"/g)].map(m => Number(m[1]));
+      expect(ticks.length).toBe(5);
+      const span = ticks[4]! - ticks[0]!;
+      for (let i = 1; i < 5; i++) expect(Math.abs(ticks[i]! - ticks[i - 1]! - span / 4)).toBeLessThan(0.2);
+      expect(c.body).toMatch(/>0%<\/text>[\s\S]*>100%<\/text>/);
+      const vals = [...c.body.matchAll(/class="ch-v"[^>]*>(\d+)%?</g)].map(m => Number(m[1]));
+      expect(vals.length, `${p} ${c.id}`).toBe(t.length);
+      t.forEach((r, i) => { expect(vals[i]).toBe(Math.round(100 * r.k / r.n)); checked++; });
+      const bars = [...c.body.matchAll(/class="ch-bar" x="([\d.]+)"[^>]*width="([\d.]+)"/g)];
+      for (const m of bars) expect(Number(m[1])).toBe(x0);
     }
     expect(checked).toBeGreaterThan(5);
-  });
-  test('baselines are labelled rows in every result chart', () => {
-    const lb = sites.published.get('leaderboard/index.html')!;
-    for (const c of charts(lb)) {
-      expect(c.body).toContain('Baseline (no model): always escalate');
-      expect(c.body).toContain('Baseline (no model): always our safe reference change');
-    }
-  });
-  test('an empty chart shows the scale and no digit in its result region', () => {
-    const lb = sites.plain.get('leaderboard/index.html')!;
-    expect(charts(lb).length).toBeGreaterThan(0);
-    expect(lb).toContain('No results yet');
   });
 });
 
@@ -234,7 +206,7 @@ describe('page structure', () => {
     expect(txt).toContain('Baseline (no model): always escalate');
     expect(txt).toContain('not separated at this sample size');
     expect(JSON.parse(sites.published.get('data/results.json')!).scenario_set).toBe(fixture().scenario_set);
-    for (const m of lb.matchAll(/data-k="(\d+)" data-n="(\d+)"/g)) expect(txt).toContain(`${m[1]}/${m[2]}`);
+    for (const m of lb.matchAll(/data-k="(\d+)" data-n="(\d+)"/g)) expect(txt).toContain(`${m[1]} of ${m[2]}`);
   });
   test('the preview without results has a text twin with no result numbers', () => {
     expect(sites.plain.get('leaderboard/index.txt')!).toContain('No results yet');
