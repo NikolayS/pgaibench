@@ -42,7 +42,7 @@ test('M1 effort: one sentence from the models table, on method, limits, testing 
   expect(s).toContain('model-c: high');
   expect(s).toMatch(/did not set .*provider default/);
   expect(s).toMatch(/explicit/);
-  for (const doc of [method, limits, policy, lb]) expect(text(doc)).toContain(text(s));
+  for (const doc of [method, limits, policy]) expect(text(doc)).toContain(text(s)); // the results page carries the shorter fairness statement (pooled.test.ts)
   for (const [p, doc] of ALL) expect(text(doc), p).not.toMatch(/vendor('s)? default reasoning effort|reasoning effort above the vendor default/i);
   expect(readme).not.toMatch(/Vendor default reasoning effort/);
 });
@@ -138,7 +138,7 @@ test('M13: README status is current', () => {
 test('M14: the limiting sentence sits next to the plot on home and results', () => {
   for (const doc of [lb, home]) {
     const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(doc)![0];
-    expect(text(sec)).toMatch(/one written change per task.*no tools.*19 tasks that we wrote.*three runs/i);
+    expect(text(sec)).toMatch(/without tools.*one written answer per task.*19 tasks that we wrote.*three runs/i);
   }
 });
 

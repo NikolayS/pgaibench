@@ -48,7 +48,7 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     expect(y0).toBeGreaterThan(ym); // zero at the bottom
     expect(ym).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
     // 24 characters, except the vertical axis title 'tasks without a dangerous change' (32): the owner asked for the full words; it fits the phone plot.
-    for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(t[1] === 'tasks without a dangerous change' ? 32 : 24);
+    for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(t[1] === 'tasks without a dangerous change' || / · [a-z]+$/.test(t[1]!) ? 32 : 24);
     // a bit flatter (0.75) since the vendor legend line, so the key still starts on the first phone screen
     if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.75); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
   }

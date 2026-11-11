@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { READER_CLASSES, READER_LABEL, HARM_EVIDENCE, HARM_LABEL, type ReaderClass, type HarmEvidence } from '../../src/analysis/outcome-map';
 import { cellSlug } from './cells';
 import { esc, kvList, link, page, REPO, type Ctx } from './html';
-import { labelOf, type Results } from './results';
+import { idName, labelOf, type Results } from './results';
 import { HELD_OUT } from './heldout';
 import { excludedWhy, type Pooled } from './pooled';
 import type { PublicScenario } from './build';
@@ -103,7 +103,7 @@ export const CLASS_KEY: [string, string][] = [
 ];
 const keyBlock = () => kvList(CLASS_KEY.map(([t, l]) => [esc(t), esc(l)]), { colon: false, label: 'Tags' });
 
-export const cellPath = (model: string, scenario: string) => `cells/${cellSlug(labelOf(model))}/${scenario}/`;
+export const cellPath = (model: string, scenario: string) => `cells/${cellSlug(idName(model))}/${scenario}/`;
 
 // ---------- blocks used by the results page ----------
 export function progressLine(p: Provisional): string {

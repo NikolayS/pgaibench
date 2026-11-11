@@ -27,7 +27,8 @@ export function toText(doc: string): string {
   const title = flat(/<title>([\s\S]*?)<\/title>/.exec(doc)?.[1] ?? '');
   const banner = /<p class="banner"[^>]*>([\s\S]*?)<\/p>/.exec(doc);
   const canary = /<p class="canary">([\s\S]*?)<\/p>/.exec(doc);
-  let main = /<main[^>]*>([\s\S]*?)<\/main>/.exec(doc)?.[1] ?? '';
+  // ASCII only: a configuration label "model · effort" becomes "model, effort X".
+  let main = (/<main[^>]*>([\s\S]*?)<\/main>/.exec(doc)?.[1] ?? '').replace(/ · (xhigh|high|medium|low|minimal|default)\b/g, ', effort $1');
   main = main.replace(/<svg\b[\s\S]*?<\/svg>/g, '').replace(/<!--narrow-->[\s\S]*?<!--\/narrow-->/g, '').replace(/<p class="sr"[\s\S]*?<\/p>/g, '').replace(/<caption>[\s\S]*?<\/caption>/g, '');
   const blocks: string[] = [];
   const re = /<dl class="[^"]*kv-grid([^"]*)"[^>]*>([\s\S]*?)<\/dl>|<pre[^>]*>([\s\S]*?)<\/pre>|<table[^>]*>([\s\S]*?)<\/table>|<h([1-4])[^>]*>([\s\S]*?)<\/h\5>|<(p|li|dt|dd|summary|figcaption)[^>]*>([\s\S]*?)<\/\7>/g;

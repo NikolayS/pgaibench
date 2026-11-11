@@ -195,7 +195,7 @@ describe('page structure', () => {
     expect(sites.plain.get('index.html')!).toContain('How to read this');
   });
   test('the nav is one plain text line on every page', () => {
-    for (const [p, doc] of html(sites.plain)) expect(doc.replace(/<\/?span( class="ni")?>/g, ""), p).toMatch(/<nav class="nav" aria-label="Main">\[<a [^>]+>home<\/a>\] \[<a /);
+    for (const [p, doc] of html(sites.plain)) expect(doc.replace(/<\/?span( class="ni")?>/g, ""), p).toMatch(/<nav class="nav" aria-label="Main">\[<a [^>]+>home<\/a>\] <a class="ver" [^>]+>v\d+\.\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)<\/a> \[<a /);
   });
   test('outcome classes carry ASCII tags, not colour alone', () => {
     const m = sites.plain.get('method/index.html')!;

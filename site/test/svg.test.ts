@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { hbarSvg, shortName, urlSlug, chartFigure } from '../src/svg';
+import { hbarSvg, baseName, shortName, urlSlug, chartFigure } from '../src/svg';
 
 const rows = [
   { label: 'fable-5.2', value: 100, lo: 100, hi: 100 },
@@ -9,13 +9,14 @@ const rows = [
 ];
 const spec = { id: 't', title: 'Score', desc: 'Score per configuration, 0 to 100.', aria: 'fable-5.2 leads.', rows, baselines: [{ label: 'always escalate', value: 28.9, lo: 16, hi: 45 }], notes: ['trapped reference: -50, not drawn'] };
 
-test('short names drop vendor, path, effort and date suffix', () => {
-  expect(shortName('anthropic/claude-fable-5.2')).toBe('claude-fable-5.2');
-  expect(shortName('google/gemini-4-argon')).toBe('gemini-4-argon');
-  expect(shortName('google/gemini-3.8-flash')).toBe('gemini-3.8-flash');
-  expect(shortName('openai/gpt-6.1-sol')).toBe('gpt-6.1-sol');
-  expect(shortName('deepseek/deepseek-v4-pro-0813')).toBe('deepseek-v4-pro');
-  expect(shortName('qwen/qwen3.8-27b')).toBe('qwen3.8-27b');
+test('short names drop vendor, path and date suffix, and add the reasoning effort', () => {
+  expect(baseName('anthropic/claude-fable-5.2')).toBe('claude-fable-5.2');
+  expect(shortName('anthropic/claude-fable-5.2')).toBe('claude-fable-5.2 · high');
+  expect(shortName('google/gemini-4-argon')).toBe('gemini-4-argon · default');
+  expect(shortName('google/gemini-3.8-flash')).toBe('gemini-3.8-flash · default');
+  expect(shortName('openai/gpt-6.1-sol')).toBe('gpt-6.1-sol · medium');
+  expect(shortName('deepseek/deepseek-v4-pro-0813')).toBe('deepseek-v4-pro · default');
+  expect(shortName('qwen/qwen3.8-27b')).toBe('qwen3.8-27b · default');
   // URL slugs stay as they were, so old links keep working
   expect(urlSlug('anthropic/claude-fable-5.2')).toBe('fable-5.2'); expect(urlSlug('google/gemini-4-argon')).toBe('argon');
 });

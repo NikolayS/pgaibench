@@ -3,6 +3,7 @@
 // Infinity, an interval that is not the Wilson interval of its count, or a
 // rate for a model without complete cells.
 import { z } from 'zod';
+import { shortName } from './svg';
 import { QUANTITIES, type QKey } from '../../src/analysis/model-report';
 import { PROFILE_CLASSES, READER_CLASSES } from '../../src/analysis/outcome-map';
 import { wilson } from '../../src/analysis/stats';
@@ -73,7 +74,10 @@ export function parseResults(json: unknown): Results {
 
 export const allRows = (r: Results): Row[] => r.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])]);
 export const modelIds = (r: Results): string[] => [...new Set(allRows(r).map(x => x.model_id))].sort();
-export const labelOf = (id: string) => id.split('/').slice(1).join('/') || id;
+/** Id without the vendor part: file and URL paths of cells (never reader-facing text). */
+export const idName = (id: string) => id.split('/').slice(1).join('/') || id;
+/** Reader-facing configuration name (model and reasoning effort): the one naming function, svg.ts shortName. */
+export const labelOf = (id: string) => shortName(id);
 export const isFixture = (results: Results) => modelIds(results).every(id => /^fixture\//.test(id));
 
 // A real build must never use fixture data.

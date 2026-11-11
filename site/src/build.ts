@@ -4,7 +4,7 @@ import { snapshotFile, type Snapshot } from './updates';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
-import { assertFixtureResults, labelOf, parseResults, type Results } from './results';
+import { assertFixtureResults, idName, parseResults, type Results } from './results';
 import { relativize, type Ctx } from './html';
 import { pages } from './pages';
 import { parseFrozen, parseOutOfSet } from './inputs';
@@ -14,6 +14,7 @@ import { cellPage, cellPath, gridPage, parseProvisional, type Provisional } from
 import { comparePages, safetyRows } from './safety';
 import { parsePooled } from './pooled';
 import { parseModels } from './models';
+import { setEfforts } from './svg';
 import type { ReleaseState } from './release';
 
 const ROOT = join(import.meta.dir, '..', '..');
@@ -129,6 +130,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
+  setEfforts(models ?? []);
   const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
@@ -143,7 +145,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
-  for (const c of cells ?? []) files.set(`data/cells/${cellSlug(labelOf(c.model_id))}/${c.scenario}/${c.sample}-${c.scored_by}.json`, `${JSON.stringify(c, null, 2)}\n`);
+  for (const c of cells ?? []) files.set(`data/cells/${cellSlug(idName(c.model_id))}/${c.scenario}/${c.sample}-${c.scored_by}.json`, `${JSON.stringify(c, null, 2)}\n`);
   files.set('assets/style.css', readFileSync(join(import.meta.dir, '..', 'assets', 'style.css'), 'utf8'));
   files.set('assets/sort.js', readFileSync(join(import.meta.dir, '..', 'assets', 'sort.js'), 'utf8'));
   // Favicon files are binary: the CLI copies them over these placeholders (the map holds text only).

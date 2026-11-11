@@ -12,3 +12,5 @@ export function releaseLine(r: ReleaseState | undefined): string {
   const a = `<a href="${RELEASE_URL}">Release ${RELEASE_TAG}, tagged ${RELEASE.date}</a>`;
   return !r || r.ahead === 0 ? a : `${a}; this build: ${RELEASE_TAG} + ${r.ahead} change${r.ahead === 1 ? '' : 's'} (unreleased)`;
 }
+/** The header mark next to the site name: "v0.1.0 (2026-11-11)", linking the GitHub release. Nothing more. */
+export const versionLink = () => `<a class="ver" href="${RELEASE_URL}">${RELEASE_TAG} (${RELEASE.date})</a>`;

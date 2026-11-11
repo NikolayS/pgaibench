@@ -16,7 +16,8 @@ test('bar html: runs of codes become spans of spaces; text twin gets the codes b
 });
 
 test('no block, shade or middle-dot characters anywhere in the built site', () => {
-  for (const [p, s] of site) if (/\.(html|txt)$/.test(p)) expect(NON_ASCII_ART.test(s), p).toBe(false);
+  // The one allowed middle dot: between model and reasoning effort in a configuration label ("claude-fable-5.2 · high"), HTML only.
+  for (const [p, s] of site) if (/\.(html|txt)$/.test(p)) expect(NON_ASCII_ART.test(p.endsWith('.html') ? s.replace(/[a-z0-9.\-]+ · (xhigh|high|medium|low|minimal|default)\b/g, '') : s), p).toBe(false);
 });
 
 test('the .txt twin is pure ASCII and keeps the chart numbers as tables', () => {
