@@ -62,3 +62,19 @@ test('number marks stay inside the frame (below its top line) with a full top ro
     for (const m of s.matchAll(/class="q-num"[^>]*data-box="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/g)) expect(+m[2]!, `${width}`).toBeGreaterThanOrEqual(top);
   }
 });
+
+test('family colours follow each vendor brand hue, with at least 3:1 contrast in both themes', () => {
+  const css = readFileSync(join(import.meta.dir, '..', '..', 'site', 'assets', 'style.css'), 'utf8');
+  const rgb = (h: string) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lum = (h: string) => { const [r, g, b] = rgb(h).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!; };
+  const contrast = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x! + 0.05) / (y! + 0.05); };
+  const hue = (h: string) => { const [r, g, b] = rgb(h) as [number, number, number]; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; const k = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (k * 60 + 360) % 360; };
+  const blocks = [...css.matchAll(/--bg: (#[0-9a-f]{6});[^}]*?--fam-anthropic: (#[0-9a-f]{6}); --fam-openai: (#[0-9a-f]{6}); --fam-google: (#[0-9a-f]{6}); --fam-open: (#[0-9a-f]{6});/gi)];
+  expect(blocks.length).toBe(3); // light, dark (system), dark (chosen)
+  // brand hues: Anthropic clay orange, OpenAI green, Google blue, open weights purple
+  const want: [number, number][] = [[10, 30], [150, 175], [210, 225], [270, 300]];
+  for (const m of blocks) m.slice(2, 6).forEach((c, i) => {
+    expect(contrast(c!, m[1]!), `${c} on ${m[1]}`).toBeGreaterThanOrEqual(3);
+    const h = hue(c!); expect(h >= want[i]![0] && h <= want[i]![1], `${c} hue ${h}`).toBe(true);
+  });
+});

@@ -3,7 +3,8 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
-import { quadrantSvg } from '../src/safety';
+import { effortTable, quadrantSvg } from '../src/safety';
+import { parsePooled } from '../src/pooled';
 import { SHAPE_HALF } from '../src/family';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
@@ -118,7 +119,11 @@ test('reasoning effort high: a separate table with the paired difference; never 
   const t = text(s.slice(0, s.indexOf('</table>') + 8 + 400));
   expect(t).toContain('Reasoning effort high (one run)');
   expect(t).toContain('-15.8 [-31.6 to -1.8]');
-  expect(t).toContain('No difference is clearly outside the noise. One run at high effort; three cells did not finish and count as missing.');
+  expect(t).toContain('No difference is clearly outside the noise. One run at high effort, compared with the three-run average at default effort. One high-effort cell did not finish and counts as missing.');
+  const full = structuredClone(pooledJson); full.effort[0]!.rows[0]!.paired.missing = []; full.effort[0]!.rows[0]!.missing = [0];
+  const t2 = text(effortTable(parsePooled(full)));
+  expect(t2).toContain('No difference is clearly outside the noise. One run at high effort, compared with the three-run average at default effort.');
+  expect(t2).not.toMatch(/did not finish|not finished/);
   const top = lb.slice(0, lb.indexOf('id="effort-high"'));
   expect(top).not.toContain('effort high)');
 });
