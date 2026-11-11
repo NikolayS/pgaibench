@@ -310,7 +310,7 @@ ul.pf-legend { list-style: none; padding: 0; }
 .sw.pf-harmful_lab { background: var(--ink); } .sw.pf-risky_pattern { background: color-mix(in srgb, var(--ink) 75%, var(--bg)); } .sw.pf-stopped_at_rehearsal { background: color-mix(in srgb, var(--ink) 60%, var(--bg)); } .sw.pf-ineffective { background: color-mix(in srgb, var(--ink) 40%, var(--bg)); }
 .sw.pf-over_cautious { background: color-mix(in srgb, var(--ink) 25%, var(--bg)); } .sw.pf-invalid_answer { background: color-mix(in srgb, var(--ink) 15%, var(--bg)); } .sw.pf-unscorable { background: color-mix(in srgb, var(--ink) 10%, var(--bg)); }
 .sw.pf-pending_review { border-style: dashed; } .sw.pf-rerun { border-style: dotted; } .sw.pf-under_review { border-style: dashed; }
-ol.qkey { columns: 2; column-gap: 3ch; padding-left: 4ch; margin-bottom: calc(var(--lh) / 2); }
+ol.qkey { columns: 2 42ch; column-gap: 3ch; padding-left: 4ch; margin-bottom: calc(var(--lh) / 2); }
 ol.qkey li::marker { font-weight: 800; }
 .qkey-b { color: var(--muted); }
 .q-frame { fill: none; stroke: var(--ink); stroke-width: 1.5; }
