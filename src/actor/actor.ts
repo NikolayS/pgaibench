@@ -220,6 +220,8 @@ type StatementResult = Row[] & { count?: number | null; command?: string };
 /** The CR's own session (src/actor/session.ts); telemetry keeps createClient. */
 export const ACTOR_CLIENT = createSessionClient;
 /** M5: in a transaction block now() is the block's start, not this statement's. */
+/** run on the CR session before each lock retry. */
+export const RETRY_ROLLBACK = 'rollback /* pgaibench-harness: before retry */';
 export const OPEN_TX_PROBE = "/* pgaibench-harness: open transaction probe */ select now() <> statement_timestamp() as open, exists (select 1 from pg_locks where pid = pg_backend_pid() and locktype = 'advisory' and granted) as session_lock";
 const standbyFirstSettings = new Set(['max_locks_per_transaction', 'max_connections', 'max_prepared_transactions', 'max_worker_processes', 'max_wal_senders']);
 /** polls the max lock wait of non-harness sessions (as
@@ -255,7 +257,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
   let client = factory(target.conn), index = -1;
   let downtime: number | undefined, stepDowntime: number | undefined, standbyDowntime: number | undefined;
   const restarts: NonNullable<ActorResult['restarts']> = [];
-  let cloneDown = false, stepRestarted = false;
+  let cloneDown = false, stepRestarted = false, primaryShellRan = false;
   const changed: { node: 'primary' | 'standby'; name: string; previous: Row; restart: boolean }[] = [];
   const rollbackMs = options.rollbackTimeoutMs ?? ROLLBACK_TIMEOUT_MS;
   // Only SQL rollback statements are bounded; shell scripts have their own
@@ -349,6 +351,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
   const shell = async (command: string, rollback = false, node: 'primary' | 'standby' = 'primary') => {
     // Set before the command runs: a failed restart still counts as restarted.
     if (!rollback) stepRestarted = true;
+    if (node === 'primary') primaryShellRan = true;
     await execute(command, 'shell', async () => {
       // the whole restart script run is a harness-caused interval
       // (VM clock), recorded on success, failure and timeout alike.
@@ -434,7 +437,15 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
             try { rows = await sql(step.sql) as StatementResult; break; }
             catch (error) {
               if (step.retries === undefined || attempt > step.retries || !isLockRetryable(error)) throw error;
-              await log({ index, kind: 'retry', attempt, error: errorText(error) });
+              // end the failed attempt's transaction on the same session before the pause:
+              // an explicit BEGIN left it aborted (every retry would get 25P02) and holding its
+              // locks. Same session, not a new one: the step semantics say all SQL steps run in
+              // one session and session settings persist; ROLLBACK keeps settings committed by
+              // earlier steps and undoes only this attempt's, which the rerun sets again.
+              // Outside a transaction ROLLBACK is a no-op (a warning).
+              let rollbackNote = 'ok';
+              try { await client.unsafe(RETRY_ROLLBACK); } catch (e) { rollbackNote = errorText(e); }
+              await log({ index, kind: 'retry', attempt, error: errorText(error), rollback: rollbackNote });
               await (options.sleep ?? Bun.sleep)(RETRY_PAUSE_MS);
             }
           }
@@ -627,7 +638,9 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
         await log({ index, kind: 'held_open', held_s: result.held_open_s });
       }
     }
+    // No restart step ran on the primary: no downtime, a real 0 (not null).
     if (downtime !== undefined) result.downtime_s = downtime;
+    else if (!primaryShellRan) result.downtime_s = 0;
     if (standbyDowntime !== undefined) result.standby_downtime_s = standbyDowntime;
     if (restarts.length) result.restarts = restarts;
     return result;

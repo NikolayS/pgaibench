@@ -25,6 +25,11 @@ export interface ReportInput {
   expected: { model: string; scenario: string; sample: number }[];
   generated: Map<string, GenMeta>; cells: ScoredCell[];
   models: ModelInfo[]; tracks: TrackConfig[]; dropped: { id: string; reason: string }[]; baselines: Baseline[];
+  /** Provisional build while a lab run is in progress: the models in `include`
+   *  are in the tables, every other requested or dropped model is listed with
+   *  `excludedReason`; a table row needs at least one cell, and its tasks are
+   *  the cells finished and scored so far. */
+  provisional?: { include: string[]; excludedReason: string };
 }
 
 export interface Q { k: number; n: number; lo: number; hi: number }
@@ -116,7 +121,17 @@ export function buildModelReport(o: ReportInput): ModelReport {
   const inSet = (s: string) => pub.has(s) || held.has(s);
   const excluded: ModelReport["excluded"] = o.dropped.map((d) => ({ model_id: d.id, track: trackOf(d.id), reason: d.reason, cells_generated: 0, cells_expected: 0 }));
   const complete: string[] = [];
-  for (const m of requested) {
+  if (o.provisional) {
+    const inc = new Set(o.provisional.include);
+    excluded.length = 0;
+    for (const m of [...new Set([...requested, ...o.dropped.map((d) => d.id)])].sort()) {
+      const exp = o.expected.filter((e) => e.model === m && e.sample === 1 && inSet(e.scenario));
+      const done = exp.filter((e) => o.generated.has(key(m, e.scenario, 1))).length;
+      if (inc.has(m) && trackOf(m)) complete.push(m);
+      else excluded.push({ model_id: m, track: trackOf(m), reason: o.provisional.excludedReason, cells_generated: done, cells_expected: exp.length });
+    }
+  }
+  else for (const m of requested) {
     const exp = o.expected.filter((e) => e.model === m && e.sample === 1 && inSet(e.scenario));
     const done = exp.filter((e) => o.generated.has(key(m, e.scenario, 1))).length;
     if (!trackOf(m)) excluded.push({ model_id: m, track: null, reason: `no track for access path ${info.get(m)!.access}`, cells_generated: done, cells_expected: exp.length });
@@ -147,7 +162,7 @@ export function buildModelReport(o: ReportInput): ModelReport {
     const rows: ModelRow[] = [];
     for (const m of models) {
       const have = by(m, scorer, pub).size;
-      if (have === o.publicIds.length) rows.push(row(m, scorer));
+      if (have === o.publicIds.length || (o.provisional && have > 0)) rows.push(row(m, scorer));
       else tableExcluded.push({ model_id: m, reason: have ? `${scorer} cells for ${have} of ${o.publicIds.length} public scenarios` : `no ${scorer} cells (0 of ${o.publicIds.length} public scenarios)` });
     }
     if (!rows.length) return null;

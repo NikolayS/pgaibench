@@ -179,6 +179,39 @@ describe("RealLab", () => {
     }
   });
 
+  test("production: a step expectation null at the step (null_value_here) is judged on the end-of-window collection", async () => {
+    const log: string[] = [];
+    const base = deps(log, { applyCR: async (_cr, _t, o) => ({ steps: [{ ok: true, metrics: {}, not_judged: [{ metric: "max_lock_wait_s", reason: "null_value_here" }] }], aborted: false, rolledBack: false, rollbackErrors: [], logPath: o!.logPath! }) });
+    const lab = new RealLab(host, { ...base, collect: async (c, o = {}) => { const s = await base.collect(c, o); s.metrics.max_lock_wait_s = 0.2; return s; } });
+    await lab.open();
+    const cr = structuredClone(goodCR);
+    cr.steps = [{ sql: "select 1", expect: { max_lock_wait_s: "<=1" } }] as never;
+    const p = await lab.production(cr, snapshot(), 180, "/tmp/a.jsonl");
+    expect(p.deferred_expectations).toEqual([expect.objectContaining({ step: 0, metric: "max_lock_wait_s", pass: true })]);
+    expect(p.deferred_expectations![0]!.not_judged).toBeUndefined();
+  });
+
+  test("tunnel loss: refused connects on the local forward ports and a dead ssh process are recorded as connectivity_lost; stderr is kept", async () => {
+    const run = async (alive: boolean, errs: string[]) => {
+      const log: string[] = [];
+      const base = deps(log);
+      const lab = new RealLab(host, { ...base,
+        tunnel: async (_ip, ports) => ({ ports: Object.fromEntries(ports.map((p) => [p, p + 30000])), close: async () => {}, alive: () => alive, stderr: () => alive ? "" : "Connection to 192.0.2.11 closed by remote host.\n" }),
+        collect: async (c, o = {}) => { const s = await base.collect(c, o); s.errors.push(...errs); return s; } });
+      await lab.open();
+      const p = await lab.production(structuredClone(goodCR), snapshot(), 180, "/tmp/a.jsonl");
+      return { p, stderr: lab.tunnelStderr() };
+    };
+    const lost = await run(false, ["window replication primary: connect ECONNREFUSED 127.0.0.1:35432 (at 1)"]);
+    expect(lost.p.connectivity_lost).toEqual(expect.arrayContaining(["tunnel: ssh process exited", "window replication primary: connect ECONNREFUSED 127.0.0.1:35432 (at 1)"]));
+    expect(lost.stderr).toContain("closed by remote host");
+    const refused = await run(true, ["settings: connect ECONNREFUSED 127.0.0.1:35433"]);
+    expect(refused.p.connectivity_lost).toEqual(expect.arrayContaining(["settings: connect ECONNREFUSED 127.0.0.1:35433"]));
+    // Postgres down behind a live tunnel: the database's error, no connectivity loss.
+    const outage = await run(true, ["settings: Connection terminated unexpectedly", "pg_stat_wal: the database system is starting up"]);
+    expect(outage.p.connectivity_lost).toBeUndefined();
+  });
+
   test("production: W_prod on 5432, actor on production, after snapshot runs backup verify (kind production)", async () => {
     const log: string[] = [];
     const lab = new RealLab(host, deps(log));
@@ -344,6 +377,36 @@ describe("RealLab", () => {
     const r = await lab.rehearse(cr, { n: 1, port: 5441 } as never, snapshot(), 120, '/tmp/r.jsonl');
     expect(seen[0]).toEqual(['events']);
     expect(r.diff.thresholds.find(t => t.metric === 'rowcount:events')).toMatchObject({ baseline: 1080000, actual: 136513, pass: true });
+  });
+  test('an absolute rowcount threshold reads the live count of the whole table at the end of the window, never the frozen slice', async () => {
+    const log: string[] = [];
+    const asked: { base: boolean; rowcounts?: readonly string[]; integrity?: boolean }[] = [];
+    const base = deps(log);
+    const lab = new RealLab(host, { ...base, collect: async (c, o) => {
+      const s = await base.collect(c, o);
+      asked.push({ base: !!o?.baseline, rowcounts: o?.rowcounts, integrity: o?.integrity });
+      s.integrity = { orders: { rowcount: 1000, checksum: 'slice' } };
+      if (o?.rowcounts?.includes('orders')) s.metrics['rowcount:orders'] = 5002881;
+      return s; } });
+    await lab.open();
+    const cr = structuredClone(goodCR);
+    cr.rehearsal.thresholds = { 'rowcount:orders': '>=5000000' };
+    const r = await lab.rehearse(cr, { n: 1, port: 5441 } as never, snapshot(), 120, '/tmp/r.jsonl');
+    expect(r.diff.thresholds.find(t => t.metric === 'rowcount:orders')).toMatchObject({ actual: 5002881, pass: true });
+    // The before and the end-of-window collections both count orders live.
+    expect(asked.filter(a => a.rowcounts?.includes('orders')).length).toBeGreaterThanOrEqual(2);
+    // The oracle's frozen-slice integrity stays as it is.
+    expect(r.after.integrity.orders).toEqual({ rowcount: 1000, checksum: 'slice' });
+  });
+  test('with a post window the production record of an absolute rowcount threshold is judged on the live count', async () => {
+    const log: string[] = [];
+    const base = deps(log);
+    const lab = new RealLab(host, { ...base, collect: async (c, o) => { const s = await base.collect(c, o); if (o?.integrity !== false) s.integrity = { events: { rowcount: 10, checksum: 'x' } }; if (o?.rowcounts?.includes('events')) s.metrics['rowcount:events'] = 259600; return s; } });
+    await lab.open();
+    const cr = structuredClone(goodCR); cr.task = 'D21';
+    cr.rehearsal.thresholds = { 'rowcount:events': '>=259500' };
+    const r = await lab.production(cr, snapshot(), 180, '/tmp/a.jsonl', ['shape_post_p50_ms:q03']);
+    expect(r.diff.thresholds.find(t => t.metric === 'rowcount:events')).toMatchObject({ actual: 259600, pass: true });
   });
   test('the harness outer timeout (planned time + 90 s) fails the step loudly with harness:workload_timeout', async () => {
     const log: string[] = [];
@@ -616,6 +679,20 @@ describe("RealLab", () => {
     expect(r.after.metrics.downtime_s).toBe(2.78);
     const c = await lab.rehearse(structuredClone(goodCR), { kind: "clone", port: 5501, n: 1, name: "x" }, snapshot(), 60, "/tmp/r.jsonl");
     expect(c.after.metrics.downtime_s).toBe(2.78);
+  });
+  test("a CR without a restart: the Actor's downtime_s 0 reaches the end-of-window and post-window snapshots as 0", async () => {
+    const log: string[] = [];
+    const base = deps(log);
+    const lab = new RealLab(host, { ...base,
+      collect: async (c, o = {}) => { const s = await base.collect(c, o); s.metrics.downtime_s = o.downtime_s !== undefined ? o.downtime_s : null as never; return s; },
+      applyCR: async (_cr, _t, o) => ({ steps: [{ ok: true, metrics: {} }], aborted: false, rolledBack: false, rollbackErrors: [], logPath: o!.logPath!, downtime_s: 0 }),
+    });
+    await lab.open();
+    const c = await lab.rehearse(structuredClone(goodCR), { kind: "clone", port: 5501, n: 1, name: "x" }, snapshot(), 60, "/tmp/r.jsonl");
+    expect(c.after.metrics.downtime_s).toBe(0);
+    const t6 = { ...structuredClone(goodCR), task: "T6" } as never;
+    const p = await lab.production(t6, snapshot(), 180, "/tmp/a.jsonl");
+    expect(p.after.metrics.downtime_s).toBe(0);
   });
   test("production carries the Actor's restart intervals for tps_collapse", async () => {
     const log: string[] = [];

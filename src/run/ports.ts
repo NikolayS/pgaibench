@@ -37,6 +37,8 @@ export interface LabPort {
   facts?(cr: CR, clone?: Target): Promise<GuardrailFacts>;
   /** poll the standby up to `seconds`; seconds until it streams, is in recovery and not paused, or null. */
   recheckReplication?(seconds: number): Promise<number | null>;
+  /** The ssh tunnels' stderr since the last call; the episode keeps it as tunnel.stderr.txt. */
+  tunnelStderr?(): string;
 }
 
 export interface Ports {

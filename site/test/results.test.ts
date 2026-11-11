@@ -49,3 +49,15 @@ describe('results schema', () => {
     expect(() => assertRealResults(fixturePath, parseResults(fixture()))).toThrow(/fixture/);
   });
 });
+
+test('provisional results: a lab row may count fewer tasks than the public set; a text row may not', () => {
+  const { readFileSync } = require('node:fs') as typeof import('node:fs');
+  const { join } = require('node:path') as typeof import('node:path');
+  const { parseResults } = require('../src/results') as typeof import('../src/results');
+  const base = JSON.parse(readFileSync(join(import.meta.dir, 'fixtures', 'results', 'results.json'), 'utf8'));
+  const lab = structuredClone(base); lab.tracks[0].lab.rows[0].tasks = 4; lab.tracks[0].lab.rows[0].q.acted = null;
+  expect(() => parseResults(lab)).toThrow(/tasks, the public set has/);
+  expect(() => parseResults({ ...lab, provisional: true })).not.toThrow();
+  const text = structuredClone(base); text.provisional = true; text.tracks[0].text.rows[0].tasks = 4; text.tracks[0].text.rows[0].q.acted = null;
+  expect(() => parseResults(text)).toThrow(/tasks, the public set has/);
+});

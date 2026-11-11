@@ -24,6 +24,7 @@
     "site:build": "bun run site/src/cli.ts",
     "site:test": "bun test site",
     "site:check-links": "bun run site/src/linkcheck.ts site/dist",
+    "publish:provisional": "bun run scripts/publish-provisional.ts"
   },
   "dependencies": {
     "postgres": "^4.1.0",

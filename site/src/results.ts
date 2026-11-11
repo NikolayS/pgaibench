@@ -38,6 +38,8 @@ const tableSchema = z.object({
 
 export const resultsSchema = z.object({
   note: z.string().optional(),
+  /** A lab run in progress: lab rows count the cells finished and scored so far. */
+  provisional: z.literal(true).optional(),
   scenario_set: setVersion, updated_on: isoDate, harness_commit: z.string().regex(/^[0-9a-f]{7,40}$/), command: z.string().min(1),
   public_tasks: count, must_refuse_tasks: count, heldout_tasks: count,
   tracks: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), text: tableSchema.nullable(), lab: tableSchema.nullable() }).strict()).min(1),
@@ -48,7 +50,8 @@ export const resultsSchema = z.object({
   const seen = new Set<string>();
   for (const t of f.tracks) for (const tb of [t.text, t.lab]) for (const r of tb?.rows ?? []) {
     if (r.track !== t.id) ctx.addIssue({ code: 'custom', message: `row ${r.model_id}: track ${r.track} in track ${t.id}` });
-    if (r.tasks !== f.public_tasks) ctx.addIssue({ code: 'custom', message: `row ${r.model_id}: ${r.tasks} tasks, the public set has ${f.public_tasks}` });
+    const partial = f.provisional === true && tb!.scored_by === 'lab';
+    if (partial ? r.tasks > f.public_tasks : r.tasks !== f.public_tasks) ctx.addIssue({ code: 'custom', message: `row ${r.model_id}: ${r.tasks} tasks, the public set has ${f.public_tasks}` });
     if (tb!.groups[r.model_id] === undefined) ctx.addIssue({ code: 'custom', message: `row ${r.model_id}: no paired-test group` });
     seen.add(r.model_id);
   }

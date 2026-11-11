@@ -15,7 +15,7 @@ import { SET_VERSION } from "../scenarios/schema";
 import { rawCountKey } from "../telemetry/scenario-keys";
 import { scoredRefusal, V2_THRESHOLDS, type V2Thresholds } from "../oracle/v2-thresholds";
 import { checkPreconditions } from "./preconditions";
-import type { Condition, OracleFile, SideObjective, Snapshot, Task } from "./types";
+import type { Condition, OracleFile, SideObjective, Snapshot, Task, TelemetryRecord } from "./types";
 import { makePorts } from "./wiring";
 import { HarnessError, INJECTOR_TABLE, postWindowPlan, WORKLOAD_VERSION } from "./lab";
 import { validateCR } from "./validate";
@@ -118,7 +118,7 @@ export const PRODUCTION_MARKER = "production.started";
  *  starts with env.reset (snapshot restore), and nothing was scored. Also
  *  the harness faults of harnessFault() too (a fault the CR did not cause);
  *  server_fault_unexplained stays capped (SERVER_FAULT_CAP). */
-export const RETRYABLE_AFTER_PRODUCTION = new Set(["harness:oracle_incomplete", "harness:server_fault_unexplained", "harness:step_error", "harness:actor_null", "harness:restart_slow", "harness:workload_timeout", "harness:key_null"]);
+export const RETRYABLE_AFTER_PRODUCTION = new Set(["harness:tunnel_lost", "harness:oracle_incomplete", "harness:server_fault_unexplained", "harness:step_error", "harness:actor_null", "harness:restart_slow", "harness:workload_timeout", "harness:key_null"]);
 /** seconds the harness re-polls the standby after a failed restart.sh. */
 export const RESTART_RECHECK_S = 60;
 // harness:key_read_failed after the CR ran is retryable too (before it: pre-production).
@@ -317,6 +317,10 @@ export async function runEpisode(inp: RunEpisodeInput): Promise<{ id: string; st
     appendFileSync(join(inp.runsDir, SERVER_FAULT_LEDGER), JSON.stringify({ episode: id, stage, reason, ...(pre ? { pre: true } : {}), at: new Date(now()).toISOString() }) + "\n");
     return 1;
   };
+  // Lost local ssh tunnel (src/run/connectivity.ts): harness:tunnel_lost, capped retry; the next try opens a new tunnel.
+  const tunnelLost = (r: TelemetryRecord, where: string) => {
+    if (r.connectivity_lost?.length) throw new HarnessError("harness:tunnel_lost", `harness:tunnel_lost at ${where}: ${r.connectivity_lost.slice(0, 3).join("; ")}`, r.connectivity_lost.slice(0, 20));
+  };
   const counts = (n: number, pre: boolean) => ({ server_faults: priorServerFaults + (pre ? 0 : n), pre_production_faults: priorPreFaults + (pre ? n : 0) });
   // Every failRetryable call is before the CR's first step.
   const failRetryable = (reason: string, error: string) => {
@@ -445,6 +449,7 @@ export async function runEpisode(inp: RunEpisodeInput): Promise<{ id: string; st
       // snapshot can differ from the live primary (relfilenode, sizes).
       if (sc) factsBefore = await facts(cr, clone);
       reh = await inp.ports.lab.rehearse(cr, clone, baseline, WINDOWS_S.rehearsal, join(dir, "actor.rehearsal.jsonl"), ...(sc?.step_timeout_s ? [{ stepTimeoutS: sc.step_timeout_s }] : []));
+      tunnelLost(reh, "rehearsal");
       if (sc) factsAfter = await facts(cr, clone);
     } finally {
       await timed("clone drop", () => inp.ports.env.dropClone(clone));
@@ -505,6 +510,8 @@ export async function runEpisode(inp: RunEpisodeInput): Promise<{ id: string; st
     stage = "oracle";
     if (sc) prod.after.harness_intervals = [...envIntervals, ...(prod.after.harness_intervals ?? [])];
     w("production.telemetry.json", prod);
+    // A lost local ssh tunnel is a harness fault: no harm check may read the missing samples.
+    tunnelLost(prod, "production");
     // a step failure the Actor classed as a harness fault (a restart.sh
     // that timed out on the standby replay) does not hide harm: when a v2
     // check fired in the episode, the outcome is harmful with both pieces of
@@ -582,12 +589,13 @@ export async function runEpisode(inp: RunEpisodeInput): Promise<{ id: string; st
     if (sc && harness && !ranCR) rmSync(join(dir, PRODUCTION_MARKER), { force: true });
     // a harness fault before the CR's first step (injector_not_holding) is pre-production.
     // an outer workload timeout in the baseline window is before the CR too.
-    const pre = harness && !keyReadAfterCR && (isPreProductionReason(hx.reason) || (hx.reason === "harness:workload_timeout" && stage === "baseline"));
+    const pre = harness && !keyReadAfterCR && (isPreProductionReason(hx.reason) || (hx.reason === "harness:workload_timeout" && stage === "baseline") || (hx.reason === "harness:tunnel_lost" && !productionStarted));
     const fault = harness ? ledger(hx.reason, pre) : 0;
     // Earlier an uncaught error never leaves a null reason.
     if (sc) w(FAILED_MARKER, { episode: id, stage, production_started: productionStarted && (!harness || ranCR), error: String((e as Error).message ?? e), ...(hx.reason ? { reason: hx.reason, evidence: hx.evidence ?? [] } : { reason: "harness:uncaught", evidence: [String((e as Error).message ?? e)] }), ...counts(fault, pre), at: new Date(now()).toISOString() } satisfies FailureMarker);
     throw e;
   } finally {
+    try { const e = inp.ports.lab.tunnelStderr?.(); if (e && existsSync(dir)) writeFileSync(join(dir, "tunnel.stderr.txt"), e); } catch { /* best effort */ }
     await inp.ports.lab.close().catch(() => {});
   }
 }

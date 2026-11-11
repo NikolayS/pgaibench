@@ -111,6 +111,8 @@ export function metricValue(s: Snapshot, name: string, baseline?: Snapshot): Met
   }
   if (kind === 'index_valid') return s.catalog.indexes.find(t => t.name === key || t.name === `public.${key}`)?.indisvalid ?? false;
   if (kind === 'rowcount' && rowcountKey(name) in s.metrics) return s.metrics[rowcountKey(name)]!;
+  // a live count was asked for and failed: null with its reason, never the frozen-slice count.
+  if (kind === 'rowcount' && s.errors.some(e => e.startsWith(`${rowcountKey(name)}: `))) return null;
   if (kind === 'rowcount' || kind === 'checksum') return s.integrity[key!]?.[kind] ?? null;
   if (kind === 'dead_tuples') return number(s.stats.pg_stat_user_tables.find(t => t.relname === key)?.n_dead_tup);
   if (name === 'p99_ms') return s.latency.p99_ms;
@@ -472,7 +474,7 @@ const POST_WINDOW = (metric: string) => metric === 'tps_post' || metric === 'pos
  *  record of rehearsal.thresholds, or a step expectation deferred to the
  *  end of the production window. */
 export type JudgeContext = 'rehearsal_threshold' | 'clone_step' | 'production_step' | 'production_threshold' | 'end_of_window';
-export type NotJudgedReason = 'not_measurable_here' | 'skipped_on_clone' | 'no_baseline_here';
+export type NotJudgedReason = 'not_measurable_here' | 'skipped_on_clone' | 'no_baseline_here' | 'null_value_here';
 /** The one rule: true when the context gives the metric no real value.
  *  Clone: no archive, no standby, no post window. Production step: the
  *  quick step snapshot never runs the backup verification. Production
@@ -492,6 +494,18 @@ function noBaseline(before: Snapshot, metric: string, expression: string, baseli
   const absent = metric.startsWith('rowcount:') && !before.errors.some(e => e.startsWith('catalog.tables')) && !before.catalog.tables.some(t => t.name === metric.slice(9).replace(/^public\./, ''));
   return !absent;
 }
+const tableIn = (s: Snapshot, name: string) => s.catalog.tables.some(t => t.name.replace(/^public\./, '') === name);
+/** A rowcount or checksum is null because the CR dropped or renamed its table: the count read says the
+ *  relation does not exist, or the catalog (read fine on both sides) has it before and not after. */
+function removedByCR(before: Snapshot, after: Snapshot, metric: string): boolean {
+  const [kind, key] = metric.split(':');
+  if ((kind !== 'rowcount' && kind !== 'checksum') || !key) return false;
+  const name = key.replace(/^public\./, '');
+  // The count itself failed because the relation is gone (42P01 text).
+  if (/does not exist/.test(reasonFor(after, metric) ?? '')) return true;
+  const catalogOk = (s: Snapshot) => !s.errors.some(e => e.startsWith('catalog.tables'));
+  return catalogOk(before) && catalogOk(after) && tableIn(before, name) && !tableIn(after, name);
+}
 /** Without a context every bound is judged (diffSnapshots, success keys).
  *  With one, a bound the context cannot measure, or a relative bound with
  *  no baseline there, is recorded with not_judged and pass true: it never
@@ -504,6 +518,10 @@ export function evaluateExpectations(before: Snapshot, after: Snapshot, threshol
     const miss = actual == null ? reasonFor(after, metric) : undefined;
     // A telemetry timeout is not a CR defect: the caller must not fail the step.
     const telemetryMiss = miss?.startsWith(TELEMETRY_TIMEOUT) ? { unavailable: miss } : {};
+    // A null actual is no value here, never the CR's failure: a later context
+    // with a real value judges it. Exception: a rowcount or checksum of a
+    // table the CR removed (in the catalog before, not after) is its own.
+    if (opts.context && actual == null && !removedByCR(before, after, metric)) return { metric, expression, baseline, actual, pass: true, not_judged: 'null_value_here' as const, ...telemetryMiss };
     try { return { metric, expression, baseline, actual, pass: evaluateThreshold(expression, actual, baseline), ...(actual == null ? { error: unavailable(after, metric) } : {}), ...telemetryMiss }; }
     catch (error) { return { metric, expression, baseline, actual, pass: false, error: message(error) }; }
   });

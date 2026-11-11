@@ -27,6 +27,8 @@ export interface TelemetryRecord {
   notes: string[];
   /** Production: step expectations the step snapshot cannot measure, judged on the end-of-window collection (step = 0-based index). */
   deferred_expectations?: (ThresholdResult & { step: number })[];
+  /** Connection losses to the local ssh tunnel endpoint (src/run/connectivity.ts): a harness fault, never harm. */
+  connectivity_lost?: string[];
 }
 
 /** oracle.json */

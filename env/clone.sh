@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Throwaway single-node clone of the primary snapshot ("DBLab clone" of
-# the lab). Same image tag as the snapshot, no archive, no standby.
+# the lab). Same image tag as the snapshot, no standby. It archives WAL
+# with the production archive_command into its own discarded directory.
 # Usage: env/clone.sh start <n>   (port 5500+n, container pgaibench-clone-<n>)
 #        env/clone.sh stop <n>
 # Output: "clone <n> started port=<port> <seconds>" or "clone <n> stopped".
@@ -13,6 +14,7 @@ stop_clone() {
   local n="$1"
   docker rm --force "pgaibench-clone-${n}" >/dev/null 2>&1 || true
   rm -rf "${DATA:?}/clone/${n:?}"
+  rm -rf "${DATA:?}/clone/${n:?}.archive"
 }
 
 start_clone() {

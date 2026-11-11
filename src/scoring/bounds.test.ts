@@ -41,3 +41,12 @@ test("a step that failed before its expectations, or was never reached, judged n
   const breached = boundLedger({ steps: [{ sql: "a", expect: { oom_kills: "==0" } }], rehearsal: { thresholds: {} } } as never, rec([], [{ ok: false, error: "Expectation breached: oom_kills=1 expected ==0" }]), null);
   expect(breached.bounds[0]!.judged_at).toBe("rehearsal");
 });
+test("a null value at rehearsal (null_value_here) is counted and judged in production when production has a real value; else never judged", () => {
+  const c = { steps: [], rehearsal: { thresholds: { downtime_s: "==0", "shape_mean_ms:q01": "<=50" } } } as never;
+  const reh = rec([{ metric: "downtime_s", expression: "==0", baseline: 0, actual: null, pass: true, not_judged: "null_value_here" }, { metric: "shape_mean_ms:q01", expression: "<=50", baseline: 5, actual: null, pass: true, not_judged: "null_value_here" }], []);
+  const prod = rec([{ metric: "downtime_s", expression: "==0", baseline: 0, actual: 0, pass: true }, { metric: "shape_mean_ms:q01", expression: "<=50", baseline: 5, actual: null, pass: true, not_judged: "null_value_here" }], []);
+  const l = boundLedger(c, reh, prod);
+  expect(l.bounds.map(b => [b.metric, b.judged_at])).toEqual([["downtime_s", "production"], ["shape_mean_ms:q01", null]]);
+  expect(l).toMatchObject({ bounds_judged_production: 1, bounds_never_judged: 1 });
+  expect(boundLedger(c, reh, null)).toMatchObject({ bounds_pending_production: 2 });
+});

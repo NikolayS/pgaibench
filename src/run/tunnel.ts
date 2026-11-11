@@ -3,7 +3,9 @@
 
 import { sshOptions } from "../actor/host";
 
-export interface Tunnel { ports: Record<number, number>; close(): Promise<void> }
+/** alive: liveness probe of the tunnel itself (the ssh process runs).
+ *  stderr: what ssh printed so far (kept in the cell directory). */
+export interface Tunnel { ports: Record<number, number>; close(): Promise<void>; alive?(): boolean; stderr?(): string }
 
 export function tunnelArgs(ip: string, map: Record<number, number>): string[] {
   const fwd = Object.entries(map).flatMap(([remote, local]) => ["-L", `127.0.0.1:${local}:127.0.0.1:${remote}`]);
@@ -18,8 +20,10 @@ export async function openTunnel(ip: string, remotePorts: number[]): Promise<Tun
     l.stop(true);
   }
   const proc = Bun.spawn(["ssh", ...tunnelArgs(ip, map)], { stdout: "ignore", stderr: "pipe" });
-  const stderr = new Response(proc.stderr).text();
+  let text = "";
+  const stderr = (async () => { const d = new TextDecoder(); for await (const chunk of proc.stderr) text += d.decode(chunk, { stream: true }); return text; })();
   const close = async () => { proc.kill(); await proc.exited; };
+  const alive = () => proc.exitCode === null && proc.signalCode === null;
   const deadline = Date.now() + 20_000;
   const first = map[remotePorts[0]!]!;
   while (Date.now() < deadline) {
@@ -27,7 +31,7 @@ export async function openTunnel(ip: string, remotePorts: number[]): Promise<Tun
     try {
       const s = await Bun.connect({ hostname: "127.0.0.1", port: first, socket: { data() {}, error() {} } });
       s.end();
-      return { ports: map, close };
+      return { ports: map, close, alive, stderr: () => text };
     } catch { await Bun.sleep(150); }
   }
   await close();

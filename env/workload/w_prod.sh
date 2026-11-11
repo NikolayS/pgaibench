@@ -538,7 +538,7 @@ summarize() {
     --argjson p_aborted "${p_aborted}" \
     --argjson s_aborted "${s_aborted}" \
     --argjson hung "${hung}" \
-    --arg version "w_prod-oracle-v2.7" \
+    --arg version "w_prod-oracle-v2.8" \
     '{version: $version, menu: $menu, seconds: $seconds, port: $port, tps: $tps, hung: $hung,
       standby_tps: $standby_tps, transactions: $transactions,
       failed: $failed, aborted_clients: $aborted, relaunches: $relaunches,

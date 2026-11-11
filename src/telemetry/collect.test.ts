@@ -491,3 +491,37 @@ test('every application shape is read from pg_stat_statements, not only the top 
   }), runOnHost: async () => { throw new Error('not configured'); } });
   expect(s.latency.shapes.q18?.mean_ms).toBe(0.1);
 });
+test('one rule: a null actual is never a CR failure in any context: not_judged null_value_here, pass true', () => {
+  const s = snapshot(); s.metrics.downtime_s = null as never;
+  delete (s.latency.shapes as Record<string, unknown>).q01;
+  const exp = { downtime_s: '==0', 'shape_mean_ms:q01': '<=50', 'shape_p50_ms:q01': '<1.5x' };
+  for (const context of ['rehearsal_threshold', 'clone_step', 'production_step', 'production_threshold', 'end_of_window'] as const) {
+    const r = evaluateExpectations(s, s, exp, { context });
+    expect(r.map(t => [t.metric, t.pass, t.not_judged])).toEqual([['downtime_s', true, 'null_value_here'], ['shape_mean_ms:q01', true, 'null_value_here'], ['shape_p50_ms:q01', true, expect.stringMatching(/null_value_here|no_baseline_here/)]]);
+  }
+  // Without a context (diffSnapshots, success keys) a null still fails.
+  expect(evaluateExpectations(s, s, { downtime_s: '==0' })[0]!.pass).toBe(false);
+});
+test('one rule: a telemetry timeout null stays marked unavailable and is not judged', () => {
+  const s = snapshot(); s.errors.push('rowcount:orders: telemetry timeout: canceling statement'); delete s.integrity.orders; delete s.metrics['rowcount:orders'];
+  const r = evaluateExpectations(s, s, { 'rowcount:orders': '>=1' }, { context: 'clone_step' })[0]!;
+  expect(r).toMatchObject({ pass: true, not_judged: 'null_value_here' }); expect(r.unavailable).toContain('telemetry timeout');
+});
+test('one rule: a rowcount or checksum null because the CR dropped the table is the CR own result (judged, fails)', () => {
+  const before = snapshot(), after = snapshot();
+  const name = 'orders';
+  after.catalog.tables = after.catalog.tables.filter(t => t.name.replace(/^public\./, '') !== name);
+  delete after.integrity[name]; delete after.metrics[`rowcount:${name}`];
+  for (const metric of [`rowcount:${name}`, `checksum:${name}`]) {
+    const r = evaluateExpectations(before, after, { [metric]: '>=1' }, { context: 'production_step' })[0]!;
+    expect(r.not_judged).toBeUndefined(); expect(r.pass).toBe(false);
+  }
+});
+
+test('a live rowcount that failed is null, never the frozen-slice count of the integrity check', () => {
+  const s = snapshot();
+  s.integrity = { orders: { rowcount: 1000, checksum: 'slice' } };
+  s.errors.push('rowcount:orders: telemetry timeout: canceling statement due to statement timeout');
+  expect(metricValue(s, 'rowcount:orders')).toBeNull();
+  expect(metricValue(s, 'checksum:orders')).toBe('slice');
+});

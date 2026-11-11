@@ -23,6 +23,7 @@ const KEY_RETRY_WAIT_MS = 5000;
 import { stallSeries } from "../oracle/v2";
 import { REMOTE_ENV } from "./ssh-env";
 import { openTunnel, type Tunnel } from "./tunnel";
+import { connectivityLoss } from "./connectivity";
 import { collectFacts, crFunctions, crGucs, crIdentifiers, type GuardrailFacts } from "./guardrail-context";
 import type { ActorStepRecord, TelemetryRecord, Workload } from "./types";
 
@@ -31,7 +32,7 @@ export const ACTOR_DELAY_S = 10;
  *  episode whose baseline carries another stamp, or none, fails with
  *  harness:workload_version_mismatch: the VM runs an old env/. Change both
  *  together whenever the summary or the injector changes. */
-export const WORKLOAD_VERSION = "w_prod-oracle-v2.7";
+export const WORKLOAD_VERSION = "w_prod-oracle-v2.8";
 /** Injector table (w_prod.sh default; PGAIBENCH_INJECTOR_TABLES is unset in the lab). */
 export const INJECTOR_TABLE = "pgbench_accounts";
 /** E1 scenarios: after ACTOR_DELAY_S, wait at most this long for a granted injector lock. */
@@ -110,9 +111,17 @@ export function checkpointWindow(before: Snapshot, after: Snapshot): void {
  *  expect and rehearsal thresholds), counted in the window's before
  *  snapshot so the relative baseline is the clone's (or primary's) own. */
 export function relativeRowcounts(cr: CR | undefined): string[] {
+  return crRowcounts(cr, true);
+}
+
+/** every table a CR's rowcount bound names (absolute or relative, step
+ *  expect or rehearsal threshold). The window counts each of them live, over
+ *  the whole table, before and after; the bound never reads the frozen-slice
+ *  count of the integrity check (that one stays for the oracle). */
+export function crRowcounts(cr: CR | undefined, relativeOnly = false): string[] {
   if (!cr) return [];
   const all: Record<string, string>[] = [cr.rehearsal?.thresholds ?? {}, ...cr.steps.map(st => (("expect" in st ? st.expect : undefined) ?? {}) as Record<string, string>)];
-  return [...new Set(all.flatMap(e => Object.entries(e).filter(([m, x]) => m.startsWith("rowcount:") && /x\s*$/.test(String(x))).map(([m]) => m.slice(9).replace(/^public\./, ""))))].sort();
+  return [...new Set(all.flatMap(e => Object.entries(e).filter(([m, x]) => m.startsWith("rowcount:") && (!relativeOnly || /x\s*$/.test(String(x)))).map(([m]) => m.slice(9).replace(/^public\./, ""))))].sort();
 }
 
 /** The reference of rehearsal.thresholds: the model is told that x compares
@@ -173,8 +182,20 @@ export class RealLab implements LabPort {
     return { host: "127.0.0.1", port, ...this.creds };
   }
 
+  private stderrLog: string[] = [];
+  private keep(t: Tunnel, what: string) { const e = t.stderr?.(); if (e) this.stderrLog.push(`# ${what}\n${e}`); }
+  /** Every ssh tunnel's stderr since the last call (the episode writes it to the cell directory). */
+  tunnelStderr(): string { if (this.t) this.keep(this.t, "primary+standby tunnel"); const s = this.stderrLog.join(""); this.stderrLog = []; return s; }
+  /** A record's connectivity loss on the tunnel `t`: window and end collection errors, Actor step and rollback errors. */
+  private lost(r: TelemetryRecord, t: Tunnel | null): TelemetryRecord {
+    if (!t) return r;
+    const errs = [...r.after.errors, ...(r.actor?.steps.map(s => s.error ?? "").filter(Boolean) ?? []), ...(r.actor?.rollbackErrors ?? [])];
+    const lost = connectivityLoss(errs, Object.values(t.ports), t.alive?.());
+    return lost.length ? { ...r, connectivity_lost: lost } : r;
+  }
+
   async open() { this.t = await this.d.tunnel(this.host.ip, [5432, 5433]); }
-  async close() { await this.t?.close(); this.t = null; }
+  async close() { if (this.t) this.keep(this.t, "primary+standby tunnel"); await this.t?.close(); this.t = null; }
   async warmup(seconds: number) {
     const notes: string[] = [];
     const result = await this.workload('W_prod', seconds, 5432, notes);
@@ -231,9 +252,10 @@ export class RealLab implements LabPort {
     const notes: string[] = [];
     const base = { ip: this.host.ip, standbyConn: o.standby, runOnHost: this.d.run };
     const quick = { ...base, kind: o.kind, integrity: false, backupVerify: false };
-    // a relative rowcount expectation needs its before value.
-    const rowcounts = relativeRowcounts(o.cr);
-    const before = await this.collect(o.conn, { ...quick, seconds: 1, ...(rowcounts.length ? { rowcounts } : {}) });
+    // every rowcount bound of the CR reads a live count, before and after.
+    const rowcounts = crRowcounts(o.cr);
+    const counts = rowcounts.length ? { rowcounts } : {};
+    const before = await this.collect(o.conn, { ...quick, seconds: 1, ...counts });
     // N7: the change window ends o.seconds after the workload starts (TS clock).
     const windowEndMs = Date.now() + o.seconds * 1000;
     const wl = track(this.workload(o.menu, o.seconds, o.port, notes));
@@ -278,7 +300,7 @@ export class RealLab implements LabPort {
     const standbyDown = (x: Snapshot) => o.kind === "production" && !!o.standby && (x.replication.intact_end ?? x.replication.intact_last) === false;
     const SKIP_WHY = "backup-verify.sh skipped: standby not streaming at the end of the window (replication broken or standby down); it would wait its 600 s timeout";
     const skip0 = !plan && o.kind === "production" && !o.skipBackup && standbyDown(window);
-    const after0 = await this.collect(o.conn, { ...base, kind: o.kind, baseline: before, seconds: 1, integrity: !plan, backupVerify: !plan && o.kind === "production" && !o.skipBackup && !skip0, ...(act?.downtime_s !== undefined ? { downtime_s: act.downtime_s } : {}) });
+    const after0 = await this.collect(o.conn, { ...base, kind: o.kind, baseline: before, seconds: 1, ...counts, integrity: !plan, backupVerify: !plan && o.kind === "production" && !o.skipBackup && !skip0, ...(act?.downtime_s !== undefined ? { downtime_s: act.downtime_s } : {}) });
     let after = mergeWindow(after0, window, summary);
     if (skip0) after.backup_verify_skipped = SKIP_WHY;
     if (act?.standby_downtime_s !== undefined) after.metrics.standby_downtime_s = act.standby_downtime_s;
@@ -294,7 +316,7 @@ export class RealLab implements LabPort {
       const postSummary = this.workload(o.menu, seconds, o.port, notes);
       const postSampler = this.collect(o.conn, { ...quick, baseline: after0, seconds });
       const [post, sampled] = await Promise.all([postSummary, postSampler]);
-      const final = await this.collect(o.conn, { ...base, kind: o.kind, baseline: after0, seconds: 1, integrity: true, backupVerify: true });
+      const final = await this.collect(o.conn, { ...base, kind: o.kind, baseline: after0, seconds: 1, ...counts, integrity: true, backupVerify: true });
       const actorWindow = after;
       after = mergeWindow(final, sampled, post);
       checkpointWindow(after0, after);
@@ -453,7 +475,7 @@ export class RealLab implements LabPort {
     // A production step expectation the step snapshot cannot measure
     // (backup_verify, recovery_test) is judged here, on the end-of-window
     // collection that runs the verification; only for steps that completed.
-    const deferred = target === "clone" || !w.act ? [] : w.act.steps.flatMap((st, step) => st.ok ? (st.not_judged ?? []).filter(n => n.reason === "not_measurable_here").map(n => ({ step, metric: n.metric })) : []);
+    const deferred = target === "clone" || !w.act ? [] : w.act.steps.flatMap((st, step) => st.ok ? (st.not_judged ?? []).filter(n => n.reason === "not_measurable_here" || n.reason === "null_value_here").map(n => ({ step, metric: n.metric })) : []);
     const deferred_expectations = deferred.flatMap(({ step, metric }) => {
       const st = cr.steps[step], expression = st && "expect" in st ? (st.expect as Record<string, string>)[metric] : undefined;
       return expression === undefined ? [] : evaluateExpectations(w.before, w.after, { [metric]: expression }, { context: "end_of_window" }).map(r => ({ step, ...r }));
@@ -468,13 +490,13 @@ export class RealLab implements LabPort {
     const ct = await this.d.tunnel(this.host.ip, [clone.port]);
     try {
       const w = await this.window({ conn: this.conn(clone.port, ct), standby: null, kind: "clone", menu: cr.rehearsal.workload, port: clone.port, seconds, cr, logPath, clone: clone.n, ...opts });
-      return this.record("clone", cr.rehearsal.workload, seconds, cr, baseline, w);
-    } finally { await ct.close(); }
+      return this.lost(this.record("clone", cr.rehearsal.workload, seconds, cr, baseline, w), ct);
+    } finally { this.keep(ct, "clone tunnel"); await ct.close(); }
   }
 
   async production(cr: CR, baseline: Snapshot, seconds: number, logPath: string, success?: string[], opts: { injectorTable?: string; stepTimeoutS?: number } = {}): Promise<TelemetryRecord> {
     const w = await this.window({ conn: this.conn(5432), standby: this.conn(5433), kind: "production", menu: "W_prod", port: 5432, seconds, cr, logPath, ...(success ? { success } : {}), ...opts });
-    return this.record("primary+standby", "W_prod", seconds, cr, baseline, w);
+    return this.lost(this.record("primary+standby", "W_prod", seconds, cr, baseline, w), this.t);
   }
 
   /** Read-only guardrail facts for the CR's relations and GUCs: primary, or the clone when given. */

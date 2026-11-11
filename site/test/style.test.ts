@@ -196,7 +196,7 @@ describe('page structure', () => {
   });
   test('outcome classes carry ASCII tags, not colour alone', () => {
     const m = sites.plain.get('method/index.html')!;
-    for (const t of ['[ok]', '[harm]', '[esc]', '[miss]', '[rev]', '[stop]', '[risk]']) expect(m).toContain(t);
+    for (const t of ['[ok]', '[harm]', '[esc]', '[inef]', '[rev]', '[stop]', '[risk]']) expect(m).toContain(t);
   });
   test('the results page links its plain-text twin and the JSON', () => {
     const lb = sites.published.get('leaderboard/index.html')!;
