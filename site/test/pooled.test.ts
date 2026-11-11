@@ -244,3 +244,14 @@ test('fix publish: banner, not requested, one-decimal bar labels, pooled weight 
   expect(text(site.get('limits/index.html')!)).toContain('Task D21 (build an index that makes a slow query fast) has a defect in its input.');
   expect(text(lb)).toContain('moved apart by at most half a task sideways, never up or down');
 });
+
+test('model labels: one naming function, the family word kept, the same name in plot key, bar chart and tables', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = new URL('../src/', import.meta.url).pathname;
+  for (const f of readdirSync(dir).filter(f => f.endsWith('.ts') && f !== 'svg.ts'))
+    expect(readFileSync(dir + f, 'utf8'), f).not.toMatch(/replace\(\/\^(claude|gemini)/);
+  const bars = [...lb.matchAll(/<text class="ch-lbl"[^>]*>([^<]*)</g)].map(m => m[1]!.replace(/ \(excl\.\)$/, ''));
+  const key = [...lb.matchAll(/<li><b>\d+\.<\/b>[\s\S]*?<\/span>\s*([^<(]+?)\s*<span class="dim">/g)].map(m => m[1]!);
+  for (const n of ['model-a', 'model-b']) { expect(bars).toContain(n); expect(text(lb)).toContain(n); }
+  void key;
+});

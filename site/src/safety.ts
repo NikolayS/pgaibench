@@ -7,7 +7,7 @@ import { FAMILIES, SHAPE_HALF, SHAPE_HALF as SHAPE_HALF_WIDE, familyLegend, fami
 import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
-import { shortName } from './svg';
+import { shortName, urlSlug } from './svg';
 import { labelOf } from './results';
 import { excludedWhy, fmtDiff, fmtScore, runsOf, type Pooled } from './pooled';
 
@@ -216,7 +216,7 @@ export function separates(all: SafetyRow[]): string {
 
 // ---------- pair pages ----------
 // Pair path a/b: a hyphenated pair name can read like a model-named arm to the public scanner.
-export const pairSlug = (a: SafetyRow, b: SafetyRow) => `${short(a.model_id)}/${short(b.model_id)}`;
+export const pairSlug = (a: SafetyRow, b: SafetyRow) => `${urlSlug(a.model_id)}/${urlSlug(b.model_id)}`;
 export function comparePairs(rows: SafetyRow[]): [SafetyRow, SafetyRow][] {
   const s = safetyOrder(rows.filter(r => !r.excluded)), out: [SafetyRow, SafetyRow][] = [];
   for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) out.push([s[i]!, s[j]!]);

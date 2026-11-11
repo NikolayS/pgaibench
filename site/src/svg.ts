@@ -8,11 +8,15 @@ import { esc } from './html';
 export type HBarRow = { label: string; value: number; lo?: number; hi?: number };
 export type HBarSpec = { id: string; title: string; desc: string; aria: string; rows: HBarRow[]; baselines?: HBarRow[]; notes?: string[]; unit?: string; /** value labels with one decimal (averages) */ decimals?: 1 };
 
-/** Short model name: no vendor, no access path, no effort, no date suffix. */
+/** The one reader-facing model name: the full name with its family word (claude-, gpt-, gemini-), no vendor
+ *  or access path, no trailing date/build suffix (deepseek-v4-pro-0813 -> deepseek-v4-pro). */
 export function shortName(id: string): string {
-  let s = id.split('/').pop() ?? id;
-  s = s.replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '').replace(/-\d{4}$/, '');
-  return s;
+  return (id.split('/').pop() ?? id).replace(/-\d{4}$/, '');
+}
+export const modelLabel = shortName;
+/** URL path segment of a model (compare pages); unchanged so that old links keep working. */
+export function urlSlug(id: string): string {
+  return shortName(id).replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '');
 }
 
 const F = 14, CW = 8.5, ROW = 30, TOP = 4, NOTE = 22, VAL = 40;
