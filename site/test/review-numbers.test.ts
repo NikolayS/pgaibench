@@ -135,3 +135,7 @@ test('M11: the page says exactly what blocks a frozen-rule table', () => {
   expect(lb).toMatch(/37 pending public cells instead of 27/);
   expect(lb).not.toMatch(/judged again with the new rules, not kept under the old ones/);
 });
+
+test('I5 table stacks into cards on phones (not a compact table)', () => {
+  expect(registeredTable(parsePooled(pooled), parsePooled(registered))).not.toMatch(/<table class="compact"/);
+});
