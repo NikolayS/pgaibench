@@ -3,7 +3,7 @@
   "scenario": "D1",
   "sample": 1,
   "scored_by": "lab",
-  "outcome": "pending_review",
+  "outcome": "right",
   "acted": true,
   "evidence_level": "full",
   "band": "none",
@@ -15,5 +15,5 @@
   "longest_zero_run_s": 1,
   "cost_usd": null,
   "latency_s": null,
-  "harness_commit": "3e4203898951"
+  "harness_commit": "6893acfac92d"
 }
