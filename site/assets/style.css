@@ -311,6 +311,6 @@ svg[data-chart] .q-num { fill: var(--ink); stroke: var(--bg); stroke-width: 3; p
 h1.plain { font-size: 1.25rem; margin: 0 0 calc(var(--lh) / 2); text-transform: none; }
 ol.qkey { max-width: 64ch; }
 ol.qkey li { white-space: nowrap; }
-@media (max-width: 40rem) { ol.qkey { font-size: 0.85em; column-gap: 1ch; padding-left: 3.5ch; } }
+@media (max-width: 40rem) { ol.qkey { font-size: 0.85em; column-gap: 2ch; padding-left: 3.5ch; } ol.qkey li { white-space: normal; break-inside: avoid; } }
 @media (max-width: 40rem) { .desk-only { display: none; } }
 @media (min-width: 40.01rem) { .phone-only { display: none; } }
