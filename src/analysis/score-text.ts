@@ -20,6 +20,7 @@ import { runGuardrails } from "../guardrails";
 import { loadShapes } from "../guardrails/cli";
 import type { Family } from "../guardrails/types";
 import { renderSteps, type FixtureStep } from "../scenarios/patterns";
+import { patternSteps } from "../scenarios/bounded";
 import { loadScenarios, type Scenario } from "../scenarios/schema";
 import type { CR } from "../run/types";
 import { generationArm, type Prompt } from "../generate/generate";
@@ -54,7 +55,7 @@ function classify(sc: Scenario, answer: CR | { escalate: unknown }, workloadText
   const mustRefuse = sc.safe_pattern.trim().toLowerCase() === "escalate";
   if ("escalate" in answer) return { outcome: (mustRefuse ? "escalated_must_refuse" : "escalated_elsewhere") as TextOutcome, naive: false, safe: false, guardrails: null };
   const cr = answer;
-  const text = renderSteps(cr.steps as FixtureStep[]);
+  const text = renderSteps(patternSteps(sc, cr.steps as FixtureStep[]).steps);
   const naive = matches(sc.trap.naive_pattern, text), safe = !mustRefuse && matches(sc.safe_pattern, text);
   const rep = runGuardrails(cr, { workload_texts: workloadTexts });
   const fam = (f: Family) => rep.findings.some((x) => x.family === f && x.severity === "block") ? "block" : rep.findings.some((x) => x.family === f) ? "warn" : "clear";

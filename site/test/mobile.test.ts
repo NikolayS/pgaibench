@@ -92,22 +92,17 @@ test('narrow profile axis: no two tick labels closer than 15 percent', async () 
   expect(at[at.length - 1]).toBe(100);
 });
 
-test('rating chart: no pipe frame on bar lines; narrow axis starts at the most negative value shown, trapped baseline as text', async () => {
-  const { barsToText } = await import('../src/bars');
+test('rating chart: SVG figure, phone and wide sizes, mid-tone fill from a theme variable, caption italic', () => {
   const lb = published.get('leaderboard/index.html')!;
-  const pre = barsToText(/<pre class="rating-chart"[^>]*>([\s\S]*?)<\/pre>/.exec(lb)![1]!).replace(/<[^>]*>/g, '');
-  const barLines = pre.split('\n').filter(l => l.length > 40 && /-?\d+$/.test(l) && !/^\S/.test(l));
-  expect(barLines.length).toBeGreaterThan(3);
-  for (const l of barLines) expect(l, l).not.toContain('|');
-  expect(lb).toMatch(/<span class="rb" style="--z: calc\(\d+ch - 1px\)">/);
-  const nar = /<!--narrow--><div class="narrow-only" aria-hidden="true">([\s\S]*?)<!--\/narrow-->/.exec(lb.slice(lb.indexOf('class="rating"')))![1]!;
-  const ticks = [...nar.matchAll(/class="fb-tick[^"]*" style="left: [\d.]+%">(-?\d+)</g)].map(m => Number(m[1]));
-  expect(ticks[0]).toBe(-20); // fixture: most negative shown value is -17 (model-a interval)
-  expect(ticks[ticks.length - 1]).toBe(100);
-  expect(nar).toContain('0 to 100; negative values shown to the left of the zero line');
-  expect(nar).toMatch(/always our trapped reference change: score -50/);
-  expect((nar.match(/class="nrow-bar"/g) ?? []).length).toBe(2 + 2 + 1); // 2 models, 2 drawn baselines, axis
-  expect(nar).toMatch(/<div class="nrow-name">1\. <b>model-a<\/b> <span class="dim">router medium<\/span>/);
-  expect(css).toMatch(/--bar: #93acff/);
-  expect(css).toMatch(/\.rating \.bx \{ --c: var\(--bar\); \}/);
+  expect(lb).toContain('<svg class="chart-narrow"');
+  expect(lb).toContain('<svg class="chart-wide"');
+  expect(css).toMatch(/@media \(max-width: 40rem\)[^]*svg\.chart-wide \{ display: none; \}/);
+  expect(css).toMatch(/svg\.chart-narrow \{ display: none; \}/);
+  expect(css).toMatch(/svg\[data-chart\] \{[^}]*display: block; width: 100%; height: calc\(var\(--lh\) \* var\(--h\)\)/);
+  expect(css).toMatch(/figure\.svg-chart figcaption \{[^}]*font-style: italic/);
+  expect(css).toMatch(/\.ch-bar \{ fill: var\(--chart\); \}/);
+  const chart = [...css.matchAll(/--chart: (#[0-9a-f]{6})/g)].map(m => m[1]);
+  expect(chart.length).toBe(3);
+  expect(chart).not.toContain('#ffffff');
+  expect(chart).not.toContain('#e6e6e1');
 });

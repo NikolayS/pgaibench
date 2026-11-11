@@ -31,7 +31,7 @@
   --lh: 1.25rem;
   --bw: 2px;
   --bg: #fbfbf8; --ink: #141414; --muted: #5f5f5a; --line: #141414; --soft: #eeeee9;
-  --accent: #1d43a6; --bar: var(--ink);
+  --accent: #1d43a6; --bar: var(--ink); --chart: #8094cc;
   color-scheme: light dark;
   font-family: var(--mono);
   font-size: 16px;
@@ -42,12 +42,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
-    --accent: #93acff; --bar: #93acff;
+    --accent: #93acff; --bar: #93acff; --chart: #4f64a6;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
-  --accent: #93acff; --bar: #93acff; color-scheme: dark;
+  --accent: #93acff; --bar: #93acff; --chart: #4f64a6; color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }
 .theme { white-space: nowrap; }
@@ -255,3 +255,24 @@ ol.aaa-list { padding-left: 4ch; }
 .rb::before { content: ""; position: absolute; top: 0; bottom: 0; left: var(--z); border-left: 2px solid var(--ink); }
 .rating .nrow { margin-bottom: calc(var(--lh) * 0.75); }
 .fb { border-left: 0; border-right: 0; }
+
+/* SVG charts (svg.ts): build-generated, colours only from theme variables. Media placed as in The Monospace Web. */
+figure.svg-chart { margin: calc(var(--lh) * 2) 3ch; }
+svg[data-chart] { display: block; width: 100%; height: calc(var(--lh) * var(--h)); color: var(--ink); font-family: inherit; overflow: visible; }
+svg.chart-wide { max-width: 47.5rem; }
+figure.svg-chart figcaption { font-style: italic; margin-top: calc(var(--lh) / 2); }
+.ch-bar { fill: var(--chart); }
+.ch-bg { fill: var(--bg); }
+.ch-base { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.ch-ci { stroke: var(--ink); stroke-width: 1.5; }
+.ch-clip { fill: var(--ink); }
+.ch-grid { stroke: var(--muted); stroke-opacity: 0.35; stroke-width: 1; }
+.ch-zero { stroke: var(--ink); stroke-width: 1.5; }
+svg[data-chart] text { fill: currentColor; }
+svg[data-chart] .ch-tick, svg[data-chart] .ch-group, svg[data-chart] .ch-note { fill: var(--muted); }
+svg.chart-narrow { display: none; }
+@media (max-width: 40rem) {
+  figure.svg-chart { margin: var(--lh) 0; }
+  svg.chart-narrow { display: block; }
+  svg.chart-wide { display: none; }
+}

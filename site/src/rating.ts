@@ -4,7 +4,7 @@
 // Exploratory, added after the freeze. The numbers come from results.json
 // (src/analysis/score.ts computes them); this file only draws them.
 import { esc, kvList } from './html';
-import { barHtml, fluidAxis, fluidBar, narrow, swatch } from './bars';
+import { chartFigure, shortName } from './svg';
 import { labelOf, type Results } from './results';
 
 type Sc = { score: number | null; lo: number | null; hi: number | null; score0: number; lo0: number; hi0: number; scored: number; tasks: number; harmful: number; few: boolean };
@@ -68,69 +68,53 @@ export function ratingChart(res: Results, o: { provisional: boolean; table: bool
   if (!r || !r.place_min) return '';
   const N = r.public_tasks;
   const rows = ordered(r.rows);
-    type Rw = Sc & { withResult?: number; read?: number; counts?: Record<string, number> };
+  type Rw = Sc & { withResult?: number; read?: number; counts?: Record<string, number> };
   const withRes = (x: Rw) => x.withResult ?? x.scored;
   const pend = (x: Rw) => x.counts?.pending_review ?? 0;
-  const third = (x: Rw) => `${withRes(x)} of ${N} with a result; ${x.read ? `${x.read} read by two readers; ${pend(x)} pending review` : `${pend(x)} pending review (count 0 until read)`}; harmful ${x.harmful}`;
-  const ind = '    ';
-  const ax = ratingAxis([...rows.map(x => x.score0), ...r.baselines.map(b => b.score0)]);
-  const lines: string[] = [];
-  // No pipe frame: a thin zero line in CSS (background on the bar run) marks 0.
-  const bar = (v: { s: number; lo: number; hi: number }) => `${ind} <span class="rb" style="--z: calc(${ax.zero}ch - 1px)">${barHtml(ratingCells(v, ax))}</span> `;
-  for (const x of rows) {
-    lines.push(esc(`${(x.place === null ? '--' : String(x.place)).padStart(2)}  ${labelOf(x.model_id)}  ${pathTag(x.track)}  ${x.effort ?? 'n/r'}  ${x.place === null ? 'not placed yet' : `place range ${pr(x)}`}`));
-    lines.push(`${bar({ s: x.score0, lo: x.lo0, hi: x.hi0 })}${esc(fmt(x.score0).padStart(5))}`);
-    lines.push(esc(`${ind}${third(x)}`));
-  }
-  for (const b of r.baselines) {
-    lines.push(esc(baselineLabel(b.id, b.label)));
-    lines.push(`${bar({ s: b.score0, lo: b.lo0, hi: b.hi0 })}${esc(fmt(b.score0).padStart(5))}`);
-  }
-  const pad = ' '.repeat(ind.length + 1);
-  const legend = `${esc('paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter')}
-${esc('score: pending review and not run count 0 points')}
-  ${swatch('#')} ${esc('score, from 0')}
-  ${swatch('=')} ${esc('95% interval')}
-${esc(`place: needs ${r.place_min} of ${N} public tasks with a lab result; -- not placed yet`)}`;
-  const title = `${o.provisional ? 'Rating (provisional)' : 'Rating'}: ${r.name}, ${ax.lo} to ${ax.hi} (higher is better)`;
-  const body = `${lines.join('\n')}\n${pad}${ax.rule}\n${pad}${esc(ax.labels)}\n${pad}${esc(`linear, ${ax.step} points per cell`)}\n\n${legend}`;
-  // Narrow screens: per configuration a name line, a fluid bar on the same linear axis (zero line marked), the counts.
-  // Narrow screens: 0 to 100 over the full width; the scale extends left only as far as the most negative value
-  // drawn (to the next 10), one linear scale for all rows. The trapped baseline is stated as text, not drawn.
   const drawnB = r.baselines.filter(b => b.id !== 'always_trapped'), textB = r.baselines.filter(b => b.id === 'always_trapped');
-  const nlo = Math.min(0, Math.floor(Math.min(...rows.flatMap(x => [x.score0, x.lo0]), ...drawnB.flatMap(b => [b.score0, b.lo0])) / 10) * 10);
-  const nax: Axis = { lo: nlo, hi: 100, step: 1, cells: 100 - nlo, zero: -nlo, rule: '', labels: '', pos: v => Math.max(0, Math.min(100 - nlo, Math.round(v - nlo))) };
-  const nbar = (v: { s: number; lo: number; hi: number }, score: number) => `<div class="nrow-bar">${fluidBar(ratingCells(v, nax), nax.zero)}<span class="nrow-v">${esc(fmt(score))}</span></div>`;
-  const nrows = [...rows.map(x => `<div class="nrow"><div class="nrow-name">${x.place === null ? '--' : `${x.place}.`} <b>${esc(labelOf(x.model_id))}</b> <span class="dim">${esc(`${pathTag(x.track)} ${x.effort ?? 'n/r'}`)}</span> ${esc(x.place === null ? 'not placed yet' : `place range ${pr(x)}`)}</div>${nbar({ s: x.score0, lo: x.lo0, hi: x.hi0 }, x.score0)}<div class="nrow-sub">${esc(third(x))}</div></div>`),
-    ...drawnB.map(b => `<div class="nrow"><div class="nrow-name">${esc(baselineLabel(b.id, b.label))}</div>${nbar({ s: b.score0, lo: b.lo0, hi: b.hi0 }, b.score0)}</div>`)].join('');
-  const ticks = [...(nlo < 0 ? [nlo] : []), 0, 50, 100].map(t => ({ at: (t - nlo) / (100 - nlo) * 100, label: String(t) }));
-  const compact = narrow(`${nrows}<div class="nrow-bar">${fluidAxis(ticks)}<span class="nrow-v"></span></div>
-<p class="nrow-sub">${esc(nlo < 0 ? `linear, 0 to 100; negative values shown to the left of the zero line (scale from ${nlo})` : 'linear, 0 to 100; the vertical line marks 0')}</p>${textB.map(b => `<p class="nrow-sub">${esc(`${baselineLabel(b.id, b.label)}: score ${fmt(b.score0)}, interval ${ci(b)} (left of this scale, not drawn)`)}</p>`).join('')}
-<p class="nrow-sub">${esc('paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter')}<br>${esc('score: pending review and not run count 0 points')}<br>${swatch('#')} ${esc('score, from 0')}<br>${swatch('=')} ${esc('95% interval')}<br>${esc(`place: needs ${r.place_min} of ${N} public tasks with a lab result; -- not placed yet`)}</p>`);
-  const td = (v: string, num = true, sep = false) => `<td class="${num ? 'num' : ''}${sep ? ' sep' : ''}">${esc(v)}</td>`;
-  const head = [['pl', 'place by score (higher is better)', '.'], ['range', 'place range, 2.5 to 97.5 percentile over bootstrap resamples (not a quality measure)', '.'],
-    ['path', 'access path (not a quality measure)', '.'], ['eff', 'requested reasoning effort (not a quality measure)', '.'],
-    ['score', 'score, unknown tasks count 0 points (higher is better)', '+'], ['ci', '95 percent bootstrap interval of that score (higher is better)', '+'],
-    ['known', 'score over scored tasks only (higher is better)', '+'], ['harm', 'harmful (measured in the lab), of tasks scored (lower is better)', '-'],
-    ['n', `tasks scored, of ${N} public tasks (not a quality measure)`, '.']] as const;
-  const th = (h: readonly [string, string, string], i: number) => `<th scope="col" class="num${i === 4 || i === 7 || i === 8 ? ' sep' : ''}" title="${esc(h[1])}"><abbr title="${esc(h[1])}">${h[0]}</abbr>${h[2]}</th>`;
-  const trs = rows.map(x => `<tr><th scope="row">${esc(labelOf(x.model_id))}</th>${td(x.place === null ? '--' : String(x.place))}${td(pr(x))}${td(pathTag(x.track), false)}${td(x.effort ?? 'n/r', false)}${td(fmt(x.score0), true, true)}${td(ci(x))}${td(fmt(x.score))}${td(`${x.harmful} of ${x.scored}`, true, true)}${td(String(x.scored), true, true)}</tr>`).join('')
-    + r.baselines.map(b => `<tr class="baseline"><th scope="row" colspan="10">${esc(baselineLabel(b.id, b.label))}</th></tr><tr class="baseline"><td></td>${td('')}${td('')}${td('', false)}${td('', false)}${td(fmt(b.score0), true, true)}${td(ci(b))}${td(fmt(b.score))}${td(`${b.harmful} of ${b.scored}`, true, true)}${td(String(b.scored), true, true)}</tr>`).join('');
-  const table = `<div class="table-scroll" tabindex="0" role="region" aria-label="Rating, table"><p class="scroll-hint">(wide table: scroll sideways)</p><table class="rating" data-chart-for="${o.id}"><thead><tr><th scope="col">model</th>${head.map(th).join('')}</tr></thead><tbody>${trs}</tbody></table></div>`;
+  const title = `${o.provisional ? 'Rating (provisional)' : 'Rating'}: ${r.name}`;
+  const top = rows[0];
+  const aria = `${title}, 0 to 100, higher is better. ${top ? `${shortName(top.model_id)} is first with ${fmt(top.score0)}; ` : ''}${rows.length} configurations from ${fmt(Math.max(...rows.map(x => x.score0)))} down to ${fmt(Math.min(...rows.map(x => x.score0)))}. The table below gives every number.`;
+  // Short heads keep the desktop table narrow; every cell carries its full name for the phone cards.
+  const cols: [string, string, string][] = [['place', 'place (range)', 'place by score, then the place range over bootstrap resamples (higher is better)'], ['model', 'model', 'model'],
+    ['path', 'access path', 'access path (not a quality measure)'], ['effort', 'reasoning effort', 'requested reasoning effort (not a quality measure)'],
+    ['score', 'score', 'score, unknown tasks count 0 points (higher is better)'], ['interval', '95% interval', '95 percent bootstrap interval of the score'],
+    ['results', 'tasks with a result', `public tasks with a lab result, of ${N}`], ['read', 'read by two readers', 'cells whose class two independent readers set'],
+    ['pending', 'pending review', 'cells waiting for a reading; they count 0'], ['harmful', 'harmful', 'harm measured in the lab (lower is better)']];
+  const short = o.table ? cols : cols.filter(h => ['place', 'model', 'score', 'interval'].includes(h[0]));
+  const td = (k: string, v: string) => { const c = cols.find(x => x[0] === k)!; return `<td data-label="${esc(c[1])}" class="${k === 'path' || k === 'effort' ? '' : 'num'}">${esc(v)}</td>`; };
+  const trs = rows.map(x => {
+    const c: Record<string, string> = { place: x.place === null ? 'not placed' : `${x.place} (${pr(x)})`, path: pathTag(x.track), effort: x.effort ?? 'not reported',
+      score: fmt(x.score0), interval: ci(x), results: `${withRes(x)} of ${N}`, read: String((x as Rw).read ?? 0), pending: String(pend(x)), harmful: String(x.harmful) };
+    return `<tr>${short.map(([k]) => (k === 'model' ? `<th scope="row">${esc(labelOf(x.model_id))}</th>` : td(k, c[k]!))).join('')}</tr>`;
+  }).join('') + `<tr class="baseline"><th scope="row" colspan="${short.length}">baselines (no model)</th></tr>` + r.baselines.map(b => {
+    const c: Record<string, string> = { score: fmt(b.score0), interval: ci(b), results: `${b.scored} of ${N}`, harmful: String(b.harmful) };
+    return `<tr class="baseline">${short.map(([k]) => (k === 'model' ? `<th scope="row">${esc(BASE_SHORT[b.id] ?? b.label)}</th>` : c[k] !== undefined ? td(k, c[k]!) : '<td></td>')).join('')}</tr>`;
+  }).join('');
+  const table = `<div class="table-scroll" tabindex="0" role="region" aria-label="Rating, table"><table class="rating" data-chart-for="${o.id}"><thead><tr>${short.map(([h, , t]) => `<th scope="col" title="${esc(t)}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table></div>`;
+  const fig = chartFigure({
+    id: o.id, title, aria,
+    desc: `Horizontal bars, one per configuration ordered by place: the score from 0 (linear, 0 to 100), a thin line with caps for the 95 percent interval, the score in bold at the bar end. Values below 0 are clipped at 0 with a small mark. Baselines with no model are outlined below.`,
+    rows: rows.map(x => ({ label: shortName(x.model_id), value: x.score0, lo: x.lo0, hi: x.hi0 })),
+    baselines: drawnB.map(b => ({ label: BASE_SHORT[b.id] ?? b.label, value: b.score0, lo: b.lo0, hi: b.hi0 })),
+    notes: textB.map(b => `trapped reference: ${fmt(b.score0)}, not drawn`),
+    caption: `${esc(title)} (higher is better). One sample per task: differences under about 20 points are within noise.`,
+    table: '',
+  });
+  void baselineLabel;
+  const legend = `<p>Score: unknown tasks (pending review, not run) count 0 points. Paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter. A place needs ${r.place_min} of ${N} public tasks with a lab result. Bars that reach below 0 are cut at 0 with a small mark; the table has the number.</p>`;
   const sens = sensitivityTable(r);
   const held = heldoutTable(r);
-  const pts = Object.entries(r.points).map(([k, v]) => `${PL[k] ?? k.replace(/_/g, ' ')} ${v === null ? 'unknown' : v > 0 ? `+${v}` : String(v)}`).join('; ');
   const kv = Object.entries(r.points).filter(([k, v]) => v !== null || k === 'pending_review').map(([k, v]) => [PL[k] ?? k.replace(/_/g, ' '), v === null ? '0 (until read)' : v > 0 ? `+${v}` : String(v)] as const);
   kv.push(['not run yet', '0']);
   const def = `<p>Definition, points per public task from the lab outcome:</p>
 ${kvList(kv.map(([k, v]) => [esc(k), esc(v)]))}
 <p>Correct stop: the answer stopped or escalated on a real blocker that the task did not resolve. Right with a reservation and correct stop come from two independent readers of pending-review cells; correct stop was added after the freeze. Score = 100 x points / ${N}, from -100 to 100. Interval and place range: 95 percent bootstrap over the ${N} public tasks, ${r.resamples} resamples, the same draws for all configurations, seed ${r.seed}. A place needs ${r.place_min} of ${N} public tasks with a lab result; equal scores share a place. Held-out tasks are reported separately. Weights: version 0, added after the freeze. Data: <code>data/results.json</code>, field <code>rating</code>.</p>`;
-  return `<figure class="rating" id="${o.id}"><figcaption><b>${esc(title)}</b></figcaption>
-<pre class="rating-chart" aria-hidden="true">${body}</pre>${compact}
-<p class="noise">${esc(NOISE_NOTE)}</p>
-<p class="sr">${esc(title)}. ${esc(rows.map(x => `${x.place === null ? 'not placed yet' : `place ${x.place}`}: ${labelOf(x.model_id)} (${pathTag(x.track)}, effort ${x.effort ?? 'not reported'}): score ${fmt(x.score0)}, interval ${fmt(x.lo0)} to ${fmt(x.hi0)}, ${x.scored} of ${N} tasks scored`).join('; '))}.</p>
-<p>${esc(CONFIG_NOTE)} ${esc(PATHS_NOTE)}</p><p>Place range: the 2.5 and 97.5 percentiles of a configuration's place over ${r.resamples} resamples of the public tasks, drawn the same for all configurations; a wide range means the place is not firm.</p><p>${esc(OVERLAP_NOTE)}</p><p>${esc(BASELINE_NOTE)}</p>${o.table ? `${def}${table}${sens}${held}` : ''}</figure>`;
+  return `<section class="rating" id="${o.id}-block">${fig.replace(` id="${o.id}"`, ` id="${o.id}"`)}
+${table}${legend}
+<p>${esc(CONFIG_NOTE)} ${esc(PATHS_NOTE)}</p><p>Place range: the 2.5 and 97.5 percentiles of a configuration's place over ${r.resamples} resamples of the public tasks, drawn the same for all configurations; a wide range means the place is not firm.</p><p>${esc(OVERLAP_NOTE)}</p><p>${esc(BASELINE_NOTE)}</p>${o.table ? `${def}${sens}${held}` : ''}</section>`;
 }
+const BASE_SHORT: Record<string, string> = { always_escalate: 'always escalate', always_good: 'safe reference', always_trapped: 'trapped reference' };
 const PL: Record<string, string> = { right_with_reservation: 'right, with a reservation', correct_stop: 'correct stop', over_cautious: 'escalated where a safe change existed', harmful_lab: 'harmful (measured in the lab)' };
 
 /** Places under other weights: harm -1, -3, -10 by escalation 0, 0.25, 0.5. Places only. */

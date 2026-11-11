@@ -45,12 +45,3 @@ test('the 0 tick is in the bar origin column and every row has the same number o
   }
 });
 
-test('rating chart in HTML: the tick line sits under the bars, 0 under the origin', () => {
-  const lb = site.get('leaderboard/index.txt')!;
-  const lines = lb.split('\n');
-  const rule = lines.find(l => /^\s+\+[-+]+\+$/.test(l) && !/[%]/.test(l))!;
-  // No pipe frame since the phone fix: bar cells start at column 5, as the rule does.
-  const bar = lines.find(l => /^ {5}[#= ]+\s+-?\d+$/.test(l) && /[#=]/.test(l))!;
-  expect(bar).toBeTruthy();
-  expect(rule.indexOf('+')).toBe(5);
-});

@@ -23,8 +23,29 @@ const css = sites.plain.get('assets/style.css')!;
 const unesc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
 
 describe('no graphics', () => {
-  test('no img, svg, canvas, picture or iframe in any file', () => {
-    for (const [n, s] of all) for (const [p, doc] of s) expect(doc, `${n} ${p}`).not.toMatch(/<(img|svg|canvas|picture|iframe|video|object|embed)\b/i);
+  test('no img, canvas, picture or iframe in any file; svg only as a build-generated chart (data-chart)', () => {
+    for (const [n, s] of all) for (const [p, doc] of s) {
+      expect(doc, `${n} ${p}`).not.toMatch(/<(img|canvas|picture|iframe|video|object|embed)\b/i);
+      if (!p.endsWith('.svg')) expect(doc, `${n} ${p}`).not.toMatch(/<svg\b(?![^>]*\bdata-chart=)/i);
+    }
+  });
+  test('every chart SVG has a title, a desc, role img, an aria-label and a matching table on the same page', () => {
+    let seen = 0;
+    for (const [n, s] of all) for (const [p, doc] of html(s)) for (const m of doc.matchAll(/<svg\b[^>]*data-chart="([^"]+)"[^>]*>([\s\S]*?)<\/svg>/g)) {
+      seen++;
+      expect(m[0], `${n} ${p}`).toMatch(/role="img"/);
+      expect(m[0], `${n} ${p}`).toMatch(/aria-label="[^"]{10,}"/);
+      expect(m[2], `${n} ${p}`).toMatch(/^<title>[^<]+<\/title><desc>[^<]+<\/desc>/);
+      expect(m[2], `${n} ${p}`).not.toMatch(/<(script|image|foreignObject|use)\b|href=/);
+      expect(doc, `${n} ${p} ${m[1]}`).toContain(`data-chart-for="${m[1]}"`);
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  test('the .txt twin keeps the chart table and has no svg', () => {
+    const t = sites.published.get('leaderboard/index.txt')!;
+    expect(t).not.toMatch(/<svg|<\/?text\b/);
+    expect(t).toContain('baselines (no model)');
+    expect(t).toMatch(/^model-a +1 \(1-2\)|^1 \(1-2\) +model-a/m);
   });
   test('the stylesheet has no url(), import, web font, gradient, shadow or rounded corner', () => {
     const rest = css.replace(/^\.bx[^{]*\{[^}]*\}$/gm, ''); // bar patterns (bars.ts) are the only gradients

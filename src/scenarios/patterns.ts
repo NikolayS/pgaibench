@@ -46,7 +46,7 @@ export function stripSqlComments(sql: string): string {
 export function renderSteps(steps: FixtureStep[]): string {
   return steps.map((step, index) => {
     if ('sql' in step) {
-      const body = normalizeSql(step.sql);
+      const body = normalizeSql(step.sql, { mask: true });
       const header = `-- step ${index + 1}${step.retries ? ` retries=${step.retries}` : ''}`;
       return `${header}\n${body.endsWith(';') ? body : `${body};`}`;
     }

@@ -33,7 +33,7 @@ test('favicon links on every page, relative to its depth; favicon files are the 
       expect(doc, p).toContain(`<link rel="icon" href="${up}assets/favicon.ico" sizes="32x32">`);
       expect(doc, p).toContain(`<link rel="icon" href="${up}assets/favicon.svg" type="image/svg+xml">`);
       expect(doc, p).toContain('<meta name="theme-color" content="#fbfbf8" media="(prefers-color-scheme: light)">');
-      expect(doc.replace(/<head>[\s\S]*<\/head>/, ''), p).not.toMatch(/<(img|svg|canvas)\b/i);
+      expect(doc.replace(/<head>[\s\S]*<\/head>/, ''), p).not.toMatch(/<(img|canvas)\b|<svg\b(?![^>]*\bdata-chart=)/i);
     }
     const images = [...s.keys()].filter(p => /\.(png|ico|svg|jpe?g|gif|webp)$/i.test(p)).sort();
     expect(images).toEqual([...BINARY_ASSETS.map(f => `assets/${f}`), 'favicon.ico'].sort());

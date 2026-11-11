@@ -19,7 +19,21 @@ const LIT = '\u0001(\\d+)\u0002';
 const NAME = '(?:[a-z_][\\w$]*\\.)?[a-z_][\\w$]*';
 const TYPE = '(?:timestamptz|timestamp(?:\\s*\\(\\d+\\))?(?:\\s+with(?:out)?\\s+time\\s+zone)?|timetz|time(?:\\s+with(?:out)?\\s+time\\s+zone)?|date|interval|text|varchar|character\\s+varying|uuid|bigint|integer|smallint|int[248]?|numeric|boolean|bool|jsonb|json)';
 
-export function normalizeSql(sql: string): string {
+/* Masking (patterns only, renderSteps): patterns must see executed SQL only.
+   A literal is executed when it follows EXECUTE, EXECUTE format(, or is a
+   later part of a || concatenation in an EXECUTE; a dollar-quoted body is
+   executed when it follows DO [LANGUAGE x], AS (function body) or EXECUTE.
+   Any other literal whose text looks like a SQL statement (a DDL or DML
+   keyword and a space) becomes '?'. Other literals (values, setting names,
+   dates) keep their text, because patterns need them. In a body that runs
+   a variable (EXECUTE name), no literal is masked: the executed text cannot
+   be known statically, so it is treated as executed. */
+const SQL_SHAPED = /\b(?:create|alter|drop|vacuum|cluster|truncate|update|delete|insert|reindex|lock|grant|revoke|refresh)\s/i;
+const EXEC_LIT = /\bexecute\s+(?:format\s*\(\s*)?$|\bexecute\s+[^;]*\|\|\s*$/;
+const EXEC_BODY = /(?:\bdo(?:\s+language\s+\w+)?|\bas|\bexecute(?:\s+format\s*\()?)\s*$/;
+const EXEC_VAR = /\bexecute\s+(?!format\b)[a-z_][\w$]*\s*(?:;|using\b|$)/;
+
+export function normalizeSql(sql: string, opts: { mask?: boolean } = {}): string {
   const src = stripSqlComments(sql);
   const kept: string[] = [];
   const hold = (s: string) => { kept.push(s); return `\u0001${kept.length - 1}\u0002`; };
@@ -45,7 +59,8 @@ export function normalizeSql(sql: string): string {
     } else if (dollar) {
       const tag = dollar[0];
       const end = src.indexOf(tag, i + tag.length);
-      const body = normalizeSql(src.slice(i + tag.length, end < 0 ? src.length : end));
+      const raw = src.slice(i + tag.length, end < 0 ? src.length : end);
+      const body = normalizeSql(raw, { mask: opts.mask && !EXEC_VAR.test(stripSqlComments(raw).toLowerCase()) });
       code += hold(body ? `${tag} ${body} ${tag}` : `${tag}${tag}`);
       i = end < 0 ? src.length : end + tag.length;
     } else {
@@ -64,5 +79,11 @@ export function normalizeSql(sql: string): string {
     .replace(new RegExp(`\\b(on ${NAME}) using btree ?\\(`, 'g'), '$1 (')
     .replace(/\bset session (?!characteristics\b|authorization\b)/g, 'set ')
     .replace(/ {2,}/g, ' ');
-  return t.replace(new RegExp(LIT, 'g'), (_, n) => kept[Number(n)]);
+  return t.replace(new RegExp(LIT, 'g'), (_, n, off: number) => {
+    const k = kept[Number(n)]!;
+    if (!opts.mask || k.startsWith('"')) return k;
+    const before = t.slice(0, off);
+    if (k.startsWith("'")) return EXEC_LIT.test(before) || !SQL_SHAPED.test(k) ? k : "'?'";
+    return EXEC_BODY.test(before) || !SQL_SHAPED.test(k) ? k : "'?'";
+  });
 }
