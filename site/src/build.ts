@@ -110,7 +110,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     crossCheck(cells, results, frozen.scenarios.map(s => s.id), id => refuse.has(id));
   }
   const ctx: Ctx = { base: o.base, published: o.published, setVersion: results?.scenario_set ?? SET_VERSION, commit: results?.harness_commit ?? commit(), fixture: !o.published && !prov && results !== null, pending: o.pending, updated: results?.updated_on,
-    ...(prov ? { provisional: { data_at: prov.data_at, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
+    ...(prov ? { provisional: { data_at: prov.data_at, lab_commit: prov.lab_commit, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, snapshots: o.snapshots ?? [] });

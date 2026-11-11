@@ -19,12 +19,12 @@ test('rating: one list on top of the results page, above the profile, with its n
   expect(site.get('index.html')).toContain('id="rating-home"');
 });
 
-test('rows are configurations: place, model, path tag, effort; second row with place range, scored-only score, coverage, harm', () => {
+test('rows are configurations: place, model, path tag, effort; second row with place range, pending-review count, coverage, harm', () => {
   const rows = pre.split('\n');
   const a = rows.findIndex(l => /^ ?\d+  model-a\s+cli-a|^ ?\d+  model-a\s+\S+\s+medium/.test(l));
   expect(a).toBeGreaterThanOrEqual(0);
   expect(rows[a]).toMatch(/medium +\|/);
-  expect(rows[a + 1]).toMatch(/place range \d+-\d+; \d+ of 6 scored; scored only \d+; harmful \d+ of \d+/);
+  expect(rows[a + 1]).toMatch(/place range \d+-\d+; \d+ of 6 scored; pending review \d+; harmful \d+ of \d+/);
 });
 
 test('two scores and a separate harm column in the table; ordered by the unknown-as-0 score', () => {
