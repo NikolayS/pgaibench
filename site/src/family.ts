@@ -28,6 +28,7 @@ export function familyOf(modelId: string): string {
 const R = 5.5, AREA = Math.PI * R * R;
 const SQ = Math.sqrt(AREA) / 2; // half side
 const TA = Math.sqrt((4 * AREA) / Math.sqrt(3)), TH = (TA * Math.sqrt(3)) / 2; // side, height
+const R0 = R, SQ0 = SQ, TA0 = TA, TH0 = TH;
 export const SHAPE_HALF = 8; // the largest extent from the centre (triangle apex 2/3 of its height), rounded up
 const r1 = (v: number) => String(Math.round(v * 10) / 10);
 export function shapeArea(s: Shape): number {
@@ -35,8 +36,10 @@ export function shapeArea(s: Shape): number {
   if (s === 'square' || s === 'diamond') return (2 * SQ) ** 2;
   return (TA * TH) / 2;
 }
-export function shapeSvg(s: Shape, cx: number, cy: number, cls: string): string {
-  if (s === 'circle') return `<circle class="${cls}" cx="${r1(cx)}" cy="${r1(cy)}" r="${R}"/>`;
+/** k: size factor (phone plot 0.7). */
+export function shapeSvg(s: Shape, cx: number, cy: number, cls: string, k = 1): string {
+  const R = R0 * k, SQ = SQ0 * k, TA = TA0 * k, TH = TH0 * k;
+  if (s === 'circle') return `<circle class="${cls}" cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(R)}"/>`;
   if (s === 'square') return `<rect class="${cls}" x="${r1(cx - SQ)}" y="${r1(cy - SQ)}" width="${r1(2 * SQ)}" height="${r1(2 * SQ)}"/>`;
   if (s === 'diamond') { const d = SQ * Math.SQRT2; return `<path class="${cls}" d="M${r1(cx)} ${r1(cy - d)}L${r1(cx + d)} ${r1(cy)}L${r1(cx)} ${r1(cy + d)}L${r1(cx - d)} ${r1(cy)}Z"/>`; }
   const up = s === 'triangle' ? 1 : -1, apex = cy - up * (2 * TH) / 3, base = cy + up * TH / 3;

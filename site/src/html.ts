@@ -51,7 +51,7 @@ export function cardTables(doc: string): string {
 export type Ctx = { base: string; published: boolean; setVersion: string; commit: string; fixture?: boolean; pending?: boolean; updated?: string;
   /** A lab run in progress: data timestamp (UTC) and lab cells finished of planned. */
   provisional?: { data_at: string; lab_commit?: string; lab_finished: number; lab_planned: number } };
-export const BANNER_PROVISIONAL = 'Provisional: run in progress, results incomplete and not yet reviewed. Numbers will change.';
+export const BANNER_PROVISIONAL = 'Provisional: not yet reviewed. Numbers may change.';
 
 /** Runs in <head> before the stylesheet paints: applies a stored theme choice. No choice: the system theme. */
 export const THEME_HEAD = "try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);document.querySelector('meta[name=color-scheme]').setAttribute('content',t)}}catch(e){}";

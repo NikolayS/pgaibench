@@ -45,7 +45,7 @@ const text = (doc: string) => doc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
 const label = model.split('/').slice(1).join('/');
 
 test('provisional: the banner on every page, the header block with data time, cells finished and commit', () => {
-  expect(BANNER_PROVISIONAL).toBe('Provisional: run in progress, results incomplete and not yet reviewed. Numbers will change.');
+  expect(BANNER_PROVISIONAL).toBe('Provisional: not yet reviewed. Numbers may change.');
   for (const [p, doc] of site) if (p.endsWith('.html')) {
     expect(doc, p).toContain(BANNER_PROVISIONAL);
     expect(doc, p).toContain('2026-11-11T02:00:00Z UTC');

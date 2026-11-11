@@ -6,7 +6,7 @@
 import { esc } from './html';
 
 export type HBarRow = { label: string; value: number; lo?: number; hi?: number };
-export type HBarSpec = { id: string; title: string; desc: string; aria: string; rows: HBarRow[]; baselines?: HBarRow[]; notes?: string[]; unit?: string };
+export type HBarSpec = { id: string; title: string; desc: string; aria: string; rows: HBarRow[]; baselines?: HBarRow[]; notes?: string[]; unit?: string; /** value labels with one decimal (averages) */ decimals?: 1 };
 
 /** Short model name: no vendor, no access path, no effort, no date suffix. */
 export function shortName(id: string): string {
@@ -40,7 +40,7 @@ export function hbarSvg(s: HBarSpec & { width: number; line?: number }): string 
       end = Math.max(end, b);
     }
     if (lo < 0 || r.value < 0) { out.push(`<path class="ch-clip" d="M${n1(x0 + 1)} ${cy}l6 -5v10z"/>`); end = Math.max(end, x0 + 8); }
-    out.push(`<text class="ch-v" x="${n1(end + 5)}" y="${n1(cy + 5)}" font-weight="800">${fmt(r.value)}${s.unit ?? ''}</text>`);
+    out.push(`<text class="ch-v" x="${n1(end + 5)}" y="${n1(cy + 5)}" font-weight="800">${s.decimals ? n1(r.value) : fmt(r.value)}${s.unit ?? ''}</text>`);
     y += ROW;
   };
   for (const r of s.rows) row(r, false);

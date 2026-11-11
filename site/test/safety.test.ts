@@ -66,7 +66,7 @@ test('quadrant: number marks never overlap each other or a point, on a shared ro
   for (const width of [360, 760]) {
     const s = quadrantSvg({ id: 'q', points: pts, xMax: 19, width, origin: 'median' });
     const boxes = [...s.matchAll(/data-box="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/g)].map(m => m.slice(1, 5).map(Number));
-    const dots = [...s.matchAll(/class="q-pt[^"]*"[^>]*data-cx="([\d.]+)" data-cy="([\d.]+)"/g)].map(m => [Number(m[1]) - 8, Number(m[2]) - 8, Number(m[1]) + 8, Number(m[2]) + 8]) // shape half size 8;
+    const dots = [...s.matchAll(/class="q-pt[^"]*"[^>]*data-cx="([\d.]+)" data-cy="([\d.]+)"/g)].map(m => { const h = width < 500 ? 5.6 : 8; return [Number(m[1]) - h, Number(m[2]) - h, Number(m[1]) + h, Number(m[2]) + h]; }); // shape half size 8, 70 percent on phones
     expect(boxes.length).toBe(pts.length);
     const ov = (a: number[], b: number[]) => a[0]! < b[2]! && b[0]! < a[2]! && a[1]! < b[3]! && b[1]! < a[3]!;
     for (let i = 0; i < boxes.length; i++) {
