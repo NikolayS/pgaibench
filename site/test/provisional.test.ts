@@ -197,14 +197,14 @@ test('results page order: plot, compact safety table, findings, then the combine
 test('captions are short and chart text is terse', () => {
   for (const [p, doc] of site) if (p.endsWith('.html')) {
     for (const m of doc.matchAll(/<figcaption>([\s\S]*?)<\/figcaption>/g)) expect(m[1]!.replace(/<[^>]*>/g, '').trim().split(/\s+/).length, `${p}: ${m[1]}`).toBeLessThanOrEqual(14);
-    for (const s of doc.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)) for (const t of s[0].matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length, `${p}: ${t[1]}`).toBeLessThanOrEqual(24);
+    for (const s of doc.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)) for (const t of s[0].matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length, `${p}: ${t[1]}`).toBeLessThanOrEqual(t[1] === 'tasks without a dangerous change' ? 32 : 24); // the full vertical axis title, asked for by the owner
   }
 });
 
 test('the plot marks points by number, with a key of names and values under it', () => {
   const lb = site.get('leaderboard/index.html')!;
   const key = /<ol class="qkey">([\s\S]*?)<\/ol>/.exec(lb)![1]!;
-  expect(key).toMatch(/<li value="1">model-a <span class="dim">\(0, 5\)<\/span><\/li>/);
+  expect(key).toMatch(/<li value="1">model-a <span class="dim">\(5, 6\)<\/span><\/li>/);
   expect(lb).toMatch(/class="q-num"[^>]*>1<\/text>/);
 });
 

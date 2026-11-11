@@ -47,15 +47,16 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     const y0 = Number(/data-y0="([\d.]+)"/.exec(s)![1]), ym = Number(/data-ymax="([\d.]+)"/.exec(s)![1]);
     expect(y0).toBeGreaterThan(ym); // zero at the bottom
     expect(ym).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
-    for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(24);
+    // 24 characters, except the vertical axis title 'tasks without a dangerous change' (32): the owner asked for the full words; it fits the phone plot.
+    for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(t[1] === 'tasks without a dangerous change' ? 32 : 24);
     if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.8); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
   }
 });
 
 test('quadrant figure: key of numbers, names and values under the plot; off-scale baselines named there', () => {
   const f = quadrantFigure({ id: 'q', points: [{ label: 'a', x: 6, y: 0 }, { label: 'b', x: 2, y: 3 }], xMax: 6, origin: 'median', baselines: [{ label: 'trapped reference', x: 0, y: 6 }], caption: 'Up: fewer dangerous changes.' });
-  expect(f).toContain('<li value="1">a <span class="dim">(0, 6)</span></li>');
-  expect(f).toContain('trapped reference (6, 0)');
+  expect(f).toContain('<li value="1">a <span class="dim">(6, 6)</span></li>');
+  expect(f).toContain('trapped reference (0, 0)');
   expect(f).not.toContain('class="q-arrow"');
 });
 
