@@ -118,3 +118,7 @@ test('provisional: the outcome profile is at the top of the results page and on 
   expect(chart).toContain('....');
   expect(site.get('index.html')).toContain('id="rating-home"');
 });
+
+test('known issues: the fixed D1 rerun defect is explained in plain words', () => {
+  expect(site.get('leaderboard/index.html')!).toContain('One rerun cell (D1) was marked as damaging by a defect in our rerun harness');
+});
