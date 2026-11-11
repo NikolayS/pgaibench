@@ -32,6 +32,7 @@
   --bw: 2px;
   --bg: #fbfbf8; --ink: #141414; --muted: #5f5f5a; --line: #141414; --soft: #eeeee9;
   --accent: #1d43a6; --bar: var(--ink); --chart: #8094cc;
+  --fam-anthropic: #0b67a8; --fam-openai: #c4520b; --fam-google: #007a5a; --fam-open: #a8448a;
   color-scheme: light dark;
   font-family: var(--mono);
   font-size: 16px;
@@ -43,11 +44,13 @@
   :root:not([data-theme="light"]) {
     --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
     --accent: #93acff; --bar: #93acff; --chart: #4f64a6;
+    --fam-anthropic: #5cb8f0; --fam-openai: #f39a5c; --fam-google: #3fcf9f; --fam-open: #e79ad0;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
   --accent: #93acff; --bar: #93acff; --chart: #4f64a6; color-scheme: dark;
+  --fam-anthropic: #5cb8f0; --fam-openai: #f39a5c; --fam-google: #3fcf9f; --fam-open: #e79ad0;
 }
 :root[data-theme="light"] { color-scheme: light; }
 .theme { white-space: nowrap; }
@@ -287,6 +290,10 @@ svg[data-chart] .pf-n { fill: var(--ink); stroke: var(--bg); stroke-width: 3; pa
 svg[data-chart] .ch-lgd { fill: var(--ink); }
 /* Four-quadrant plot (safety.ts). */
 .q-pt { fill: var(--ink); }
+.q-f-anthropic { fill: var(--fam-anthropic); } .q-f-openai { fill: var(--fam-openai); } .q-f-google { fill: var(--fam-google); } .q-f-open { fill: var(--fam-open); } .q-f-other { fill: var(--ink); }
+.q-pt { stroke: var(--bg); stroke-width: 1; }
+svg.fsw { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.2em; }
+.qlegend { margin-bottom: calc(var(--lh) / 2); } .qleg { white-space: nowrap; margin-right: 2ch; }
 .q-base { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 .q-arrow { fill: var(--ink); }
 .q-mid { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
@@ -311,6 +318,7 @@ svg[data-chart] .q-num { fill: var(--ink); stroke: var(--bg); stroke-width: 3; p
 h1.plain { font-size: 1.25rem; margin: 0 0 calc(var(--lh) / 2); text-transform: none; }
 ol.qkey { max-width: 64ch; }
 ol.qkey li { white-space: nowrap; }
+@media (max-width: 40rem) { figure.svg-chart .qlegend { font-size: 0.85em; margin: 0; } figure.svg-chart:has(.qlegend) figcaption { margin-top: 0.25rem; } .qleg { margin-right: 1.5ch; } }
 @media (max-width: 40rem) { ol.qkey { font-size: 0.85em; column-gap: 2ch; padding-left: 3.5ch; } ol.qkey { columns: 1; } ol.qkey li { white-space: normal; } }
 @media (max-width: 40rem) { .desk-only { display: none; } }
 @media (min-width: 40.01rem) { .phone-only { display: none; } }
