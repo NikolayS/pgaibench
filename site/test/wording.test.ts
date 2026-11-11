@@ -10,9 +10,9 @@ describe('scoring wording', () => {
   });
   test('home and method say what decides the score', () => {
     for (const p of ['index.html', 'method/index.html']) {
-      expect(text(p), p).toContain('Scoring is by fixed rules and lab measurements.');
-      expect(text(p), p).toContain('A model takes no part in the score.');
-      expect(text(p), p).toContain('Human readers label failure types and set the class of pending-review cells.');
+      // Text review M10: the readers of pending-review answers were AI models, not people.
+      expect(text(p), p).toMatch(/AI models?,? not people|AI model readers/);
+      expect(text(p), p).not.toMatch(/A model takes no part in the score|Human readers/);
     }
   });
   test('method does not describe model readers that decide a cell', () => {

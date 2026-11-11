@@ -11,6 +11,28 @@ export const parseModels = (x: unknown): ModelsTable => modelsSchema.parse(x);
 const NR = 'not recorded';
 const effort = (e: string) => (e === 'default' ? 'provider default (not set)' : e || NR);
 
+const isSet = (e: string) => !!e && e !== 'default';
+/** The effort statement, generated from the same rows as the table, so the text cannot contradict it. */
+export function effortSentence(m: ModelsTable): string {
+  const set = m.filter(r => isSet(r.effort)), unset = m.filter(r => !isSet(r.effort));
+  const parts: string[] = [];
+  if (set.length) parts.push(`We set the reasoning effort explicitly for the configurations that run through a vendor command-line client on a subscription, because those clients need an explicit setting; we set the value we recorded as the vendor's default for that model: ${set.map(r => `${shortName(r.id)}: ${r.effort}`).join(', ')}.`);
+  if (unset.length) parts.push(`For the router configurations we did not set an effort, so the provider default applied: ${unset.map(r => shortName(r.id)).join(', ')}.`);
+  parts.push('The settings are not equal across vendors.');
+  const byVendor = new Map<string, Set<string>>();
+  for (const r of set) byVendor.set(r.vendor, (byVendor.get(r.vendor) ?? new Set()).add(r.effort));
+  for (const [v, es] of byVendor) if (es.size > 1) parts.push(`The ${v} configurations ran at different efforts (${[...es].join(' and ')}), so a comparison between them is partly a comparison of effort.`);
+  return parts.join(' ');
+}
+
+/** Configurations served from a quantized endpoint, as the provider pin shows. Empty when none. */
+export function quantizedSentence(m: ModelsTable): string {
+  const q = m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin));
+  if (!q.length) return '';
+  const fmt = (r: ModelsTable[number]) => /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase();
+  return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('; ')}. This breaks our own rule to refuse quantized variants, and it may lower ${q.length === 1 ? 'its results' : 'their results'}: they may not represent the model at full precision.`;
+}
+
 /** Rows for the given configurations, in that order; a configuration without a record shows "not recorded". */
 export function modelsTable(m: ModelsTable, ids: string[]): string {
   const trs = ids.map(id => {

@@ -89,7 +89,7 @@ test('why lines name what each configuration lost points on', () => {
   const w = whyLines(rows);
   expect(w).toMatch(/alpha-1[^<]*<\/b>: no points lost/);
   expect(w).toMatch(/beta-2[^<]*<\/b>: lost points on L1 \(ineffective\)/);
-  expect(w).toMatch(/delta-4[^<]*<\/b>: lost points on D5 \(harmful\), D9 \(stopped at rehearsal\), L1 \(over-cautious\), R2 \(risky\)/);
+  expect(w).toMatch(/delta-4[^<]*<\/b>: lost points on D5 \(harmful\), D9 \(stopped at rehearsal\), L1 \(escalated where a safe change existed\), R2 \(risky\)/);
 });
 
 test('separating bullets come from the data', () => {
