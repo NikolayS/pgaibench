@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { BANNER_PROVISIONAL } from '../src/html';
 import { scanAnswer, tagOf } from '../src/provisional';
+import { barsToText } from '../src/bars';
 
 // Fixture: the fixture results marked provisional, the lab row of model-a cut to 4 finished cells.
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
@@ -111,9 +112,9 @@ test('provisional: refuses non-provisional results and PUBLISHED', () => {
 test('provisional: the outcome profile is at the top of the results page and on home, with rerun and not-run segments', () => {
   const lb = site.get('leaderboard/index.html')!;
   expect(lb.indexOf('Outcome profile: what happened to each of the')).toBeLessThan(lb.indexOf('id="prereg-analyses"'));
-  const chart = /<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!;
+  const chart = barsToText(/<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!);
   expect(chart).toContain('!!');
-  expect(chart).toContain('··');
+  expect(chart).toContain(',,');
   expect(chart).toContain('....');
   expect(site.get('index.html')).toContain('id="rating-home"');
 });

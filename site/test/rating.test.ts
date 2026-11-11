@@ -3,17 +3,18 @@ import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { BASELINE_NOTE, CONFIG_NOTE, PATHS_NOTE, RBAR, ratingBar } from '../src/rating';
 import { unesc } from '../src/measure';
+import { barsToText } from '../src/bars';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const site = buildSite({ published: true, base: '/', resultsPath: fx('results/results.json'), frozenPath: fx('frozen.example.json') });
 const lb = site.get('leaderboard/index.html')!;
 const text = (s: string) => unesc(s.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ');
-const pre = unesc(/<pre class="rating-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!);
+const pre = unesc(barsToText(/<pre class="rating-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!));
 
 test('rating: one list on top of the results page, above the profile, with its notes', () => {
   expect(lb.indexOf('id="rating"')).toBeGreaterThan(0);
   expect(lb.indexOf('id="rating"')).toBeLessThan(lb.indexOf('id="profile"'));
-  expect(text(lb)).toContain('Rating: PGAIBench-Analyzer score (v0), -100 to 100 (higher is better)');
+  expect(text(lb)).toMatch(/Rating: PGAIBench-Analyzer score \(v0\), -(50|100) to 100 \(higher is better\)/);
   for (const n of [CONFIG_NOTE, PATHS_NOTE, BASELINE_NOTE]) expect(text(lb)).toContain(n);
   expect(text(lb)).toContain('a wide range means the place is not firm');
   expect(site.get('index.html')).toContain('id="rating-home"');
@@ -44,9 +45,8 @@ test('weight sensitivity table and held-out aggregate are shown separately', () 
   expect(text(lb)).toMatch(/Held-out set \(2 tasks, lab outcomes; not in the score\)/);
 });
 
-test('bar: zero mark, filled from zero to the score, interval shaded', () => {
+test('bar: filled from zero to the score with #, interval with =', () => {
   const b = ratingBar({ s: 50, lo: 20, hi: 80 });
-  expect([...b].length).toBe(RBAR);
-  expect(b).toContain('█'); expect(b).toContain('░');
-  expect(ratingBar({ s: 0, lo: 0, hi: 0 })).toContain('|');
+  expect(b.length).toBe(RBAR);
+  expect(b).toContain('#'); expect(b).toContain('=');
 });

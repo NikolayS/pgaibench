@@ -1,4 +1,5 @@
 import { THEME_HEAD } from '../src/html';
+import { barsToText } from '../src/bars';
 // Text-first style: monospace, no images, text charts with tables,
 // relative links, GitHub Pages files, two colour themes.
 import { describe, expect, test } from 'bun:test';
@@ -26,7 +27,9 @@ describe('no graphics', () => {
     for (const [n, s] of all) for (const [p, doc] of s) expect(doc, `${n} ${p}`).not.toMatch(/<(img|svg|canvas|picture|iframe|video|object|embed)\b/i);
   });
   test('the stylesheet has no url(), import, web font, gradient, shadow or rounded corner', () => {
-    expect(css).not.toMatch(/url\(|@import|@font-face|gradient|box-shadow|text-shadow|border-radius|filter:/i);
+    const rest = css.replace(/^\.bx[^{]*\{[^}]*\}$/gm, ''); // bar patterns (bars.ts) are the only gradients
+    expect(rest).not.toMatch(/url\(|@import|@font-face|gradient|box-shadow|text-shadow|border-radius|filter:/i);
+    expect(css).not.toMatch(/url\(|@import|@font-face|text-shadow|border-radius|filter:/i);
   });
   test('no external URL in CSS or in any src attribute', () => {
     expect(css).not.toMatch(/https?:/);
@@ -72,14 +75,14 @@ describe('themes and width', () => {
 });
 
 describe('text charts', () => {
-  const charts = (doc: string) => [...doc.matchAll(/<pre class="chart" data-chart="([^"]+)" aria-hidden="true">([\s\S]*?)<\/pre>/g)].map(m => ({ id: m[1]!, body: unesc(m[2]!.replace(/<[^>]*>/g, '')) }));
+  const charts = (doc: string) => [...doc.matchAll(/<pre class="chart" data-chart="([^"]+)" aria-hidden="true">([\s\S]*?)<\/pre>/g)].map(m => ({ id: m[1]!, body: unesc(barsToText(m[2]!).replace(/<[^>]*>/g, '')) }));
   const tableFor = (doc: string, id: string) => {
     const t = new RegExp(`<table[^>]*data-chart-for="${id}"[^>]*>([\\s\\S]*?)</table>`).exec(doc);
     if (!t) return null;
     return [...t[1]!.matchAll(/<tr[^>]*data-k="(\d+)" data-n="(\d+)" data-lo="([\d.]+)" data-hi="([\d.]+)"[^>]*><th scope="row">([^<]+)<\/th>/g)]
       .map(m => ({ k: +m[1]!, n: +m[2]!, lo: +m[3]!, hi: +m[4]!, label: unesc(m[5]!) }));
   };
-  const rows = (body: string) => [...body.matchAll(/^(.*?)\|([█▒░ ]+)\|\s+(\d+)\/(\d+)\s/gm)].map(m => ({ bar: m[2]!, k: +m[3]!, n: +m[4]! }));
+  const rows = (body: string) => [...body.matchAll(/^(.*?)\|([#=\- ]+)\|\s+(\d+)\/(\d+)\s/gm)].map(m => ({ bar: m[2]!, k: +m[3]!, n: +m[4]! }));
   test('no SVG chart is left and charts exist', () => {
     let n = 0;
     for (const [, s] of all) for (const [, doc] of html(s)) n += charts(doc).length;
@@ -104,10 +107,10 @@ describe('text charts', () => {
       rows(c.body).forEach((x, i) => {
         expect(x.bar.length, p).toBe(BAR_WIDTH);
         const count = (re: RegExp) => (x.bar.match(re) ?? []).length;
-        const len = count(/[█▒]/g), band = count(/[▒░]/g);
+        const len = count(/[#=]/g), band = count(/[=-]/g);
         expect(Math.abs(len - BAR_WIDTH * x.k / x.n), `${p} ${c.id} row ${i}`).toBeLessThanOrEqual(1);
         expect(Math.abs(band - BAR_WIDTH * (t[i]!.hi - t[i]!.lo)), `${p} ${c.id} band ${i}`).toBeLessThanOrEqual(1.5);
-        expect(x.bar).toMatch(/^█*▒*░* *$/);
+        expect(x.bar).toMatch(/^#*=*-* *$/);
         checked++;
       });
       expect(c.body, `${p} ${c.id}`).toMatch(/0%\s+25%\s+50%\s+75%\s+100%/);
@@ -168,7 +171,8 @@ describe('page structure', () => {
   });
   test('the home page has an ASCII title block, hidden from screen readers, and a report prompt', () => {
     const h = sites.plain.get('index.html')!;
-    expect(h).toMatch(/<pre class="title" aria-hidden="true">[█ \n]+<\/pre>/);
+    const t = /<pre class="title" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(h)![1]!;
+    expect(barsToText(t)).toMatch(/^[# \n]+$/);
     expect(h).toContain('-- pgaibench report --');
   });
   test('the cursor blink is CSS only and stops under prefers-reduced-motion', () => {

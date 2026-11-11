@@ -1,5 +1,6 @@
 // Plain-text twin of a page: the same tables as aligned columns, charts
 // verbatim, prose wrapped at 78 columns. No markup in the output.
+import { barsToText } from './bars';
 const unesc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&middot;/g, '-').replace(/&amp;/g, '&');
 const flat = (s: string) => unesc(s.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 
@@ -30,7 +31,7 @@ export function toText(doc: string): string {
   const blocks: string[] = [];
   const re = /<pre[^>]*>([\s\S]*?)<\/pre>|<table[^>]*>([\s\S]*?)<\/table>|<h([1-4])[^>]*>([\s\S]*?)<\/h\3>|<(p|li|dt|dd|summary|figcaption)[^>]*>([\s\S]*?)<\/\5>/g;
   for (const m of main.matchAll(re)) {
-    if (m[1] !== undefined) blocks.push(unesc(m[1].replace(/<[^>]*>/g, '')));
+    if (m[1] !== undefined) blocks.push(unesc(barsToText(m[1]).replace(/<[^>]*>/g, '')));
     else if (m[2] !== undefined) {
       const rows = [...m[2].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map(r => [...r[1]!.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map(c => flat(c[1]!)));
       blocks.push(textTable(rows));

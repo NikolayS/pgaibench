@@ -170,3 +170,19 @@ thead th:first-child { white-space: nowrap; }
 
 @media (max-width: 480px) { :root { font-size: 13px; } .wrap { padding: var(--lh) 1ch; } pre.title { font-size: 0.8em; } }
 @media print { .banner, .nav, .skip { display: none; } }
+
+/* Chart bar cells: spans of spaces with a pattern each, same width as text (bars.ts). */
+.bx { --c: var(--ink); white-space: pre; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.bx-solid { background: var(--c); }
+.bx-hatch { background: repeating-linear-gradient(45deg, var(--c) 0 1.5px, transparent 1.5px 5px); }
+.bx-back { background: repeating-linear-gradient(-45deg, var(--c) 0 1.5px, transparent 1.5px 5px); }
+.bx-cross { background: repeating-linear-gradient(45deg, var(--c) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, var(--c) 0 1px, transparent 1px 5px); }
+.bx-dots { background: radial-gradient(circle, var(--c) 1.1px, transparent 1.4px) 0 0 / 4px 4px; }
+.bx-sparse { background: radial-gradient(circle, var(--c) 1px, transparent 1.3px) 0 0 / 8px 8px; }
+.bx-horiz { background: repeating-linear-gradient(0deg, var(--c) 0 1.5px, transparent 1.5px 4px); }
+.bx-vert { background: repeating-linear-gradient(90deg, var(--c) 0 1.5px, transparent 1.5px 4px); }
+.bx-grid { background: repeating-linear-gradient(0deg, var(--c) 0 1px, transparent 1px 5px), repeating-linear-gradient(90deg, var(--c) 0 1px, transparent 1px 5px); }
+.bx-check { background: repeating-conic-gradient(var(--c) 0 25%, transparent 0 50%) 0 0 / 6px 6px; }
+.bx-under { background: linear-gradient(var(--c), var(--c)) bottom / 100% 2px no-repeat; }
+.bx-vdots { background: radial-gradient(circle, var(--c) 1px, transparent 1.3px) 0 0 / 4px 8px; }
+.bx-empty { background: var(--soft); box-shadow: inset 0 0 0 1px var(--muted); }

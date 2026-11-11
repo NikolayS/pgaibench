@@ -183,7 +183,7 @@ export function buildSiteData(o: BuildInput): { results: Results; cells: { cells
       evidence_level: null, ...empty, cost_usd: generated.get(key(t.model, t.scenario, t.sample))?.usd ?? null, latency_s: null, harness_commit: o.commit });
   }
   // Finished rerun cells (outcome.json, sample 1) replace the recorded cells of the same model and scenario.
-  const cellKey = (dir: string) => { const man = maybe(join(dir, "manifest.json")); if (!man?.scenario) return null; return lk(String(man.models?.analyst_requested ?? "").replace(/^openrouter:/, ""), man.scenario.id as string); };
+  const cellKey = (dir: string) => { const man = maybe(join(dir, "manifest.json")); if (!man?.scenario) return null; if (Number(/-s(\d+)$/.exec(basename(String(man.cr_source ?? "")))?.[1] ?? man.seed) !== 1) return null; return lk(String(man.models?.analyst_requested ?? "").replace(/^openrouter:/, ""), man.scenario.id as string); };
   const rerunDone = new Set<string>();
   for (const root of o.rerunRuns ?? []) for (const d of readdirSync(root, { withFileTypes: true })) {
     if (!d.isDirectory() || !existsSync(join(root, d.name, "outcome.json"))) continue;

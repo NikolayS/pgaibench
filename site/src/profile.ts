@@ -6,13 +6,14 @@
 import { PROFILE_CLASSES, PROFILE_GROUP, PROFILE_LABEL, profileClass, type ProfileClass } from '../../src/analysis/outcome-map';
 import { harmOf, type Cell } from './cells';
 import { esc } from './html';
+import { spanBars } from './bars';
 import { labelOf, type Results } from './results';
 import type { Provisional } from './provisional';
 
 /** Fill characters: distinct without colour. Harm is '!'; unknown classes look empty or dotted. */
 export const PROFILE_CHAR: Record<ProfileClass, string> = {
-  right: '█', correct_refusal: '▓', over_cautious: '▒', ineffective: '░', stopped_at_rehearsal: '=', risky_pattern: '-', harmful_lab: '!',
-  pending_review: '?', invalid_answer: 'x', unscorable: '_', rerun: '·', under_review: ':', not_run: '.',
+  right: '#', correct_refusal: '%', over_cautious: '=', ineffective: '\\', stopped_at_rehearsal: '~', risky_pattern: '-', harmful_lab: '!',
+  pending_review: '?', invalid_answer: 'x', unscorable: '_', rerun: ',', under_review: ':', not_run: '.',
 };
 export const PER_TASK = 2;
 export const profileNote = (tasks: number) => `Each bar is one model's ${tasks} tasks. This chart keeps the classes apart, because they differ in cost. The rating combines them with fixed weights, and at this sample size most models are not separated.`;
@@ -73,7 +74,7 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   const scale = `${' '.repeat(W + 2)}${Array.from({ length: p.tasks }, (_, i) => (i % 5 === 0 ? '+' : '-') + '-'.repeat(PER_TASK - 1)).join('')}+`;
   let ticks = ' '.repeat(W + 2);
   for (let i = 0; i <= p.tasks; i += 5) ticks = ticks.padEnd(W + 2 + i * PER_TASK) + String(i);
-  const legendText = PROFILE_GROUPS.map(g => `${g}:\n${PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => `  ${PROFILE_CHAR[k]} ${PROFILE_LABEL[k]}`).join('\n')}`).join('\n');
+  const legendText = PROFILE_GROUPS.map(g => `${g}:\n${PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => `  |${PROFILE_CHAR[k].repeat(PER_TASK)}| ${PROFILE_LABEL[k]}`).join('\n')}`).join('\n');
   const title = `Outcome profile: what happened to each of the ${p.tasks} tasks (context, not a quality measure)`;
   const alt = p.tracks.map(t => `Track ${t.name}: ${t.rows.map(r => `${labelOf(r.model_id)}: ${PROFILE_CLASSES.filter(k => r.counts[k]).map(k => `${PROFILE_LABEL[k]} ${r.counts[k]}`).join(', ')}`).join('; ')}.`).join(' ');
   const part = (classes: ProfileClass[], label: string) => {
@@ -84,7 +85,7 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   const leg = `<ul class="legend">${PROFILE_CLASSES.map(k => `<li><code>${esc(SHORT[k])}${MARK[PROFILE_GROUP[k]]}</code> ${esc(PROFILE_LABEL[k])} (${PROFILE_GROUP[k]}: ${DIRW[PROFILE_GROUP[k]]})</li>`).join('')}</ul>`;
   const table = o.table ? `${leg}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
   return `<figure class="profile" id="${o.id}"><figcaption><b>${esc(title)}</b></figcaption><p>${o.lede}</p>
-<pre class="profile-chart" aria-hidden="true">${esc(lines.join('\n'))}${esc(scale)}\n${esc(ticks)}\n${' '.repeat(W + 2)}tasks, linear from zero, ${PER_TASK} characters per task\n\n${esc(legendText)}</pre>
+<pre class="profile-chart" aria-hidden="true">${spanBars(esc(lines.join('\n')), p.tasks * PER_TASK)}${esc(scale)}\n${esc(ticks)}\n${' '.repeat(W + 2)}tasks, linear from zero, ${PER_TASK} characters per task\n\n${spanBars(esc(legendText), PER_TASK)}</pre>
 <p class="sr">${esc(title)}. ${esc(alt)}</p>
 <p>${esc(profileNote(p.tasks))}</p>${table}</figure>`;
 }

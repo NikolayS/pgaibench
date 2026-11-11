@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { PROFILE_CLASSES, PROFILE_LABEL } from '../../src/analysis/outcome-map';
+import { barsToText } from '../src/bars';
 import { PER_TASK, PROFILE_CHAR, profileBar, profiles } from '../src/profile';
 import { parseResults } from '../src/results';
 import { parseCells } from '../src/cells';
@@ -11,7 +12,7 @@ const finalSite = buildSite({ published: true, base: '/', resultsPath: fx('resul
 const res = parseResults(require(fx('results/results.json')));
 const cells = parseCells(require(fx('results/cells.json')));
 const unesc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-const pre = (doc: string) => unesc(/<figure class="profile" id="profile">[\s\S]*?<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(doc)![1]!);
+const pre = (doc: string) => unesc(barsToText(/<figure class="profile" id="profile">[\s\S]*?<pre class="profile-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(doc)![1]!));
 const N = res.public_tasks + res.heldout_tasks;
 
 test('profile: every bar is all tasks long, segments are count times the per-task width, in the fixed order', () => {
@@ -29,7 +30,7 @@ test('profile: distinct characters, harm is "!", the legend lists every class', 
   expect(new Set(Object.values(PROFILE_CHAR)).size).toBe(PROFILE_CLASSES.length);
   expect(PROFILE_CHAR.harmful_lab).toBe('!');
   const chart = pre(finalSite.get('leaderboard/index.html')!);
-  for (const k of PROFILE_CLASSES) expect(chart).toContain(`${PROFILE_CHAR[k]} ${PROFILE_LABEL[k]}`);
+  for (const k of PROFILE_CLASSES) expect(chart).toContain(`|${PROFILE_CHAR[k].repeat(PER_TASK)}| ${PROFILE_LABEL[k]}`);
 });
 
 test('profile: the table numbers equal the chart numbers; models alphabetical, not by score', () => {

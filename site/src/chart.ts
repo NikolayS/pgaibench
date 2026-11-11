@@ -1,13 +1,15 @@
 // Text charts. One horizontal bar per model and per baseline, drawn with
-// block characters inside <pre>, linear from 0 to 100 percent of all tasks.
+// ASCII cells inside <pre>, linear from 0 to 100 percent of all tasks.
 // Cell i of the bar covers [i/W, (i+1)/W). The bar length is the value:
-//   █  below the low end of the Wilson 95 percent interval
-//   ▒  inside the interval, below the value
-//   ░  inside the interval, above the value
+//   #  below the low end of the Wilson 95 percent interval
+//   =  inside the interval, below the value
+//   -  inside the interval, above the value
+// In HTML the codes become pattern spans (bars.ts); the .txt twin keeps them.
 // The <pre> is aria-hidden; a table with the same numbers follows it.
 import type { Results, Table } from './results';
 import { labelOf } from './results';
 import { esc } from './html';
+import { spanBars } from './bars';
 import { baselineLabel } from './rating';
 
 export const BAR_WIDTH = 40;
@@ -37,7 +39,7 @@ export function series(t: Table | null, res: Results | null, id: string, scoredB
 const cell = (v: number) => Math.min(BAR_WIDTH, Math.max(0, Math.round(v * BAR_WIDTH)));
 export function bar(q: Q): string {
   const v = cell(q.k / q.n), lo = Math.min(cell(q.lo), v), hi = Math.max(cell(q.hi), v);
-  return '█'.repeat(lo) + '▒'.repeat(v - lo) + '░'.repeat(hi - v) + ' '.repeat(BAR_WIDTH - hi);
+  return '#'.repeat(lo) + '='.repeat(v - lo) + '-'.repeat(hi - v) + ' '.repeat(BAR_WIDTH - hi);
 }
 const pct = (x: number) => `${Math.round(x * 100)}`;
 const nums = (q: Q) => `${`${q.k}/${q.n}`.padStart(5)} ${pct(q.k / q.n).padStart(3)}% ${pct(q.lo).padStart(3)}-${pct(q.hi)}`;
@@ -74,7 +76,7 @@ export function chart(s: Series, caption: string): string {
     : '<tr><td colspan="4" class="none" data-result>No results yet.</td></tr>';
   return `<figure class="chart-block">
 <p class="sr" id="${s.id}-alt">Text bar chart: ${esc(title!)}. The table after it holds the same numbers.</p>
-<pre class="chart" data-chart="${s.id}" aria-hidden="true">${esc(title!)}\n${blank}\n<span data-result>${esc(data)}</span>\n${esc(tail)}</pre>
+<pre class="chart" data-chart="${s.id}" aria-hidden="true">${esc(title!)}\n${blank}\n<span data-result>${spanBars(esc(data), BAR_WIDTH)}</span>\n${esc(tail)}</pre>
 <div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title!)}"><table class="chart-data" data-chart-for="${s.id}"><caption>${esc(title!)}</caption><thead><tr><th scope="col">Row</th><th scope="col" class="num" title="count ${dir}">count${m}</th><th scope="col" class="num" title="share of all tasks ${dir}">share${m}</th><th scope="col" class="num" title="Wilson 95 percent interval ${dir}">ci${m}</th></tr></thead><tbody>${rows}</tbody></table></div>
 <figcaption>${caption}${dir ? ` ${dir}` : ''}</figcaption>
 </figure>`;

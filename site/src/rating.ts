@@ -4,6 +4,7 @@
 // Exploratory, added after the freeze. The numbers come from results.json
 // (src/analysis/score.ts computes them); this file only draws them.
 import { esc } from './html';
+import { barHtml, swatch } from './bars';
 import { labelOf, type Results } from './results';
 
 type Sc = { score: number | null; lo: number | null; hi: number | null; score0: number; lo0: number; hi0: number; scored: number; tasks: number; harmful: number; few: boolean };
@@ -35,16 +36,31 @@ export const RBAR = 20;
 const fmt = (v: number | null) => (v === null ? 'n/a' : String(Math.round(v)));
 const pr = (r: { place: number | null; placeLo: number | null; placeHi: number | null }) => (r.place === null ? '--' : `${r.placeLo}-${r.placeHi}`);
 
-/** Bar from zero to the score, interval shaded, on a -100..100 axis. */
-export function ratingBar(x: { s: number; lo: number; hi: number }): string {
-  const pos = (v: number) => Math.max(0, Math.min(RBAR, Math.round(((v + 100) / 200) * RBAR)));
-  const z = pos(0), cells = Array<string>(RBAR).fill(' ');
-  const s = pos(x.s), lo = pos(x.lo), hi = pos(x.hi);
-  for (let i = Math.min(lo, hi); i < Math.max(lo, hi); i++) cells[i] = '░';
-  for (let i = Math.min(z, s); i < Math.max(z, s); i++) cells[i] = '█';
-  if (cells[z] === ' ') cells[z] = '|';
+/** One linear axis for the whole chart: -50..100 at 5 points per cell when no model or baseline is below -50, else -100..100 at 10. */
+export type Axis = { lo: number; hi: number; step: number; cells: number; zero: number; rule: string; labels: string; pos: (v: number) => number };
+export function ratingAxis(values: number[]): Axis {
+  const lo = Math.min(...values) >= -50 ? -50 : -100, hi = 100, step = lo === -50 ? 5 : 10, cells = (hi - lo) / step;
+  const pos = (v: number) => Math.max(0, Math.min(cells, Math.round((v - lo) / step)));
+  const zero = pos(0);
+  const ticks = lo === -50 ? [-50, 0, 50, 100] : [-100, 0, 100];
+  const at = (t: number) => Math.min(cells - 1, pos(t));
+  const rule = Array.from({ length: cells }, (_, i) => (ticks.some(t => at(t) === i) ? '+' : '-')).join('');
+  let labels = '';
+  for (const t of ticks) { const v = String(t), p = t === hi ? cells - v.length : at(t); labels = labels.padEnd(Math.max(p, labels.length + (labels ? 1 : 0))) + v; }
+  return { lo, hi, step, cells, zero, rule, labels, pos };
+}
+
+/** Cells of one bar: '#' from the origin to the score, '=' the rest of the 95 percent interval. */
+export function ratingCells(x: { s: number; lo: number; hi: number }, a: Axis): string {
+  const cells = Array<string>(a.cells).fill(' ');
+  const s = a.pos(x.s), lo = a.pos(x.lo), hi = a.pos(x.hi);
+  for (let i = Math.min(lo, hi); i < Math.max(lo, hi); i++) cells[i] = '=';
+  for (let i = Math.min(a.zero, s); i < Math.max(a.zero, s); i++) cells[i] = '#';
   return cells.join('');
 }
+
+/** @deprecated kept for callers outside the chart: the -100..100 axis. */
+export function ratingBar(x: { s: number; lo: number; hi: number }): string { return ratingCells(x, ratingAxis([-100])); }
 
 export function ratingChart(res: Results, o: { provisional: boolean; table: boolean; id: string }): string {
   const r = rating(res);
@@ -55,25 +71,25 @@ export function ratingChart(res: Results, o: { provisional: boolean; table: bool
   const second = (x: Sc & { place?: number | null; placeLo?: number | null; placeHi?: number | null }, placed: boolean) =>
     `${placed && x.place === null ? `not placed yet: ${x.scored} of ${N} scored` : `${placed ? `place range ${pr(x as RatingRow)}; ` : ''}${x.scored} of ${N} scored`}; pending review ${(x as { counts?: Record<string, number> }).counts?.pending_review ?? 0}; harmful ${x.harmful} of ${x.scored}`;
   const ind = '     ';
+  const ax = ratingAxis([...rows.map(x => x.score0), ...r.baselines.map(b => b.score0)]);
   const lines: string[] = [];
+  const bar = (v: { s: number; lo: number; hi: number }) => `|${barHtml(ratingCells(v, ax))}|`;
   for (const x of rows) {
-    lines.push(`${(x.place === null ? '--' : String(x.place)).padStart(2)}  ${labelOf(x.model_id).slice(0, W).padEnd(W)} ${pathTag(x.track).padEnd(6)} ${(x.effort ?? 'n/r').slice(0, 7).padEnd(7)} |${ratingBar({ s: x.score0, lo: x.lo0, hi: x.hi0 })}|${fmt(x.score0).padStart(4)}`);
-    lines.push(`${ind}${second(x, true)}`);
+    lines.push(`${esc(`${(x.place === null ? '--' : String(x.place)).padStart(2)}  ${labelOf(x.model_id).slice(0, W).padEnd(W)} ${pathTag(x.track).padEnd(6)} ${(x.effort ?? 'n/r').slice(0, 7).padEnd(7)} `)}${bar({ s: x.score0, lo: x.lo0, hi: x.hi0 })}${esc(fmt(x.score0).padStart(4))}`);
+    lines.push(esc(`${ind}${second(x, true)}`));
   }
   for (const b of r.baselines) {
-    lines.push(baselineLabel(b.id, b.label));
-    lines.push(`${' '.repeat(4 + W + 16)}|${ratingBar({ s: b.score0, lo: b.lo0, hi: b.hi0 })}|${fmt(b.score0).padStart(4)}`);
+    lines.push(esc(baselineLabel(b.id, b.label)));
+    lines.push(`${' '.repeat(4 + W + 16)}${bar({ s: b.score0, lo: b.lo0, hi: b.hi0 })}${esc(fmt(b.score0).padStart(4))}`);
   }
-  const pad = ' '.repeat(4 + W + 16);
-  const at = (v: number) => Math.round(((v + 100) / 200) * RBAR);
-  let rule = '', lab = '';
-  for (let i = 0; i <= RBAR; i++) rule += [-100, 0, 100].some(t => at(t) === i) ? '+' : '-';
-  for (const t of [-100, 0, 100]) { const s = String(t), p = Math.max(lab.length + (lab ? 1 : 0), at(t) - (t === 100 ? s.length - 1 : t === 0 ? 0 : 0)); lab = lab.padEnd(p) + s; }
-  const legend = `paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter
-score: unknown tasks count 0 points; █ score, ░ 95% interval
-place: needs ${r.place_min} of ${N} public tasks scored; -- not placed yet`;
-  const title = `${o.provisional ? 'Rating (provisional)' : 'Rating'}: ${r.name}, -100 to 100 (higher is better)`;
-  const body = `${lines.map(esc).join('\n')}\n${pad}${rule}\n${pad}${lab}\n\n${esc(legend)}`;
+  const pad = ' '.repeat(4 + W + 17);
+  const legend = `${esc('paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter')}
+${esc('score: unknown tasks count 0 points')}
+  ${swatch('#')} ${esc('score, from 0')}
+  ${swatch('=')} ${esc('95% interval')}
+${esc(`place: needs ${r.place_min} of ${N} public tasks scored; -- not placed yet`)}`;
+  const title = `${o.provisional ? 'Rating (provisional)' : 'Rating'}: ${r.name}, ${ax.lo} to ${ax.hi} (higher is better)`;
+  const body = `${lines.join('\n')}\n${pad}${ax.rule}\n${pad}${esc(ax.labels)}\n${pad}${esc(`linear, ${ax.step} points per cell`)}\n\n${legend}`;
   const td = (v: string, num = true, sep = false) => `<td class="${num ? 'num' : ''}${sep ? ' sep' : ''}">${esc(v)}</td>`;
   const head = [['pl', 'place by score (higher is better)', '.'], ['range', 'place range, 2.5 to 97.5 percentile over bootstrap resamples (not a quality measure)', '.'],
     ['path', 'access path (not a quality measure)', '.'], ['eff', 'requested reasoning effort (not a quality measure)', '.'],
