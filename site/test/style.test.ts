@@ -191,13 +191,13 @@ describe('page structure', () => {
   });
   test('the home page opens with a header block of key: value lines', () => {
     for (const s of [sites.plain, sites.published]) {
-      const h = /<pre class="head"[^>]*>([\s\S]*?)<\/pre>/.exec(s.get('index.html')!)![1]!;
-      for (const k of ['run date:', 'scenarios:', 'models:', 'tracks:', 'license:']) expect(h).toContain(k);
+      const h = /<div class="head"[^>]*>([\s\S]*?)<\/div>/.exec(s.get('index.html')!)![1]!;
+      for (const k of ['run date', 'scenarios', 'models', 'tracks', 'license']) expect(h).toContain(`<dt>${k}</dt>`);
     }
     expect(sites.plain.get('index.html')!).toContain('How to read this');
   });
   test('the nav is one plain text line on every page', () => {
-    for (const [p, doc] of html(sites.plain)) expect(doc, p).toMatch(/<nav class="nav" aria-label="Main">\[<a [^>]+>home<\/a>\] \[<a /);
+    for (const [p, doc] of html(sites.plain)) expect(doc.replace(/<\/?span( class="ni")?>/g, ""), p).toMatch(/<nav class="nav" aria-label="Main">\[<a [^>]+>home<\/a>\] \[<a /);
   });
   test('outcome classes carry ASCII tags, not colour alone', () => {
     const m = sites.plain.get('method/index.html')!;

@@ -3,8 +3,8 @@
 // points; places only for configurations with enough public tasks scored.
 // Exploratory, added after the freeze. The numbers come from results.json
 // (src/analysis/score.ts computes them); this file only draws them.
-import { esc } from './html';
-import { barHtml, swatch } from './bars';
+import { esc, kvList } from './html';
+import { barHtml, fluidAxis, fluidBar, narrow, swatch } from './bars';
 import { labelOf, type Results } from './results';
 
 type Sc = { score: number | null; lo: number | null; hi: number | null; score0: number; lo0: number; hi0: number; scored: number; tasks: number; harmful: number; few: boolean };
@@ -93,6 +93,14 @@ ${esc('score: pending review and not run count 0 points')}
 ${esc(`place: needs ${r.place_min} of ${N} public tasks with a lab result; -- not placed yet`)}`;
   const title = `${o.provisional ? 'Rating (provisional)' : 'Rating'}: ${r.name}, ${ax.lo} to ${ax.hi} (higher is better)`;
   const body = `${lines.join('\n')}\n${pad}${ax.rule}\n${pad}${esc(ax.labels)}\n${pad}${esc(`linear, ${ax.step} points per cell`)}\n\n${legend}`;
+  // Narrow screens: per configuration a name line, a fluid bar on the same linear axis (zero line marked), the counts.
+  const nbar = (v: { s: number; lo: number; hi: number }, score: number) => `<div class="nrow-bar">${fluidBar(ratingCells(v, ax), ax.zero)}<span class="nrow-v">${esc(fmt(score))}</span></div>`;
+  const nrows = [...rows.map(x => `<div class="nrow"><div class="nrow-name">${esc(`${x.place === null ? '--' : String(x.place)}  ${labelOf(x.model_id)}  ${pathTag(x.track)}  ${x.effort ?? 'n/r'}  ${x.place === null ? 'not placed yet' : `place range ${pr(x)}`}`)}</div>${nbar({ s: x.score0, lo: x.lo0, hi: x.hi0 }, x.score0)}<div class="nrow-sub">${esc(third(x))}</div></div>`),
+    ...r.baselines.map(b => `<div class="nrow"><div class="nrow-name">${esc(baselineLabel(b.id, b.label))}</div>${nbar({ s: b.score0, lo: b.lo0, hi: b.hi0 }, b.score0)}</div>`)].join('');
+  const ticks = (ax.lo === -50 ? [-50, 0, 50, 100] : [-100, 0, 100]).map(t => ({ at: (t - ax.lo) / (ax.hi - ax.lo) * 100, label: String(t) }));
+  const compact = narrow(`${nrows}<div class="nrow-bar">${fluidAxis(ticks)}<span class="nrow-v"></span></div>
+<p class="nrow-sub">${esc(`linear, ${ax.lo} to ${ax.hi}; the vertical line marks 0`)}</p>
+<p class="nrow-sub">${esc('paths: cli-a vendor CLI A, cli-b vendor CLI B, router OpenRouter')}<br>${esc('score: pending review and not run count 0 points')}<br>${swatch('#')} ${esc('score, from 0')}<br>${swatch('=')} ${esc('95% interval')}<br>${esc(`place: needs ${r.place_min} of ${N} public tasks with a lab result; -- not placed yet`)}</p>`);
   const td = (v: string, num = true, sep = false) => `<td class="${num ? 'num' : ''}${sep ? ' sep' : ''}">${esc(v)}</td>`;
   const head = [['pl', 'place by score (higher is better)', '.'], ['range', 'place range, 2.5 to 97.5 percentile over bootstrap resamples (not a quality measure)', '.'],
     ['path', 'access path (not a quality measure)', '.'], ['eff', 'requested reasoning effort (not a quality measure)', '.'],
@@ -108,12 +116,11 @@ ${esc(`place: needs ${r.place_min} of ${N} public tasks with a lab result; -- no
   const pts = Object.entries(r.points).map(([k, v]) => `${PL[k] ?? k.replace(/_/g, ' ')} ${v === null ? 'unknown' : v > 0 ? `+${v}` : String(v)}`).join('; ');
   const kv = Object.entries(r.points).filter(([k, v]) => v !== null || k === 'pending_review').map(([k, v]) => [PL[k] ?? k.replace(/_/g, ' '), v === null ? '0 (until read)' : v > 0 ? `+${v}` : String(v)] as const);
   kv.push(['not run yet', '0']);
-  const kw = Math.max(...kv.map(([k]) => k.length));
   const def = `<p>Definition, points per public task from the lab outcome:</p>
-<pre class="kv-points">${esc(kv.map(([k, v]) => `${(k + ':').padEnd(kw + 1)} ${v}`).join('\n'))}</pre>
+${kvList(kv.map(([k, v]) => [esc(k), esc(v)]))}
 <p>Correct stop: the answer stopped or escalated on a real blocker that the task did not resolve. Right with a reservation and correct stop come from two independent readers of pending-review cells; correct stop was added after the freeze. Score = 100 x points / ${N}, from -100 to 100. Interval and place range: 95 percent bootstrap over the ${N} public tasks, ${r.resamples} resamples, the same draws for all configurations, seed ${r.seed}. A place needs ${r.place_min} of ${N} public tasks with a lab result; equal scores share a place. Held-out tasks are reported separately. Weights: version 0, added after the freeze. Data: <code>data/results.json</code>, field <code>rating</code>.</p>`;
   return `<figure class="rating" id="${o.id}"><figcaption><b>${esc(title)}</b></figcaption>
-<pre class="rating-chart" aria-hidden="true">${body}</pre>
+<pre class="rating-chart" aria-hidden="true">${body}</pre>${compact}
 <p class="noise">${esc(NOISE_NOTE)}</p>
 <p class="sr">${esc(title)}. ${esc(rows.map(x => `${x.place === null ? 'not placed yet' : `place ${x.place}`}: ${labelOf(x.model_id)} (${pathTag(x.track)}, effort ${x.effort ?? 'not reported'}): score ${fmt(x.score0)}, interval ${fmt(x.lo0)} to ${fmt(x.hi0)}, ${x.scored} of ${N} tasks scored`).join('; '))}.</p>
 <p>${esc(CONFIG_NOTE)} ${esc(PATHS_NOTE)}</p><p>Place range: the 2.5 and 97.5 percentiles of a configuration's place over ${r.resamples} resamples of the public tasks, drawn the same for all configurations; a wide range means the place is not firm.</p><p>${esc(OVERLAP_NOTE)}</p><p>${esc(BASELINE_NOTE)}</p>${o.table ? `${def}${table}${sens}${held}` : ''}</figure>`;

@@ -31,3 +31,24 @@ export const barsToText = (html: string) => html.replace(/<span class="bx bx-([a
 /** Escaped chart text: every |...| run of exactly `width` cells becomes a bar of pattern spans. */
 export const spanBars = (escaped: string, width: number) =>
   escaped.replace(new RegExp(`\\|([^|\\n<>]{${width}})\\|`, 'g'), (_, c: string) => `|${barHtml(c)}|`);
+
+/** Fluid bar for narrow screens: the same cells as a bar string, drawn as pattern blocks placed in percent of the
+ *  available width (linear, same rounding as the wide chart). `zero`: the cell index of the zero line, if any. */
+export function fluidBar(codes: string, zero?: number): string {
+  const n = codes.length, pc = (i: number) => +(i / n * 100).toFixed(3);
+  let out = '', i = 0;
+  for (const m of codes.matchAll(/(.)\1*/gs)) {
+    const c = m[1]!, len = m[0].length;
+    if (PATTERN[c]) out += `<span class="bx bx-${PATTERN[c]}" style="left: ${pc(i)}%; width: ${pc(len)}%"></span>`;
+    i += len;
+  }
+  return `<span class="fb">${out}${zero === undefined ? '' : `<span class="fb-zero" style="left: ${pc(zero)}%"></span>`}</span>`;
+}
+
+/** Axis for a fluid bar: tick labels at percent positions of the same linear scale. */
+export function fluidAxis(ticks: { at: number; label: string }[]): string {
+  return `<span class="fb fb-axis">${ticks.map(t => `<span class="fb-tick${t.at <= 0 ? ' first' : t.at >= 100 ? ' last' : ''}" style="left: ${+t.at.toFixed(3)}%">${esc(t.label)}</span>`).join('')}</span>`;
+}
+
+/** A narrow-screen variant: shown below the breakpoint only, and never in the .txt twin. */
+export const narrow = (inner: string, hidden = true) => `<!--narrow--><div class="narrow-only"${hidden ? ' aria-hidden="true"' : ''}>${inner}</div><!--/narrow-->`;

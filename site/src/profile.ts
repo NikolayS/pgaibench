@@ -6,7 +6,7 @@
 import { PROFILE_CLASSES, PROFILE_GROUP, PROFILE_LABEL, profileClass, type ProfileClass } from '../../src/analysis/outcome-map';
 import { harmOf, type Cell } from './cells';
 import { esc } from './html';
-import { spanBars } from './bars';
+import { fluidAxis, fluidBar, narrow, spanBars, swatch } from './bars';
 import { labelOf, type Results } from './results';
 import type { Provisional } from './provisional';
 
@@ -84,8 +84,12 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   };
   const leg = `<ul class="legend">${PROFILE_CLASSES.map(k => `<li><code>${esc(SHORT[k])}${MARK[PROFILE_GROUP[k]]}</code> ${esc(PROFILE_LABEL[k])} (${PROFILE_GROUP[k]}: ${DIRW[PROFILE_GROUP[k]]})</li>`).join('')}</ul>`;
   const table = o.table ? `${leg}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
+  const nticks = Array.from({ length: Math.floor(p.tasks / 5) + 1 }, (_, i) => i * 5).filter(i => i % 10 === 0 || p.tasks <= 20).map(i => ({ at: i / p.tasks * 100, label: String(i) }));
+  if (nticks[nticks.length - 1]!.at < 100) nticks.push({ at: 100, label: String(p.tasks) });
+  const compact = narrow(`${p.tracks.map(t => `<p class="nrow-track">-- Track: ${esc(t.name)} --</p>${t.rows.map(r => `<div class="nrow"><div class="nrow-name">${esc(labelOf(r.model_id))}</div><div class="nrow-bar">${fluidBar(profileBar(r.counts))}</div><div class="nrow-sub">${esc(countsText(r.counts))}</div></div>`).join('')}`).join('')}<div class="nrow-bar">${fluidAxis(nticks.filter((x, i, a) => a.findIndex(y => y.at === x.at) === i))}</div>
+<p class="nrow-sub">tasks, linear from zero</p>${PROFILE_GROUPS.map(g => `<p class="nrow-sub">${esc(g)}:<br>${PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => `${swatch(PROFILE_CHAR[k])} ${esc(PROFILE_LABEL[k])}`).join('<br>')}</p>`).join('')}`);
   return `<figure class="profile" id="${o.id}"><figcaption><b>${esc(title)}</b></figcaption><p>${o.lede}</p>
-<pre class="profile-chart" aria-hidden="true">${spanBars(esc(lines.join('\n')), p.tasks * PER_TASK)}${esc(scale)}\n${esc(ticks)}\n${' '.repeat(W + 2)}tasks, linear from zero, ${PER_TASK} characters per task\n\n${spanBars(esc(legendText), PER_TASK)}</pre>
+<pre class="profile-chart" aria-hidden="true">${spanBars(esc(lines.join('\n')), p.tasks * PER_TASK)}${esc(scale)}\n${esc(ticks)}\n${' '.repeat(W + 2)}tasks, linear from zero, ${PER_TASK} characters per task\n\n${spanBars(esc(legendText), PER_TASK)}</pre>${compact}
 <p class="sr">${esc(title)}. ${esc(alt)}</p>
 <p>${esc(profileNote(p.tasks))}</p>${table}</figure>`;
 }

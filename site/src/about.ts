@@ -1,6 +1,7 @@
 // What the benchmark tests, the AAA role design and the Auditor page.
 // Shared by home, results, method and the README text.
-import { esc, link, page, type Ctx } from './html';
+import { esc, kvList, link, page, type Ctx } from './html';
+import { narrow } from './bars';
 
 export const AAA_LINE = 'PGAIBench follows the AAA design for automated database operations: an Analyzer proposes the change, an Auditor reviews it before and after, an Actor executes it without reasoning. PGAIBench has one benchmark per reasoning role: PGAIBench-Analyzer and PGAIBench-Auditor (two jobs).';
 
@@ -18,11 +19,11 @@ export const EXAMPLE: [string, string][] = [
 ];
 
 /** key: value lines, wrapped under the value column, at most 78 characters. */
-export function kvWrap(xs: [string, string][], width = 78): string {
-  const w = Math.max(...xs.map(([k]) => k.length)) + 2;
+export function kvWrap(xs: [string, string][], width = 78, colon = true): string {
+  const w = Math.max(...xs.map(([k]) => k.length)) + (colon ? 2 : 1);
   const out: string[] = [];
   for (const [k, v] of xs) {
-    let line = `${k}:`.padEnd(w);
+    let line = (k && colon ? `${k}:` : k).padEnd(w);
     let first = true;
     for (const word of v.split(' ')) {
       if (line.length + word.length + (first ? 0 : 1) > width) { out.push(line.trimEnd()); line = ' '.repeat(w) + word; first = false; continue; }
@@ -34,8 +35,8 @@ export function kvWrap(xs: [string, string][], width = 78): string {
 }
 
 export function whatWeTest(id: string): string {
-  return `<section class="what" aria-labelledby="${id}"><h2 id="${id}">What we test</h2><pre class="kv">${esc(kvWrap(WHAT_WE_TEST))}</pre>
-<p>Example, public scenario D5:</p><pre class="kv">${esc(kvWrap(EXAMPLE))}</pre></section>`;
+  return `<section class="what" aria-labelledby="${id}"><h2 id="${id}">What we test</h2>${kvList(WHAT_WE_TEST.map(([k, v]) => [esc(k), esc(v)]))}
+<p>Example, public scenario D5:</p>${kvList(EXAMPLE.map(([k, v]) => [esc(k), esc(v)]))}</section>`;
 }
 
 export const AAA_DIAGRAM = `AAA: Analyzer, Auditor, Actor
@@ -46,9 +47,9 @@ tested now    pre-op review     not tested       post-op review
 
 export function aaa(c: Ctx): string {
   return `<section aria-labelledby="aaa"><h2 id="aaa">AAA</h2><p>${esc(AAA_LINE)}</p>
-<pre class="aaa" aria-label="AAA: Analyzer, then Auditor (pre-op review), then Actor, then Auditor (post-op review)">${esc(AAA_DIAGRAM)}</pre>
+<pre class="aaa" aria-label="AAA: Analyzer, then Auditor (pre-op review), then Actor, then Auditor (post-op review)">${esc(AAA_DIAGRAM)}</pre>${narrow(`<p>The four positions, in order:</p><ol class="aaa-list"><li><b>Analyzer</b>: tested now</li><li><b>Auditor</b>: pre-op review, in preparation</li><li><b>Actor</b>: not tested</li><li><b>Auditor</b>: post-op review, planned</li></ol>`, false)}
 <p>Both Auditor positions are the same role and one benchmark, PGAIBench-Auditor, with two jobs.</p>
-<pre class="kv">${esc(kvWrap([['PGAIBench-Analyzer', 'results below (provisional)'], ['PGAIBench-Auditor', 'in preparation']]))}</pre>
+${kvList([['PGAIBench-Analyzer', 'results below (provisional)'], ['PGAIBench-Auditor', 'in preparation']])}
 <p>-&gt; <a href="${link(c, 'leaderboard/')}">Analyzer results</a><br>-&gt; <a href="${link(c, 'auditor/')}">about the Auditor benchmark</a></p></section>`;
 }
 
