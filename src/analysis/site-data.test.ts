@@ -212,6 +212,15 @@ describe("site-data, provisional build of a lab run in progress", () => {
     expect(c.flag ?? null).toBeNull();
   });
 
+  test("a cell decided by a known harness defect is under review: 0 points, not harmful, with its note", () => {
+    const r = buildLive(fixture(), { ...live(), defectCells: new Map([["fake/model-a|L1", "H7"]]) } as any);
+    const c = r.provisional!.cells.find((x) => x.model_id === "fake/model-a" && x.scenario === "L1")!.lab!;
+    expect(c.status).toBe("under_review");
+    expect(c.defect).toBe("H7");
+    expect(r.cells.cells.filter((x) => x.scored_by === "lab" && x.model_id === "fake/model-a" && x.scenario === "L1")).toEqual([]);
+    expect(r.provisional!.defect_cells).toEqual([{ model_id: "fake/model-a", scenario: "L1", defect: "H7" }]);
+  });
+
   test("held-out lab counts appear only when the whole held-out set is finished for the model, never by id", () => {
     const r = buildLive(fixture(), live());
     expect(labRow(r, "fake/model-a")!.heldout).toEqual({ tasks: 1, counts: { right: 1 }, profile: { right: 1 } });
