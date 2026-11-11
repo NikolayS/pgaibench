@@ -13,6 +13,8 @@ import { assertNoHeldOutSite, heldOutNames, isHeldOut } from './heldout';
 import { cellPage, cellPath, gridPage, parseProvisional, type Provisional } from './provisional';
 import { comparePages, safetyRows } from './safety';
 import { parsePooled } from './pooled';
+import { parseModels } from './models';
+import type { ReleaseState } from './release';
 
 const ROOT = join(import.meta.dir, '..', '..');
 
@@ -64,6 +66,10 @@ export type BuildOptions = {
   provisionalJson?: unknown;
   /** Three-run averages (pooled.json from site-data --pooled); provisional builds only. */
   pooledJson?: unknown;
+  /** Models under test (data/models.json); provisional builds only. */
+  modelsJson?: unknown;
+  /** Commits on public main after the release tag. */
+  release?: ReleaseState;
   /** Earlier refreshes of a provisional build, newest last; the updates page lists them. */
   snapshots?: Snapshot[];
   /** Filled with the cells whose answer failed the publication scan. */
@@ -115,11 +121,12 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     const refuse = new Set(scenarios.filter(s => s.safe_pattern === 'escalate').map(s => s.id));
     crossCheck(cells, results, frozen.scenarios.map(s => s.id), id => refuse.has(id));
   }
-  const ctx: Ctx = { base: o.base, published: o.published, setVersion: results?.scenario_set ?? SET_VERSION, commit: results?.harness_commit ?? commit(), fixture: !o.published && !prov && results !== null, pending: o.pending, updated: results?.updated_on,
+  const ctx: Ctx = { base: o.base, published: o.published, setVersion: results?.scenario_set ?? SET_VERSION, commit: results?.harness_commit ?? commit(), fixture: !o.published && !prov && results !== null, pending: o.pending, updated: results?.updated_on, ...(o.release ? { release: o.release } : {}),
     ...(prov ? { provisional: { data_at: prov.data_at, lab_commit: prov.lab_commit, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, snapshots: o.snapshots ?? [] });
+  const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
@@ -129,6 +136,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     if (sr) for (const [k, v] of comparePages(ctx, sr)) add(k, v);
     files.set('data/provisional.json', `${JSON.stringify({ ...prov, cells: prov.cells.map(({ answer: _a, ...rest }) => rest) }, null, 2)}\n`);
     if (pooled) files.set('data/pooled.json', `${JSON.stringify(pooled, null, 2)}\n`);
+    if (models) files.set('data/models.json', `${JSON.stringify(models, null, 2)}\n`);
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
