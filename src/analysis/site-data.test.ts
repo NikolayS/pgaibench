@@ -329,10 +329,14 @@ describe("site-data, provisional build of a lab run in progress", () => {
     const r = buildLive(fixture(), live());
     expect(labRow(r, "fake/model-a")!.heldout).toEqual({ tasks: 1, counts: { right: 1 }, profile: { right: 1 } });
     const ho = r.provisional!.heldout_lab;
-    expect(ho.find((h) => h.model_id === "fake/model-a")!.counts).toEqual({ right: 1 });
-    expect(ho.find((h) => h.model_id === "fake/model-b")!.counts).toBeNull();
+    // the same counts as the results page: tasks done and dangerous changes, after the readings; no class histogram
+    expect(ho.find((h) => h.model_id === "fake/model-a")).toMatchObject({ done: 1, dangerous: 0 });
+    expect(ho.find((h) => h.model_id === "fake/model-a")).not.toHaveProperty("counts");
+    expect(ho.find((h) => h.model_id === "fake/model-b")).toMatchObject({ done: null, dangerous: null });
     expect(JSON.stringify(r.provisional)).not.toMatch(/Z9/);
     expect(JSON.stringify(r.cells)).not.toMatch(/Z9/);
+    // results.json carries run 1 only; it says so (the headline is pooled.json)
+    expect((r.results as any).view).toMatch(/run 1 only/);
   });
 
   test("a planned cell without an answer is unscorable in the lab; other models are listed as not evaluated", () => {

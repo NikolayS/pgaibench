@@ -31,10 +31,12 @@ export function updatesPage(c: Ctx, snaps: Snapshot[], p: Provisional): string {
   const rows = all.map((s, i) => {
     const prev = i ? all[i - 1]!.at : '';
     const ch = METHOD_CHANGES.filter(m => m.at > prev && m.at <= s.at).map(m => m.text).join('; ');
-    return `<tr><th scope="row">${esc(s.at)}</th><td class="num">${s.lab_finished} of ${s.lab_planned}</td><td class="num">${s.lab_counted}</td><td>${ch ? esc(ch) : 'more cells finished'}</td><td>${!c.release?.cutoff || s.at <= c.release.cutoff ? `<a href="${RELEASE_URL}">${RELEASE_TAG}</a>` : 'after ' + RELEASE_TAG}</td><td><a href="${link(c, s.file)}">json</a></td></tr>`;
+    const grew = !i || s.lab_finished !== all[i - 1]!.lab_finished || s.lab_counted !== all[i - 1]!.lab_counted;
+    if (!ch && !grew && i !== all.length - 1) return ''; // a refresh that changed nothing is not listed (its snapshot stays in data/)
+    return `<tr><th scope="row">${esc(s.at)}</th><td class="num">${s.lab_finished} of ${s.lab_planned}</td><td class="num">${s.lab_counted}</td><td>${ch ? esc(ch) : grew ? 'more lab cells finished' : 'no change in the counts'}</td><td>${!c.release?.cutoff || s.at <= c.release.cutoff ? `<a href="${RELEASE_URL}">${RELEASE_TAG}</a>` : 'after ' + RELEASE_TAG}</td><td><a href="${link(c, s.file)}">json</a></td></tr>`;
   }).reverse().join('');
   const body = `<p><a href="${RELEASE_URL}">${RELEASE_TAG} tagged</a> on ${RELEASE.date}; the full list of changes is in the changelog.</p>
 <p>Each refresh of the provisional results, newest first, with a dated copy of its data (<code>data/provisional.json</code> at that time). A change to the method or the score is named on the first refresh that includes it.</p>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Refreshes"><table><thead><tr><th scope="col">data as of (UTC)</th><th scope="col" class="num" title="lab cells finished (not a quality measure)">done.</th><th scope="col" class="num" title="lab cells counted (not a quality measure)">counted.</th><th scope="col">what changed</th><th scope="col">release</th><th scope="col">data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+<div class="table-scroll" tabindex="0" role="region" aria-label="Refreshes"><table><thead><tr><th scope="col">data as of (UTC)</th><th scope="col" class="num" title="lab cells finished (not a quality measure)">lab cells finished</th><th scope="col" class="num" title="lab cells counted (not a quality measure)">lab cells counted</th><th scope="col">what changed</th><th scope="col">release</th><th scope="col">data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   return page(c, { path: 'updates/', title: 'Results updates', lede: 'Every refresh of the provisional PGAIBench-Analyzer results.', body });
 }

@@ -119,7 +119,7 @@ test('M10: readers are named as AI models, with counts; no "a model takes no par
 
 test('M11: rules set after the first run, listed with dates and direction', () => {
   expect(text(lb)).toContain('Rules set after the first run was seen');
-  expect(text(lb)).toMatch(/cannot compute a clean result under the frozen rules/);
+  expect(text(lb)).toMatch(/We show no table of run 1 under the rules as frozen/);
 });
 
 test('M12: method states three runs, averages and bootstrap intervals; no one-sample Wilson claim for the headline', () => {
