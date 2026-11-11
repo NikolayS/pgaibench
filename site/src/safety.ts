@@ -90,40 +90,37 @@ export function placeNames(ps: { label: string; cx: number; cy: number }[], dots
   return out;
 }
 
-/** Vertical: dangerous changes, 0 at the top, only the used range. Horizontal: tasks done, from the smallest done minus 1. Dashed lines at the medians (or the scale midpoints). Points carry numbers; the key is HTML under the plot. */
+/** Origin (0, 0) bottom-left on both axes, the same scale on both. Vertical: tasks without a dangerous change (xMax minus the
+ *  point's dangerous count y), 0 at the bottom. Horizontal: tasks done, 0 at the left. Dashed lines at the medians (or the scale
+ *  midpoints). Points carry numbers; the key is HTML under the plot. */
 export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMax?: number; width: number; origin?: 'median' | 'absolute'; baselines?: QPoint[]; line?: number; names?: boolean }): string {
-  const W = o.width, phone = W < 500, L = 26, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.68 : W * 0.5), PAD = 22, B = 34;
-  const yMax = o.yMax ?? Math.max(1, Math.ceil(Math.max(...o.points.map(p => p.y))));
-  const xMin = 0; // every axis starts at 0 (owner rule)
-  const X = (v: number) => L + (Math.max(xMin, Math.min(o.xMax, v)) - xMin) / (o.xMax - xMin) * (W - L - R);
-  const Y = (v: number) => TOP + PAD + (Math.max(0, Math.min(yMax, v)) / yMax) * (PH - PAD);
+  const W = o.width, phone = W < 500, L = 28, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.68 : W * 0.5), PAD = 22, B = 36;
+  const yMax = o.yMax ?? o.xMax, safe = (p: QPoint) => o.xMax - p.y;
+  const X = (v: number) => L + (Math.max(0, Math.min(o.xMax, v)) / o.xMax) * (W - L - R);
+  const Y = (v: number) => TOP + PH - (Math.max(0, Math.min(yMax, v)) / yMax) * (PH - PAD);
   const origin = o.origin ?? 'median';
-  const ox = origin === 'median' ? median(o.points.map(p => p.x)) : (xMin + o.xMax) / 2, oy = origin === 'median' ? median(o.points.map(p => p.y)) : yMax / 2;
+  const ox = origin === 'median' ? median(o.points.map(p => p.x)) : o.xMax / 2, oy = origin === 'median' ? median(o.points.map(safe)) : yMax / 2;
   const out: string[] = [];
   const xt = axisTicks(o.xMax, phone ? (o.xMax > 12 ? 5 : 2) : (o.xMax > 12 ? 2 : 1));
-  const ystep = yMax <= 10 ? 1 : 2, yt = Array.from({ length: Math.floor(yMax / ystep) + 1 }, (_, i) => i * ystep);
-  for (const t of xt) out.push(`<line class="ch-grid" x1="${n1(X(t))}" y1="${TOP}" x2="${n1(X(t))}" y2="${TOP + PH}"/><text class="ch-tick" x="${n1(X(t))}" y="${TOP + PH + 16}" text-anchor="middle">${t}</text>`);
-  for (const t of yt) out.push(`<line class="ch-grid" x1="${L}" y1="${n1(Y(t))}" x2="${W - R}" y2="${n1(Y(t))}"/><text class="ch-tick" x="${L - 6}" y="${n1(Y(t) + 4)}" text-anchor="end">${t}</text>`);
+  const yt = axisTicks(yMax, phone ? (yMax > 12 ? 5 : 2) : (yMax > 12 ? 2 : 1));
+  for (const t of xt) out.push(`<line class="${t === 0 ? 'ch-zero' : 'ch-grid'}" x1="${n1(X(t))}" y1="${TOP}" x2="${n1(X(t))}" y2="${TOP + PH}"/><text class="ch-tick" x="${n1(X(t))}" y="${TOP + PH + 18}" text-anchor="middle">${t}</text>`);
+  for (const t of yt) out.push(`<line class="${t === 0 ? 'ch-zero' : 'ch-grid'}" x1="${L}" y1="${n1(Y(t))}" x2="${W - R}" y2="${n1(Y(t))}"/><text class="ch-tick" x="${L - 8}" y="${n1(Y(t) + 4)}" text-anchor="end">${t}</text>`);
   out.push(`<rect class="q-frame" x="${L}" y="${TOP}" width="${W - L - R}" height="${PH}"/>`);
   out.push(`<line class="q-mid" x1="${n1(X(ox))}" y1="${TOP}" x2="${n1(X(ox))}" y2="${TOP + PH}"/><line class="q-mid" x1="${L}" y1="${n1(Y(oy))}" x2="${W - R}" y2="${n1(Y(oy))}"/>`);
-  out.push(`<text class="ch-group" x="${L}" y="16">dangerous changes</text><text class="ch-group" x="${W - R}" y="${TOP + PH + B - 2}" text-anchor="end">tasks done</text>`);
+  out.push(`<text class="ch-group" x="${L}" y="16">no dangerous change</text><text class="ch-group" x="${W - R}" y="${TOP + PH + B - 2}" text-anchor="end">tasks done</text>`);
   const bmarks: { cx: number; cy: number }[] = [];
   for (const b of o.baselines ?? []) {
-    const offX = b.x < xMin || b.x > o.xMax, offY = b.y > yMax || b.y < 0;
-    // off-scale marks (and marks on the left edge) sit just inside the frame, clear of the tick labels outside it
-    const cx = X(b.x) + (b.x <= xMin ? 9 : b.x > o.xMax ? -9 : 0), cy = Y(b.y) + (b.y > yMax ? -9 : 0);
+    const cx = X(b.x), cy = Y(safe(b));
     out.push(`<circle class="q-base" cx="${n1(cx)}" cy="${n1(cy)}" r="5"/>`); bmarks.push({ cx, cy });
-    if (offX) out.push(`<path class="q-arrow" d="M${n1(cx - 7)} ${n1(cy)}l6 -4v8z"/>`);
-    if (offY) out.push(`<path class="q-arrow" d="M${n1(cx)} ${n1(cy + 7)}l-4 -6h8z"/>`);
   }
-  const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: X(p.x), cy: Y(p.y) }));
+  const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: X(p.x), cy: Y(safe(p)) }));
   for (const p of pts) out.push(`<circle class="q-pt" cx="${n1(p.cx)}" cy="${n1(p.cy)}" r="4"/>`);
-  const named = !phone && o.names ? placeNames(o.points.map((p, i) => ({ label: p.label, cx: pts[i]!.cx, cy: pts[i]!.cy })), [...pts, ...(o.baselines ?? []).map(b => ({ cx: X(b.x), cy: Y(b.y) }))], { x0: L, y0: TOP, x1: W - R, y1: TOP + PH }) : null;
+  const named = !phone && o.names ? placeNames(o.points.map((p, i) => ({ label: p.label, cx: pts[i]!.cx, cy: pts[i]!.cy })), [...pts, ...bmarks], { x0: L, y0: TOP, x1: W - R, y1: TOP + PH }) : null;
   if (named) for (const m of named) out.push(`<text class="q-name" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${esc(m.label)}</text>`);
   else for (const m of placeMarks(pts, W, bmarks, TOP + PH - 1)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
   const H = Math.ceil((TOP + PH + B + 6) / 20) * 20, k = Math.ceil(H / (o.line ?? 20));
-  const aria = `Dangerous changes written against tasks done, one numbered point per configuration; the key under the plot names them. ${o.points.filter(p => p.y === 0).length} of ${o.points.length} configurations wrote no dangerous change.`;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}" data-chart="${esc(o.id)}" data-origin-x="${ox}" data-origin-y="${oy}" data-xmin="${xMin}" data-y0="${n1(Y(0))}" data-ymax="${n1(Y(yMax))}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>Dangerous changes and tasks done</title><desc>Scatter plot. Vertical: dangerous changes written, 0 at the top. Horizontal: tasks done, from 0 to ${o.xMax}. Dashed lines: ${origin === 'median' ? 'the medians of the configurations' : 'the middle of each scale'}.</desc>${out.join('')}</svg>`;
+  const aria = `Tasks without a dangerous change (up) against tasks done (right), one numbered point per configuration; the key under the plot names them. ${o.points.filter(p => p.y === 0).length} of ${o.points.length} configurations wrote no dangerous change.`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}" data-chart="${esc(o.id)}" data-origin-x="${ox}" data-origin-y="${oy}" data-xmin="0" data-y0="${n1(Y(0))}" data-ymax="${n1(Y(yMax))}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>Tasks without a dangerous change and tasks done</title><desc>Scatter plot, origin 0, 0 at the bottom left. Vertical: tasks without a dangerous change, from 0 to ${yMax}. Horizontal: tasks done, from 0 to ${o.xMax}. Dashed lines: ${origin === 'median' ? 'the medians of the configurations' : 'the middle of each scale'}.</desc>${out.join('')}</svg>`;
 }
 
 /** Figure: phone and wide plots, the key (numbers to names and values) as HTML in two columns, one short caption. */
@@ -132,8 +129,7 @@ export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption:
   const narrow = quadrantSvg({ ...o, points: pts, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
   const wide = quadrantSvg({ ...o, points: pts, width: 760, names: true }).replace('<svg ', '<svg class="chart-wide" ');
   const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}">${esc(p.label)} <span class="dim">(${fmtNum(p.y)}, ${fmtNum(p.x)})</span></li>`).join('')}</ol>`;
-  const yMax = o.yMax ?? Math.max(1, Math.ceil(Math.max(...o.points.map(p => p.y))));
-  const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.y)}, ${fmtNum(b.x)}${b.x < 0 || b.x > o.xMax || b.y > yMax ? ', off the scale' : ''})`).join(', ');
+  const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.y)}, ${fmtNum(b.x)})`).join(', ');
   return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}<figcaption>${o.caption}</figcaption>${key}<p class="qkey-b">(dangerous, done). Hollow: baselines${bl ? `: ${bl}` : ''}.</p></figure>`;
 }
 
@@ -221,7 +217,7 @@ export function compactTable(rows: SafetyRow[], o: { id: string; baselines?: { l
 }
 
 const quadId = (home: boolean) => (home ? 'safety-home' : 'safety-quadrant');
-export const QUAD_CAPTION = 'Fewer dangerous changes is better (up); more tasks done is better (right).';
+export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done.';
 
 /** Top of the page: the plot, the compact table and (results page) the findings. */
 export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean }): string {
@@ -243,8 +239,8 @@ export function safetyDetails(res: Results, rows: SafetyRow[]): string {
     'Safety is the main result. A dangerous change counts wherever it was stopped: at rehearsal (our harness caught it), in production with no harm measured, or in production with harm measured.',
     `Order: fewest dangerous changes, then most tasks done (right, right with a reservation, correct refusal, correct stop), of ${n} public tasks. Held-out tasks: counts only.`,
     `The centre lines are the medians of the ${k} configurations, not a pass mark. With one sample many configurations are within one or two tasks of each other.`,
-    `Medians: ${fmtNum(med)} dangerous changes, ${fmtNum(medDone)} tasks done.${med === 0 ? ' The median of dangerous changes is 0, so the horizontal centre line is the top row and the plot has no upper half.' : ''}`,
-    'Both axes start at 0: tasks done from 0 to ' + n + ', dangerous changes from 0 to the most a configuration wrote. A baseline outside that range sits on the edge with an arrow; the key gives its values.',
+    `Medians: ${fmtNum(med)} dangerous changes, ${fmtNum(medDone)} tasks done.${med === 0 ? ' The median of dangerous changes is 0, so the horizontal centre line is the top row.' : ''}`,
+    `Both axes start at 0 in the bottom left corner and use the same scale, 0 to ${n}. Up: tasks without a dangerous change (${n} minus the dangerous changes written). Right: tasks done. The key gives (dangerous changes, tasks done).`,
   ];
   return `<section class="block" id="safety-notes" aria-labelledby="safety-notes-h"><h2 id="safety-notes-h">Notes on the safety view</h2><ul class="notes">${notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
 <div class="phone-only"><p>All safety columns, per configuration:</p>${headlineTable(rows, { id: quadId(false), baselines: baselineRows(res, n) })}</div></section>`;

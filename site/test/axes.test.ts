@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { hbarSvg, stackedSvg } from '../src/svg';
-import { quadrantSvg, quadrantFigure, compactTable, headlineTable, fmtNum, type SafetyRow } from '../src/safety';
+import { QUAD_CAPTION, quadrantSvg, quadrantFigure, compactTable, headlineTable, fmtNum, type SafetyRow } from '../src/safety';
 
 // Owner rule: every numeric axis on the site includes 0 and starts at 0.
 // Ticks under the plot (y > frame bottom) are the horizontal axis; ticks with text-anchor end are the vertical axis.
@@ -11,7 +11,9 @@ function startsAtZero(s: string) {
   expect(h.length).toBeGreaterThan(0);
   const hl = h.reduce((a, b) => (b.x < a.x ? b : a));
   expect(hl.v).toBe(0);
-  if (v.length) expect(v.reduce((a, b) => (b.y < a.y ? b : a)).v).toBe(0); // dangerous changes: 0 at the top
+  // no inverted axes: the zero is the leftmost horizontal tick and the lowest vertical tick
+  if (v.length) { expect(v.reduce((a, b) => (b.y > a.y ? b : a)).v).toBe(0); expect(v.reduce((a, b) => (b.y < a.y ? b : a)).v).toBe(Math.max(...v.map(t => t.v))); }
+  expect(h.reduce((a, b) => (b.x > a.x ? b : a)).v).toBe(Math.max(...h.map(t => t.v)));
 }
 
 const pts = [{ label: 'a', x: 17, y: 0 }, { label: 'b', x: 14.67, y: 0.33 }, { label: 'c', x: 9, y: 2.5 }, { label: 'd', x: 3, y: 1 }];
@@ -29,7 +31,7 @@ test('quadrant: tasks done runs 0 to xMax with readable ticks incl. 0 and xMax; 
     const h = ticks(s).filter(t => t.anchor === 'middle').map(t => t.v);
     expect(h[0]).toBe(0); expect(h.at(-1)).toBe(19);
     if (width === 360) expect(h).toEqual([0, 5, 10, 15, 19]);
-    expect(s).not.toContain('q-arrow'); // escalate baseline (4, 0) is inside the scale
+    expect(s).not.toContain('q-arrow');
     expect(s).toContain('from 0 to 19');
   }
 });
@@ -44,4 +46,27 @@ test('fractional values: plot, key and tables print up to two decimals, whole nu
   expect(c).toContain('>0.33<'); expect(c).toContain('>14.67<'); expect(c).toContain('>4.5<');
   const t = headlineTable([r], { id: 'q' });
   expect(t).toContain('14.67 of 19'); expect(t).toContain('>0.33<'); expect(t).not.toMatch(/\d\.\d{3}/);
+});
+
+const frame = (s: string) => { const [x, y, w, h] = /class="q-frame" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/.exec(s)!.slice(1).map(Number); return { x0: x!, y0: y!, x1: x! + w!, y1: y! + h! }; };
+test('quadrant: origin (0, 0) bottom-left; vertical = tasks without a dangerous change, 0 to 19; all baselines on the scale', () => {
+  const bl = [{ label: 'trapped reference', x: 0, y: 19 }, { label: 'always escalate', x: 3, y: 0 }, { label: 'safe reference', x: 19, y: 0 }];
+  for (const width of [360, 760]) {
+    const s = quadrantSvg({ id: 'q', points: [{ label: 'a', x: 17, y: 1 }, { label: 'b', x: 14.67, y: 0.33 }], xMax: 19, width, baselines: bl });
+    const f = frame(s), v = ticks(s).filter(t => t.anchor === 'end').map(t => t.v);
+    if (width === 360) expect(v).toEqual([0, 5, 10, 15, 19]);
+    expect(v[0]).toBe(0); expect(v.at(-1)).toBe(19);
+    expect(s).not.toContain('q-arrow');
+    expect(s).toContain('>no dangerous change<');
+    const b = [...s.matchAll(/class="q-base" cx="([\d.]+)" cy="([\d.]+)"/g)].map(m => [+m[1]!, +m[2]!]);
+    expect(b[0]).toEqual([f.x0, f.y1]); // trapped at the origin
+    expect(b[1]![1]).toBe(b[2]![1]); // escalate and safe reference on the top value row
+    expect(b[2]![0]).toBe(f.x1);
+    const p = [...s.matchAll(/class="q-pt" cx="([\d.]+)" cy="([\d.]+)"/g)].map(m => +m[2]!);
+    expect(p[1]!).toBeLessThan(p[0]!); // 18.67 sits above 18
+    expect(p[1]!).toBeGreaterThan(b[1]![1]); // and below 19
+  }
+  const fig = quadrantFigure({ id: 'q', points: [{ label: 'b', x: 14.67, y: 0.33 }], xMax: 19, caption: 'c', baselines: bl });
+  expect(fig).toContain('(0.33, 14.67)'); expect(fig).not.toContain('off the scale');
+  expect(QUAD_CAPTION).toBe('Up: fewer dangerous changes. Right: more tasks done.');
 });

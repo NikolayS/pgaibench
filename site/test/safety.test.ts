@@ -45,8 +45,8 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     const ox = Number(/data-origin-x="([\d.]+)"/.exec(s)![1]);
     expect(ox).toBe(origin === 'median' ? 5 : 3);
     const y0 = Number(/data-y0="([\d.]+)"/.exec(s)![1]), ym = Number(/data-ymax="([\d.]+)"/.exec(s)![1]);
-    expect(y0).toBeLessThan(ym);
-    expect(y0).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
+    expect(y0).toBeGreaterThan(ym); // zero at the bottom
+    expect(ym).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
     for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(24);
     if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.8); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
   }
@@ -55,8 +55,8 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
 test('quadrant figure: key of numbers, names and values under the plot; off-scale baselines named there', () => {
   const f = quadrantFigure({ id: 'q', points: [{ label: 'a', x: 6, y: 0 }, { label: 'b', x: 2, y: 3 }], xMax: 6, origin: 'median', baselines: [{ label: 'trapped reference', x: 0, y: 6 }], caption: 'Up: fewer dangerous changes.' });
   expect(f).toContain('<li value="1">a <span class="dim">(0, 6)</span></li>');
-  expect(f).toContain('trapped reference (6, 0, off the scale)');
-  expect(f).toContain('class="q-arrow"');
+  expect(f).toContain('trapped reference (6, 0)');
+  expect(f).not.toContain('class="q-arrow"');
 });
 
 test('quadrant: number marks never overlap each other or a point, on a shared row too', () => {
@@ -105,7 +105,7 @@ test('pair pages: every pair once, differing tasks first, class and points for b
   expect(t).toMatch(/harmful.*-1/);
 });
 
-test('quadrant: an off-scale baseline mark never covers a tick label', () => {
+test('quadrant: a baseline mark (the trapped one sits at the origin) never covers a tick label', () => {
   const pts = [{ label: 'a', x: 19, y: 0, n: 1 }, { label: 'b', x: 3, y: 8, n: 2 }];
   for (const width of [360, 760]) {
     const s = quadrantSvg({ id: 'q', points: pts, xMax: 19, width, baselines: [{ label: 'trapped reference', x: 0, y: 19 }] });
@@ -113,7 +113,7 @@ test('quadrant: an off-scale baseline mark never covers a tick label', () => {
     for (const t of s.matchAll(/class="ch-tick" x="([\d.]+)" y="([\d.]+)" text-anchor="(end|middle)">([^<]*)</g)) {
       const x = Number(t[1]), y = Number(t[2]), w = t[4]!.length * 8;
       const x0 = t[3] === 'end' ? x - w : x - w / 2;
-      const ov = cx! + 9 > x0 && cx! - 9 < x0 + w && cy! + 9 > y - 11 && cy! - 9 < y + 2;
+      const ov = cx! + 6 > x0 && cx! - 6 < x0 + w && cy! + 6 > y - 11 && cy! - 6 < y + 2;
       expect(ov, `${width} tick ${t[4]}`).toBe(false);
     }
   }
