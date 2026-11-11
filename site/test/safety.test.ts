@@ -41,9 +41,9 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     for (const p of pts) expect(s).toMatch(new RegExp(`class="q-num"[^>]*>${p.n}</text>`));
     expect((s.match(/class="q-pt"/g) ?? []).length).toBe(pts.length);
     expect((s.match(/class="q-base"/g) ?? []).length).toBe(2);
-    expect(Number(/data-xmin="(\d+)"/.exec(s)![1])).toBe(1); // smallest done (2) minus 1
+    expect(Number(/data-xmin="(\d+)"/.exec(s)![1])).toBe(0); // every axis starts at 0
     const ox = Number(/data-origin-x="([\d.]+)"/.exec(s)![1]);
-    expect(ox).toBe(origin === 'median' ? 5 : 3.5);
+    expect(ox).toBe(origin === 'median' ? 5 : 3);
     const y0 = Number(/data-y0="([\d.]+)"/.exec(s)![1]), ym = Number(/data-ymax="([\d.]+)"/.exec(s)![1]);
     expect(y0).toBeLessThan(ym);
     expect(y0).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
