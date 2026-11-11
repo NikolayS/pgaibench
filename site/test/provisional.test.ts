@@ -204,7 +204,7 @@ test('captions are short and chart text is terse', () => {
 test('the plot marks points by number, with a key of names and values under it', () => {
   const lb = site.get('leaderboard/index.html')!;
   const key = /<ol class="qkey">([\s\S]*?)<\/ol>/.exec(lb)![1]!;
-  expect(key).toMatch(/<li value="1">model-a <span class="dim">\(5, 6\)<\/span><\/li>/);
+  expect(key).toMatch(/<li value="1"><svg class="fsw[^>]*>[\s\S]*?<\/svg> model-a <span class="dim">\(5, 6\)<\/span><\/li>/);
   expect(lb).toMatch(/class="q-num"[^>]*>1<\/text>/);
 });
 

@@ -62,7 +62,7 @@ test('quadrant: origin (0, 0) bottom-left; vertical = tasks without a dangerous 
     expect(b[0]).toEqual([f.x0, f.y1]); // trapped at the origin
     expect(b[1]![1]).toBe(b[2]![1]); // escalate and safe reference on the top value row
     expect(b[2]![0]).toBe(f.x1);
-    const p = [...s.matchAll(/class="q-pt" cx="([\d.]+)" cy="([\d.]+)"/g)].map(m => +m[2]!);
+    const p = [...s.matchAll(/class="q-pt[^"]*"[^>]*data-cx="([\d.]+)" data-cy="([\d.]+)"/g)].map(m => +m[2]!);
     expect(p[1]!).toBeLessThan(p[0]!); // 18.67 sits above 18
     expect(p[1]!).toBeGreaterThan(b[1]![1]); // and below 19
   }
@@ -74,12 +74,12 @@ test('quadrant: origin (0, 0) bottom-left; vertical = tasks without a dangerous 
 test('key: each entry gives the plotted coordinates (horizontal, vertical), fractions included', () => {
   const ps = [{ label: 'a', x: 19, y: 0 }, { label: 'b', x: 17, y: 1 }, { label: 'c', x: 3, y: 8 }, { label: 'd', x: 14.67, y: 0.33 }, { label: 'e', x: 9.5, y: 2.25 }];
   const fig = quadrantFigure({ id: 'q', points: ps, xMax: 19, caption: 'c' });
-  const key = [...fig.matchAll(/<li value="\d+">[^<]*<span class="dim">\(([\d.]+), ([\d.]+)\)<\/span>/g)].map(m => [+m[1]!, +m[2]!]);
+  const key = [...fig.matchAll(/<li value="\d+"><svg[\s\S]*?<\/svg>[^<]*<span class="dim">\(([\d.]+), ([\d.]+)\)<\/span>/g)].map(m => [+m[1]!, +m[2]!]);
   expect(key.length).toBe(ps.length);
   for (const cls of ['chart-narrow', 'chart-wide']) {
     const s = fig.slice(fig.indexOf(`<svg class="${cls}"`)); const svg = s.slice(0, s.indexOf('</svg>'));
     const f = frame(svg), y0 = +/data-y0="([\d.]+)"/.exec(svg)![1]!, yt = +/data-ymax="([\d.]+)"/.exec(svg)![1]!;
-    const dots = [...svg.matchAll(/class="q-pt" cx="([\d.]+)" cy="([\d.]+)"/g)].map(m => [+m[1]!, +m[2]!]);
+    const dots = [...svg.matchAll(/class="q-pt[^"]*"[^>]*data-cx="([\d.]+)" data-cy="([\d.]+)"/g)].map(m => [+m[1]!, +m[2]!]);
     key.forEach(([kx, ky], i) => {
       expect(Math.abs(f.x0 + (kx! / 19) * (f.x1 - f.x0) - dots[i]![0]!)).toBeLessThan(0.2);
       expect(Math.abs(y0 - (ky! / 19) * (y0 - yt) - dots[i]![1]!)).toBeLessThan(0.2);

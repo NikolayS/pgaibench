@@ -39,7 +39,7 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     expect(s).toContain('data-chart="q"');
     expect(s).toMatch(/<title>[^<]+<\/title><desc>[^<]+<\/desc>/);
     for (const p of pts) expect(s).toMatch(new RegExp(`class="q-num"[^>]*>${p.n}</text>`));
-    expect((s.match(/class="q-pt"/g) ?? []).length).toBe(pts.length);
+    expect((s.match(/class="q-pt /g) ?? []).length).toBe(pts.length);
     expect((s.match(/class="q-base"/g) ?? []).length).toBe(2);
     expect(Number(/data-xmin="(\d+)"/.exec(s)![1])).toBe(0); // every axis starts at 0
     const ox = Number(/data-origin-x="([\d.]+)"/.exec(s)![1]);
@@ -49,13 +49,14 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
     expect(ym).toBeGreaterThan(Number(/class="q-frame" x="[\d.]+" y="([\d.]+)"/.exec(s)![1]) + 10); // the top row is inside the frame
     // 24 characters, except the vertical axis title 'tasks without a dangerous change' (32): the owner asked for the full words; it fits the phone plot.
     for (const t of s.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) expect(t[1]!.length).toBeLessThanOrEqual(t[1] === 'tasks without a dangerous change' ? 32 : 24);
-    if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.8); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
+    // a bit flatter (0.75) since the vendor legend line, so the key still starts on the first phone screen
+    if (width === 360) { const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(s)!; expect(Number(h) / Number(w)).toBeGreaterThanOrEqual(0.75); expect(Number(h) / Number(w)).toBeLessThanOrEqual(1.1); }
   }
 });
 
 test('quadrant figure: key of numbers, names and values under the plot; off-scale baselines named there', () => {
   const f = quadrantFigure({ id: 'q', points: [{ label: 'a', x: 6, y: 0 }, { label: 'b', x: 2, y: 3 }], xMax: 6, origin: 'median', baselines: [{ label: 'trapped reference', x: 0, y: 6 }], caption: 'Up: fewer dangerous changes.' });
-  expect(f).toContain('<li value="1">a <span class="dim">(6, 6)</span></li>');
+  expect(f).toMatch(/<li value="1"><svg class="fsw[^>]*>[\s\S]*?<\/svg> a <span class="dim">\(6, 6\)<\/span><\/li>/);
   expect(f).toContain('trapped reference (0, 0)');
   expect(f).not.toContain('class="q-arrow"');
 });
@@ -65,7 +66,7 @@ test('quadrant: number marks never overlap each other or a point, on a shared ro
   for (const width of [360, 760]) {
     const s = quadrantSvg({ id: 'q', points: pts, xMax: 19, width, origin: 'median' });
     const boxes = [...s.matchAll(/data-box="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/g)].map(m => m.slice(1, 5).map(Number));
-    const dots = [...s.matchAll(/class="q-pt" cx="([\d.]+)" cy="([\d.]+)"/g)].map(m => [Number(m[1]) - 4, Number(m[2]) - 4, Number(m[1]) + 4, Number(m[2]) + 4]);
+    const dots = [...s.matchAll(/class="q-pt[^"]*"[^>]*data-cx="([\d.]+)" data-cy="([\d.]+)"/g)].map(m => [Number(m[1]) - 8, Number(m[2]) - 8, Number(m[1]) + 8, Number(m[2]) + 8]) // shape half size 8;
     expect(boxes.length).toBe(pts.length);
     const ov = (a: number[], b: number[]) => a[0]! < b[2]! && b[0]! < a[2]! && a[1]! < b[3]! && b[1]! < a[3]!;
     for (let i = 0; i < boxes.length; i++) {

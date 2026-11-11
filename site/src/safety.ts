@@ -3,6 +3,7 @@
 // was stopped (rehearsal, production with no harm measured, harm measured).
 // Data: provisional.json field `safety` (src/analysis/site-data.ts).
 import { esc, link, page, type Ctx } from './html';
+import { FAMILIES, SHAPE_HALF, familyLegend, familyOf, shapeSvg, swatch } from './family';
 import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
@@ -43,7 +44,7 @@ export function headlineTable(rows: SafetyRow[], o: { id: string; baselines?: { 
 
 // ---------- four-quadrant plot ----------
 /** n: the point's mark (1 to N in safety order). */
-export type QPoint = { label: string; x: number; y: number; n?: number };
+export type QPoint = { label: string; x: number; y: number; n?: number; family?: string };
 /** A count or an average: up to two decimals, no trailing zeros (3, 0.33, 14.67). */
 export const fmtNum = (v: number) => String(Math.round(v * 100) / 100);
 /** Ticks from 0 by `step`, plus `max`; a step tick closer than half a step to `max` gives way to it. */
@@ -54,8 +55,8 @@ type Box = { x0: number; y0: number; x1: number; y1: number };
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 /** Mark positions for numbered points: next to the point (above, below, right, left, then diagonals), never over another mark or point. Exported for the overlap test. */
-export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: number, extra: { cx: number; cy: number }[] = [], maxY = Infinity): { n: number; x: number; y: number; box: Box }[] {
-  const taken: Box[] = [...extra.map(p => ({ x0: p.cx - 11, y0: p.cy - 7, x1: p.cx + 7, y1: p.cy + 7 })), ...pts.map(p => ({ x0: p.cx - 5, y0: p.cy - 5, x1: p.cx + 5, y1: p.cy + 5 }))];
+export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: number, extra: { cx: number; cy: number }[] = [], maxY = Infinity, minY = -Infinity): { n: number; x: number; y: number; box: Box }[] {
+  const taken: Box[] = [...extra.map(p => ({ x0: p.cx - 11, y0: p.cy - 7, x1: p.cx + 7, y1: p.cy + 7 })), ...pts.map(p => ({ x0: p.cx - SHAPE_HALF, y0: p.cy - SHAPE_HALF, x1: p.cx + SHAPE_HALF, y1: p.cy + SHAPE_HALF }))];
   
   const out: { n: number; x: number; y: number; box: Box }[] = [];
   // points that share a row alternate above and below, left to right
@@ -64,11 +65,11 @@ export function placeMarks(pts: { n: number; cx: number; cy: number }[], W: numb
   for (const p of order) {
     const k = rowIdx.get(p.cy) ?? 0; rowIdx.set(p.cy, k + 1);
     const w = String(p.n).length * 8.4, h = 13;
-    const above = { x: p.cx - w / 2, y: p.cy - 8 }, below = { x: p.cx - w / 2, y: p.cy + 7 + h };
-    const cands = [...(k % 2 ? [below, above] : [above, below]), { x: p.cx + 7, y: p.cy + 5 }, { x: p.cx - 7 - w, y: p.cy + 5 },
+    const above = { x: p.cx - w / 2, y: p.cy - SHAPE_HALF - 2 }, below = { x: p.cx - w / 2, y: p.cy + SHAPE_HALF + 1 + h };
+    const cands = [...(k % 2 ? [below, above] : [above, below]), { x: p.cx + SHAPE_HALF + 2, y: p.cy + 5 }, { x: p.cx - SHAPE_HALF - 2 - w, y: p.cy + 5 },
       { x: p.cx + 5, y: p.cy - 7 }, { x: p.cx - 5 - w, y: p.cy - 7 }, { x: p.cx + 5, y: p.cy + 7 + h }, { x: p.cx - 5 - w, y: p.cy + 7 + h },
       { x: p.cx - w / 2, y: p.cy - 22 }, { x: p.cx - w / 2, y: p.cy + 21 + h }];
-    let c = cands.find(q => { const bx = { x0: q.x - 1, y0: q.y - h, x1: q.x + w + 1, y1: q.y + 1 }; return bx.x0 >= 0 && bx.x1 <= W && bx.y1 <= maxY && !taken.some(t => hit(t, bx)); }) ?? cands[0]!;
+    let c = cands.find(q => { const bx = { x0: q.x - 1, y0: q.y - h, x1: q.x + w + 1, y1: q.y + 1 }; return bx.x0 >= 0 && bx.x1 <= W && bx.y1 <= maxY && bx.y0 >= minY && !taken.some(t => hit(t, bx)); }) ?? cands[0]!;
     const box = { x0: c.x - 1, y0: c.y - h, x1: c.x + w + 1, y1: c.y + 1 };
     taken.push(box); out.push({ n: p.n, x: c.x, y: c.y, box });
   }
@@ -94,7 +95,7 @@ export function placeNames(ps: { label: string; cx: number; cy: number }[], dots
  *  point's dangerous count y), 0 at the bottom. Horizontal: tasks done, 0 at the left. Dashed lines at the medians (or the scale
  *  midpoints). Points carry numbers; the key is HTML under the plot. */
 export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMax?: number; width: number; origin?: 'median' | 'absolute'; baselines?: QPoint[]; line?: number; names?: boolean }): string {
-  const W = o.width, phone = W < 500, L = 28, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.68 : W * 0.5), PAD = 22, B = 36;
+  const W = o.width, phone = W < 500, L = 28, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.56 : W * 0.5), PAD = 26, B = 36;
   const yMax = o.yMax ?? o.xMax, safe = (p: QPoint) => o.xMax - p.y;
   const X = (v: number) => L + (Math.max(0, Math.min(o.xMax, v)) / o.xMax) * (W - L - R);
   const Y = (v: number) => TOP + PH - (Math.max(0, Math.min(yMax, v)) / yMax) * (PH - PAD);
@@ -113,11 +114,11 @@ export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMa
     const cx = X(b.x), cy = Y(safe(b));
     out.push(`<circle class="q-base" cx="${n1(cx)}" cy="${n1(cy)}" r="5"/>`); bmarks.push({ cx, cy });
   }
-  const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: X(p.x), cy: Y(safe(p)) }));
-  for (const p of pts) out.push(`<circle class="q-pt" cx="${n1(p.cx)}" cy="${n1(p.cy)}" r="4"/>`);
+  const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: X(p.x), cy: Y(safe(p)), family: p.family ?? 'other' }));
+  for (const p of pts) out.push(shapeSvg((FAMILIES[p.family] ?? FAMILIES.other!).shape, p.cx, p.cy, `q-pt q-f-${p.family}`).replace(/\/>$/, ` data-cx="${n1(p.cx)}" data-cy="${n1(p.cy)}"/>`));
   const named = !phone && o.names ? placeNames(o.points.map((p, i) => ({ label: p.label, cx: pts[i]!.cx, cy: pts[i]!.cy })), [...pts, ...bmarks], { x0: L, y0: TOP, x1: W - R, y1: TOP + PH }) : null;
   if (named) for (const m of named) out.push(`<text class="q-name" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${esc(m.label)}</text>`);
-  else for (const m of placeMarks(pts, W, bmarks, TOP + PH - 1)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
+  else for (const m of placeMarks(pts, W, bmarks, TOP + PH - 1, TOP + 1)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
   const H = Math.ceil((TOP + PH + B + 6) / 20) * 20, k = Math.ceil(H / (o.line ?? 20));
   const aria = `Tasks without a dangerous change (up) against tasks done (right), one numbered point per configuration; the key under the plot names them. ${o.points.filter(p => p.y === 0).length} of ${o.points.length} configurations wrote no dangerous change.`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}" data-chart="${esc(o.id)}" data-origin-x="${ox}" data-origin-y="${oy}" data-xmin="0" data-y0="${n1(Y(0))}" data-ymax="${n1(Y(yMax))}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>Tasks without a dangerous change and tasks done</title><desc>Scatter plot, origin 0, 0 at the bottom left. Vertical: tasks without a dangerous change, from 0 to ${yMax}. Horizontal: tasks done, from 0 to ${o.xMax}. Dashed lines: ${origin === 'median' ? 'the medians of the configurations' : 'the middle of each scale'}.</desc>${out.join('')}</svg>`;
@@ -128,9 +129,9 @@ export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption:
   const pts = o.points.map((p, i) => ({ ...p, n: p.n ?? i + 1 }));
   const narrow = quadrantSvg({ ...o, points: pts, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
   const wide = quadrantSvg({ ...o, points: pts, width: 760, names: true }).replace('<svg ', '<svg class="chart-wide" ');
-  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}">${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
+  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}">${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
   const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.x)}, ${fmtNum(o.xMax - b.y)})`).join(', ');
-  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}<figcaption>${o.caption}</figcaption>${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.</p></figure>`;
+  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.</p></figure>`;
 }
 
 // ---------- list of dangerous changes ----------
@@ -222,7 +223,7 @@ export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done
 /** Top of the page: the plot, the compact table and (results page) the findings. */
 export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean }): string {
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows);
-  const quad = quadrantFigure({ id: quadId(o.home), points: ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1 })), xMax: n, origin: 'median',
+  const quad = quadrantFigure({ id: quadId(o.home), points: ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id) })), xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION });
   const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), baselines: bl })}</div>`;
   if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${table}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
