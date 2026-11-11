@@ -229,7 +229,7 @@ ol.aaa-list { padding-left: 4ch; }
   .facts > div { flex-wrap: wrap; } .facts dt { min-width: 0; }
   ul.legend { columns: 1; }
   .scroll-hint { display: none; } .scroll-hint.matrix-hint { display: block; }
-  .table-scroll:not(:has(table.matrix)) { overflow-x: visible; }
+  .table-scroll:not(:has(table.matrix)):not(:has(table.compact)) { overflow-x: visible; }
   table:not(.header):not(.matrix):not(.compact), table:not(.header):not(.matrix):not(.compact) > tbody, table:not(.header):not(.matrix):not(.compact) > tfoot, table:not(.header):not(.matrix):not(.compact) > * > tr, table:not(.header):not(.matrix):not(.compact) > * > tr > td, table:not(.header):not(.matrix):not(.compact) > * > tr > th { display: block; width: auto; }
   table:not(.header):not(.matrix):not(.compact) { border: 0; width: 100%; }
   table:not(.header):not(.matrix):not(.compact) > thead, table:not(.header):not(.matrix):not(.compact) > caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -312,3 +312,5 @@ h1.plain { font-size: 1.25rem; margin: 0 0 calc(var(--lh) / 2); text-transform: 
 ol.qkey { max-width: 64ch; }
 ol.qkey li { white-space: nowrap; }
 @media (max-width: 40rem) { ol.qkey { font-size: 0.85em; column-gap: 1ch; padding-left: 3.5ch; } }
+@media (max-width: 40rem) { .desk-only { display: none; } }
+@media (min-width: 40.01rem) { .phone-only { display: none; } }
