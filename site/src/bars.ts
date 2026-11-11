@@ -8,7 +8,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 /** ASCII code -> CSS pattern name. Distinct patterns, so colour is never needed. */
 export const PATTERN: Record<string, string> = {
   '#': 'solid', '=': 'hatch', '-': 'dots', '%': 'cross', '\\': 'back', '~': 'horiz', '!': 'check',
-  '?': 'vert', x: 'grid', _: 'under', ',': 'sparse', ':': 'vdots', '.': 'empty',
+  '?': 'vert', x: 'grid', _: 'under', ',': 'sparse', ':': 'vdots', '.': 'empty', '$': 'ring', '^': 'diamond',
 };
 const CODE: Record<string, string> = Object.fromEntries(Object.entries(PATTERN).map(([c, n]) => [n, c]));
 

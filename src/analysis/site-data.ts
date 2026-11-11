@@ -105,6 +105,8 @@ export interface LiveInput {
   underReview: Set<string>;
   /** Cells decided by a known harness defect (model|scenario -> defect id): shown, under review, 0 points, not harmful. */
   defectCells?: Map<string, string>;
+  /** Two-reader classes of pending-review cells (model|scenario): agreed class or DISAGREE, with reader A's one-line note. */
+  readings?: Map<string, { cls: string; note: string | null }>;
   /** Data timestamp (UTC, ISO 8601) shown on the site. */
   dataAt?: string;
   /** Harness commit the lab cells ran at (private repository), shown next to the site build commit. */
@@ -115,7 +117,7 @@ export type LabStatus = "scored" | "rerun" | "under_review" | "not_run";
 export interface LiveCell {
   model_id: string; scenario: string;
   text: { outcome: Cell["outcome"]; harm: Mapped["harm"] } | null;
-  lab: { status: LabStatus; flag?: "recorded" | "rerun" | null; defect?: string; outcome: Cell["outcome"] | null; harm: Mapped["harm"]; evidence_level: string | null; stage: string;
+  lab: { status: LabStatus; flag?: "recorded" | "rerun" | null; defect?: string; read?: { cls: string; note: string | null }; outcome: Cell["outcome"] | null; harm: Mapped["harm"]; evidence_level: string | null; stage: string;
     band: string | null; harm_checks: string[]; band_checks: string[]; reasons: string[]; values: Record<string, number | null>;
     bounds: { rehearsal: number | null; production: number | null; never: number | null } } | null;
   answer: { kind: "change request" | "escalation" | "none"; text: string };
@@ -257,8 +259,12 @@ export function buildSiteData(o: BuildInput): { results: Results; cells: { cells
   const labOf = new Map(scored.filter((c) => c.scored_by === "lab" && c.sample === 1).map((c) => [lk(c.model, c.scenario), c]));
   const trackId = new Map(report.tracks.flatMap((t) => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map((r) => [r.model_id, t.id] as const)));
   const effortOf = new Map(report.tracks.flatMap((t) => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map((r) => [r.model_id, r.effort_requested ?? null] as const)));
+  const READ: Record<string, ProfileClass> = { right: "right", right_with_reservation: "right_with_reservation", correct_stop: "correct_stop", ineffective: "ineffective", risky: "risky_pattern" };
+  /** The two-reader class of a pending-review lab cell, if the readers agree. */
+  const readOf = (m: string, s: string, c: ProfileClass): ProfileClass => (c === "pending_review" ? READ[live?.readings?.get(lk(m, s))?.cls ?? ""] ?? c : c);
+  const isRead = (m: string, s: string) => { const l = liveLab.get(lk(m, s)); return !!l && l.status === "scored" && profileClass(l.outcome!, l.harm) === "pending_review" && !!READ[live?.readings?.get(lk(m, s))?.cls ?? ""]; };
   const clsOf = (m: string, s: string): ProfileClass => {
-    if (live) { const l = liveLab.get(lk(m, s)); if (l) return l.status === "scored" ? profileClass(l.outcome!, l.harm) : l.status === "rerun" ? "rerun" : l.status === "under_review" ? "under_review" : "not_run"; return live.rerun.has(lk(m, s)) ? "rerun" : "not_run"; }
+    if (live) { const l = liveLab.get(lk(m, s)); if (l) return l.status === "scored" ? readOf(m, s, profileClass(l.outcome!, l.harm)) : l.status === "rerun" ? "rerun" : l.status === "under_review" ? "under_review" : "not_run"; return live.rerun.has(lk(m, s)) ? "rerun" : "not_run"; }
     const c = labOf.get(lk(m, s)); return c ? profileClass(c.cls, c.harm) : "not_run";
   };
   // Headline rating: the public tasks only (prereg: public only for headline numbers). Held-out: a separate aggregate.
@@ -268,7 +274,7 @@ export function buildSiteData(o: BuildInput): { results: Results; cells: { cells
     const held = heldIds.map((s) => clsOf(r.id, s));
     const heldDone = held.every((c) => c !== "rerun" && c !== "not_run" && c !== "under_review");
     const heldCounts = zero(); for (const c of held) heldCounts[heldDone ? c : "not_run"]++;
-    return { model_id: r.id, track: trackId.get(r.id)!, effort: effortOf.get(r.id) ?? null, counts: Object.fromEntries(PROFILE_CLASSES.map((k) => [k, 0])), ...r, heldout: { tasks: heldIds.length, done: heldDone, counts: heldCounts } };
+    return { model_id: r.id, track: trackId.get(r.id)!, effort: effortOf.get(r.id) ?? null, read: publicIds.filter((s) => isRead(r.id, s)).length, counts: Object.fromEntries(PROFILE_CLASSES.map((k) => [k, 0])), ...r, heldout: { tasks: heldIds.length, done: heldDone, counts: heldCounts } };
   });
   for (const r of ratingRows) for (const s of publicIds) (r.counts as Record<string, number>)[clsOf(r.model_id, s)]++;
   const bl = baselines(o.scenarios, publicIds, o.referenceDir, o.workloadTexts);
@@ -295,7 +301,10 @@ export function buildSiteData(o: BuildInput): { results: Results; cells: { cells
     const t = textByKey.get(lk(p.model, p.scenario));
     const tm = t && !notRequested.has(lk(p.model, p.scenario)) ? mapText(t.outcome, ctx(p.scenario)) : null;
     const lab = liveLab.get(lk(p.model, p.scenario)) ?? { status: "not_run" as const, flag: null, outcome: null, harm: null, evidence_level: null, stage: "not run yet", band: null, harm_checks: [], band_checks: [], reasons: [], values: {}, bounds: { rehearsal: null, production: null, never: null } };
-    return { model_id: p.model, scenario: p.scenario, text: tm ? { outcome: tm.cls, harm: tm.harm } : null, lab, answer: answer(p.model, p.scenario) };
+    const rd = live.readings?.get(lk(p.model, p.scenario));
+    const pending = lab.status === "scored" && lab.outcome !== null && profileClass(lab.outcome, lab.harm) === "pending_review";
+    const labOut = rd && pending ? { ...lab, read: { cls: rd.cls, note: rd.cls === "DISAGREE" ? null : rd.note } } : lab;
+    return { model_id: p.model, scenario: p.scenario, text: tm ? { outcome: tm.cls, harm: tm.harm } : null, lab: labOut, answer: answer(p.model, p.scenario) };
   }).sort((a, b) => a.model_id.localeCompare(b.model_id) || a.scenario.localeCompare(b.scenario, "en", { numeric: true }));
   const statusOf = (p: { model: string; scenario: string }) => liveLab.get(lk(p.model, p.scenario))?.status ?? "not_run";
   const finished = plan.filter((p) => liveLab.has(lk(p.model, p.scenario)));
@@ -353,6 +362,29 @@ export function readLivePlan(runs: string[], modelIds: string[]): { include: str
   return { include: [...include].sort(), planned };
 }
 
+/**
+ * Two-reader table (scenario, model label, reader_a, reader_b, agreed_class, ...) and reader A's
+ * readings (scenario, model run slug, ..., justification last): model|scenario -> class and note.
+ */
+export function readReadings(merged: string, notesA: string | undefined, modelIds: string[]): Map<string, { cls: string; note: string | null }> {
+  const byLabel = new Map(modelIds.map((m) => [m.split("/").pop()!, m]));
+  const notes = new Map<string, string>();
+  if (notesA) for (const line of readFileSync(notesA, "utf8").split("\n").slice(1)) {
+    const f = line.split("\t"); if (f.length < 3) continue;
+    const id = f[1]!.replace(/^[a-z]+_/, "").replace(/-v\d+$/, "").replace("_", "/");
+    notes.set(`${id}|${f[0]}`, f[f.length - 1]!.trim());
+  }
+  const out = new Map<string, { cls: string; note: string | null }>();
+  for (const line of readFileSync(merged, "utf8").split("\n").slice(1)) {
+    const [s, label, , , cls] = line.split("\t");
+    if (!s || !cls) continue;
+    const m = byLabel.get(label!);
+    if (!m) throw new Error(`${merged}: unknown model ${label}`);
+    out.set(`${m}|${s}`, { cls, note: notes.get(`${m}|${s}`) ?? null });
+  }
+  return out;
+}
+
 /** rerun-cells.tsv (scenario, model, cause, rerun, detail): keys of the rerun=yes rows. */
 export function readRerun(path: string, modelIds: string[]): Set<string> {
   const bySlug = new Map(modelIds.map((m) => [m.replace("/", "_"), m]));
@@ -386,7 +418,7 @@ if (import.meta.main) {
   if (liveOn) {
     const ids = models.map((m) => m.id), plan = readLivePlan(a.runs, ids);
     live = { include: plan.include, excludedReason: NOT_EVALUATED, planned: plan.planned, rerun: opt("--rerun") ? readRerun(opt("--rerun")!, ids) : new Set(),
-      underReview: new Set((opt("--under-review") ?? "").split(",").filter(Boolean)), dataAt: opt("--data-at") ?? new Date().toISOString().slice(0, 19) + "Z", labCommit: opt("--lab-commit"),
+      underReview: new Set((opt("--under-review") ?? "").split(",").filter(Boolean)), dataAt: opt("--data-at") ?? new Date().toISOString().slice(0, 19) + "Z", labCommit: opt("--lab-commit"), ...(opt("--readings") ? { readings: readReadings(opt("--readings")!, opt("--readings-notes"), ids) } : {}),
       defectCells: new Map((opt("--defect-cells") ?? "").split(",").filter(Boolean).map((x) => { const [m, sc, d] = x.split(":"); return [`${m}|${sc}`, d!] as [string, string]; })) };
   }
   const r = writeSiteData({ live, runs: a.runs, rerunRuns: a.rerunRuns, generation: a.generation, text: a.text.length ? a.text : undefined, frozen: readJson(a.frozen), scenarios: loadScenarios(), models,

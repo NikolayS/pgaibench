@@ -63,3 +63,7 @@ test('method amendment, D21 scenario note and the row-estimate limit are on the 
 test('method amendment for the row count comparison fix', () => {
   expect(text(site.get('method/index.html')!)).toContain('a success check on a row count now compares like with like');
 });
+
+test('method amendment for the two-reader classes', () => {
+  expect(text(site.get('method/index.html')!)).toContain('read by two independent readers who did not see each other');
+});
