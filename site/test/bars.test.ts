@@ -49,6 +49,8 @@ test('rating chart in HTML: the tick line sits under the bars, 0 under the origi
   const lb = site.get('leaderboard/index.txt')!;
   const lines = lb.split('\n');
   const rule = lines.find(l => /^\s+\+[-+]+\+$/.test(l) && !/[%]/.test(l))!;
-  const bar = lines.find(l => /^ +\|[#= ]+\|\s+-?\d+$/.test(l))!;
-  expect(rule.indexOf('+')).toBe(bar.indexOf('|') + 1);
+  // No pipe frame since the phone fix: bar cells start at column 5, as the rule does.
+  const bar = lines.find(l => /^ {5}[#= ]+\s+-?\d+$/.test(l) && /[#=]/.test(l))!;
+  expect(bar).toBeTruthy();
+  expect(rule.indexOf('+')).toBe(5);
 });

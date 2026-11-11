@@ -31,7 +31,7 @@
   --lh: 1.25rem;
   --bw: 2px;
   --bg: #fbfbf8; --ink: #141414; --muted: #5f5f5a; --line: #141414; --soft: #eeeee9;
-  --accent: #1d43a6;
+  --accent: #1d43a6; --bar: var(--ink);
   color-scheme: light dark;
   font-family: var(--mono);
   font-size: 16px;
@@ -42,12 +42,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
-    --accent: #93acff;
+    --accent: #93acff; --bar: #93acff;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b0b0c; --ink: #e6e6e1; --muted: #a3a39d; --line: #e6e6e1; --soft: #18181a;
-  --accent: #93acff; color-scheme: dark;
+  --accent: #93acff; --bar: #93acff; color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }
 .theme { white-space: nowrap; }
@@ -248,3 +248,10 @@ ol.aaa-list { padding-left: 4ch; }
   .header td:last-child { text-align: left; }
 }
 .ni { white-space: nowrap; }
+
+/* Rating chart: bar fill (accent in dark theme), thin zero line, grouped rows. */
+.rating .bx { --c: var(--bar); }
+.rb { position: relative; }
+.rb::before { content: ""; position: absolute; top: 0; bottom: 0; left: var(--z); border-left: 2px solid var(--ink); }
+.rating .nrow { margin-bottom: calc(var(--lh) * 0.75); }
+.fb { border-left: 0; border-right: 0; }

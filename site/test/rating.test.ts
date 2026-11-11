@@ -9,7 +9,7 @@ const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const site = buildSite({ published: true, base: '/', resultsPath: fx('results/results.json'), frozenPath: fx('frozen.example.json') });
 const lb = site.get('leaderboard/index.html')!;
 const text = (s: string) => unesc(s.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ');
-const pre = unesc(barsToText(/<pre class="rating-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!));
+const pre = unesc(barsToText(/<pre class="rating-chart" aria-hidden="true">([\s\S]*?)<\/pre>/.exec(lb)![1]!).replace(/<[^>]*>/g, ''));
 
 test('rating: one list on top of the results page, above the profile, with its notes', () => {
   expect(lb.indexOf('id="rating"')).toBeGreaterThan(0);
@@ -25,7 +25,7 @@ test('rows are configurations: place, model, path tag, effort; second row with p
   const a = rows.findIndex(l => /^ ?(\d+|--)  model-a /.test(l));
   expect(a).toBeGreaterThanOrEqual(0);
   expect(rows[a]).toMatch(/model-a +\S+ +medium/);
-  expect(rows[a + 1]).toMatch(/^ +\|[#= ]+\| +-?\d+$/);
+  expect(rows[a + 1]).toMatch(/^ {5}[#= ]+ +-?\d+$/);
   expect(rows[a + 2]).toMatch(/\d+ of 6 with a result; \d+ pending review \(count 0 until read\); harmful \d+/);
 });
 
