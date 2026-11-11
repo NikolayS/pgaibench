@@ -195,6 +195,8 @@ describe("site-data, provisional build of a lab run in progress", () => {
     expect(c.outcome).toBe("ineffective");
     expect(r.provisional!.rerun_pending).toBe(0);
     expect(r.cells.cells.filter((x) => x.scored_by === "lab" && x.model_id === "fake/model-b" && x.scenario === "L2")).toHaveLength(1);
+    expect(r.provisional!.rerun_done).toBe(1);
+    expect(r.provisional!.rerun_changed).toBe(1);
   });
 
   test("a rerun of another sample does not remove the recorded sample-1 cell", () => {

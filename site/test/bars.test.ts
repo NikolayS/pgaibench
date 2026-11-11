@@ -29,6 +29,7 @@ test('rating axis: -50..100 when nothing is below -50, else -100..100; linear', 
   expect(ratingAxis([-60, 10])).toMatchObject({ lo: -100, hi: 100 });
   const a = ratingAxis([-50, 79]);
   expect(a.cells * a.step).toBe(150);
+  expect(100 / a.step).toBeGreaterThanOrEqual(40);
 });
 
 test('the 0 tick is in the bar origin column and every row has the same number of cells', () => {
@@ -48,6 +49,6 @@ test('rating chart in HTML: the tick line sits under the bars, 0 under the origi
   const lb = site.get('leaderboard/index.txt')!;
   const lines = lb.split('\n');
   const rule = lines.find(l => /^\s+\+[-+]+\+$/.test(l) && !/[%]/.test(l))!;
-  const bar = lines.find(l => / \|[#= ]+\|\s+-?\d+$/.test(l))!;
+  const bar = lines.find(l => /^ +\|[#= ]+\|\s+-?\d+$/.test(l))!;
   expect(rule.indexOf('+')).toBe(bar.indexOf('|') + 1);
 });

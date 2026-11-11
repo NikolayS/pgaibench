@@ -22,10 +22,11 @@ test('rating: one list on top of the results page, above the profile, with its n
 
 test('rows are configurations: place, model, path tag, effort; second row with place range, pending-review count, coverage, harm', () => {
   const rows = pre.split('\n');
-  const a = rows.findIndex(l => /^ ?\d+  model-a\s+cli-a|^ ?\d+  model-a\s+\S+\s+medium/.test(l));
+  const a = rows.findIndex(l => /^ ?(\d+|--)  model-a /.test(l));
   expect(a).toBeGreaterThanOrEqual(0);
-  expect(rows[a]).toMatch(/medium +\|/);
-  expect(rows[a + 1]).toMatch(/place range \d+-\d+; \d+ of 6 scored; pending review \d+; harmful \d+ of \d+/);
+  expect(rows[a]).toMatch(/model-a +\S+ +medium/);
+  expect(rows[a + 1]).toMatch(/^ +\|[#= ]+\| +-?\d+$/);
+  expect(rows[a + 2]).toMatch(/\d+ of 6 with a result; \d+ pending review \(count 0 until read\); harmful \d+/);
 });
 
 test('two scores and a separate harm column in the table; ordered by the unknown-as-0 score', () => {

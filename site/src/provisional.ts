@@ -22,7 +22,7 @@ export const provisionalSchema = z.object({
   data_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/),
   harness_commit: z.string().regex(/^[0-9a-f]{7,40}$/), lab_commit: z.string().regex(/^[0-9a-f]{7,40}(, reruns [0-9a-f]{7,40})?$/).optional(),
   lab_planned: z.number().int().positive(), lab_finished: z.number().int().nonnegative(), lab_counted: z.number().int().nonnegative(),
-  rerun_pending: z.number().int().nonnegative(), not_run: z.number().int().nonnegative(), not_requested: z.array(z.object({ model_id: z.string(), scenario: z.string() })).default([]),
+  rerun_pending: z.number().int().nonnegative(), rerun_done: z.number().int().nonnegative().optional(), rerun_changed: z.number().int().nonnegative().optional(), not_run: z.number().int().nonnegative(), not_requested: z.array(z.object({ model_id: z.string(), scenario: z.string() })).default([]),
   under_review: z.array(z.object({ id: z.string().regex(/^[A-Z]\d+$/), cells_finished: z.number().int().nonnegative() }).strict()),
   cells: z.array(z.object({
     model_id: z.string().min(1), scenario: z.string().regex(/^[A-Z]\d+$/),
@@ -105,7 +105,7 @@ export function knownIssues(c: Ctx, p: Provisional, scenarios: PublicScenario[])
   void scenarios;
   return `<section aria-labelledby="known-issues"><h2 id="known-issues">Known issues in this provisional data</h2><ul>
 <li>The lab run is in progress: ${progressLine(p)}. Lab denominators are the cells finished and scored so far, not the planned cells.</li>
-<li>Reruns pending: ${p.rerun_pending} lab cells. ${RECORDED_NOTE} They count with their recorded result and carry a * on the grid, in the profile and on the cell page. A cell that was rerun shows the rerun result.</li>
+${p.rerun_done ? `<li>Rerun on the fixed harness: ${p.rerun_done} lab cells that a harness defect had decided; ${p.rerun_changed ?? 0} of them changed class. Each shows the rerun result.</li>` : ''}${p.rerun_pending ? `<li>Reruns pending: ${p.rerun_pending} lab cells. ${RECORDED_NOTE} They count with their recorded result and carry a * on the grid and on the cell page.</li>` : ''}
 ${ur}${na}${nr}<li>One sample per cell. A single run of a model on a scenario can differ from the next run.</li>
 <li>The text scores have many "pending review" answers: the patterns match neither the safe nor the risky form. The lab result and a later human reading resolve them.</li>
 <li>Nobody has reviewed these results yet. Read the <a href="${link(c, 'limits/')}">list of limits</a> before you use any number here.</li>

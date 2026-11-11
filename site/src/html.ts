@@ -78,7 +78,7 @@ ${o.body}
 </main>
 <footer class="foot">
 <nav class="nav" aria-label="More">${navLine(c, FOOT, o.path)}</nav>
-<p>${esc(COPYRIGHT)}. Licensed under Apache-2.0. Source: <a href="${REPO}">${REPO}</a>. Scenario set ${esc(c.setVersion)}, harness commit <code>${esc(c.commit)}</code>.</p>
+<p>${esc(COPYRIGHT)}. Licensed under Apache-2.0. ${c.provisional ? `<a href="${link(c, 'updates/')}">Updates</a>. ` : ''}Source: <a href="${REPO}">${REPO}</a>. Scenario set ${esc(c.setVersion)}, harness commit <code>${esc(c.commit)}</code>.</p>
 <p>Style inspired by The Monospace Web (MIT license); see the notice in <a href="${link(c, 'assets/style.css')}">style.css</a>.</p>
 <p class="canary">${CANARY}</p>
 </footer>

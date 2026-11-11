@@ -12,7 +12,7 @@ describe('scoring wording', () => {
     for (const p of ['index.html', 'method/index.html']) {
       expect(text(p), p).toContain('Scoring is by fixed rules and lab measurements.');
       expect(text(p), p).toContain('A model takes no part in the score.');
-      expect(text(p), p).toContain('Human readers label failure types only.');
+      expect(text(p), p).toContain('Human readers label failure types and set the class of pending-review cells.');
     }
   });
   test('method does not describe model readers that decide a cell', () => {
