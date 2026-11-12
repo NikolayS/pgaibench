@@ -12,6 +12,7 @@ import type { Frozen, OutOfSet } from './inputs';
 import { CELL_FIELDS, cellSlug, harmOf, type Cell } from './cells';
 import { fullPrompt } from './prompt';
 import { profileChart, profiles } from './profile';
+import { fiveRunObservation, notDoneBlock } from './notdone';
 import { ratingChart, withPooledRating, BASELINE_NOTE } from './rating';
 import { safetyDetails, safetyRows, safetyTop } from './safety';
 import type { Pooled } from './pooled';
@@ -46,7 +47,7 @@ export function learned(file: string): string {
 }
 /** The findings text describes the three-run table of v0.1.0: next to a table with more runs it moves to that table's page. */
 const proseFor = (c: Ctx, d: SiteData | undefined, file: string) => (RN(d) > RECORD_RUNS
-  ? `<div class="learned" role="region" aria-labelledby="what-we-learned"><h2 id="what-we-learned">What we learned</h2><p>Our findings so far describe the three-run table of v0.1.0. They are on <a href="${link(c, 'releases/v0.1.0/')}">its page</a>. Findings for the five-run table come with release v0.1.1.</p></div>`
+  ? `<div class="learned" role="region" aria-labelledby="what-we-learned" id="five-run-summary"><h2 id="what-we-learned">What we learned</h2><p><b>Five runs, provisional until v0.1.1 is tagged.</b> ${esc(fiveRunObservation(d!.pooled as never))}</p><p>Our findings so far describe the three-run table of v0.1.0. They are on <a href="${link(c, 'releases/v0.1.0/')}">its page</a>. Findings for the five-run table come with release v0.1.1.</p></div>`
   : learned(file));
 /** The ranking of record of v0.1.0 (three runs), one click from the main table when that averages more runs. */
 function recordPage(c: Ctx, r: Pooled): string {
@@ -246,7 +247,7 @@ function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: Si
     const split = ratingChart(pooled ? withPooledRating(res, pooled) : res, { provisional: true, table: true, id: 'rating', split: true });
     const pp = profiles(res, d?.cells ?? null, p);
     const body = `${TOP_LINES(c, true, !!pooled, RN(d))}${safetyTop(c, res, sr, { home: false, effort: rankNotes(d), extra: quantLine(d), prose: pooled ? proseFor(c, d, 'what-we-learned.md') : '', pooled })}${split ? split.top : ''}${profileChart(pp, { id: 'profile', table: false, lede: PROFILE_LEDE(p) })}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'))}${issues}
-<section class="block" aria-labelledby="notes-h"><h2 id="notes-h">Notes and details</h2>${safetyDetails(res, sr, pooled)}${rulesAfter()}${pooled && d?.registered ? registeredTable(pooled, d.registered) : ''}${d?.models && pooled ? modelsTable(d.models, pooled.rows.map(r => r.id), RN(d)) : ''}${split ? split.details : ''}${profileChart(pp, { id: 'profile', table: 'only', lede: '' })}</section>
+<section class="block" aria-labelledby="notes-h"><h2 id="notes-h">Notes and details</h2>${safetyDetails(res, sr, pooled)}${pooled && RN(d) > RECORD_RUNS ? notDoneBlock(pooled as never) : ''}${rulesAfter()}${pooled && d?.registered ? registeredTable(pooled, d.registered) : ''}${d?.models && pooled ? modelsTable(d.models, pooled.rows.map(r => r.id), RN(d)) : ''}${split ? split.details : ''}${profileChart(pp, { id: 'profile', table: 'only', lede: '' })}</section>
 <section class="block" aria-labelledby="about-data"><h2 id="about-data">About this data</h2>${pv}${raw}</section>
 <section class="block" aria-labelledby="prereg-analyses"><h2 id="prereg-analyses">Preregistered analyses</h2><p>Counts with Wilson intervals per track, paired tests, held-out counts and the text-against-lab table, as fixed in the ${PREREG()} before the scored run.</p>${intro}${res.tracks.map((t, i) => trackSection(c, res, t, i, p)).join('')}
 <section aria-labelledby="excluded"><h2 id="excluded">Models without a rate</h2><p>Models with fewer than all cells, or not evaluated. They get no rate.</p>${excludedList(res)}</section>

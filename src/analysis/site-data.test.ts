@@ -504,6 +504,10 @@ describe("site-data, later samples and the pooled table", () => {
     expect(p.perRun["fake/model-a (via cli)"].classes).toHaveLength(2);
     expect(p.perRun["fake/model-a (via cli)"].dangerous.filter((x: any) => x.run === 1)).toEqual(p.perRun["fake/model-a"].dangerous.filter((x: any) => x.run === 2).map((x: any) => ({ ...x, run: 1 })));
     expect(p.effort).toHaveLength(0);
+    // an unranked access-path arm ("@...") also lists its per-run classes; effort arms do not
+    const q = pooledSiteData([{ id: "", builds: [one, two] }, { id: "@cli", builds: [two] }, { id: " (effort high)", builds: [two] }]) as any;
+    expect(q.perRun["fake/model-a@cli"].classes).toHaveLength(1);
+    expect(q.perRun["fake/model-a (effort high)"]).toBeUndefined();
   });
 });
 

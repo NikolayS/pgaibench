@@ -86,3 +86,12 @@ test('ranked (agy) row: its note is under the results table', async () => {
   p.perRun[r.id] = p.perRun[p.rows[0].id];
   expect(build(p, pooledJson).get('leaderboard/index.html')!).toContain(AGY_NOTE.slice(0, 60));
 });
+
+test('five-run summary under the plot: observation first, then the pointer; details block present', async () => {
+  const lb = site5.get('leaderboard/index.html')!;
+  const at = lb.indexOf('id="five-run-summary"');
+  expect(at).toBeGreaterThan(lb.indexOf('<svg'));
+  expect(lb.slice(at, at + 600)).toContain('On these 19 tasks, over five runs');
+  expect(lb).toContain('id="why-not-done"');
+  expect(site3.get('leaderboard/index.html')!).not.toContain('id="five-run-summary"');
+});
