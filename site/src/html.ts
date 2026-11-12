@@ -110,7 +110,7 @@ ${cardTables(o.body)}${o.rankingFirst ? `
 </main>
 <footer class="foot">
 <nav class="nav" aria-label="More">${navLine(c, FOOT, o.path)}</nav>
-<p>${esc(COPYRIGHT)}. Licensed under Apache-2.0. ${c.provisional ? `<a href="${link(c, 'updates/')}">Updates</a>. ` : ''}${releaseLine(c.release)}. <a href="${CHANGELOG_URL}">Changelog</a>. Source and data: <a href="${REPO}">${REPO}</a> (Apache 2.0). Scenario set ${esc(c.setVersion)}, site build commit <code>${esc(c.commit)}</code>${c.provisional?.lab_commit ? `, lab harness commit <code>${esc(c.provisional.lab_commit)}</code>` : ''}.</p>
+<p>${esc(COPYRIGHT)}. Licensed under Apache-2.0. ${c.provisional ? `Last updated ${esc(c.provisional.data_at)} (UTC). <a href="${link(c, 'updates/')}">Updates</a>. ` : ''}${releaseLine(c.release)}. <a href="${CHANGELOG_URL}">Changelog</a>. Source and data: <a href="${REPO}">${REPO}</a> (Apache 2.0). Scenario set ${esc(c.setVersion)}, site build commit <code>${esc(c.commit)}</code>${c.provisional?.lab_commit ? `, lab harness commit <code>${esc(c.provisional.lab_commit)}</code>` : ''}.</p>
 <p>Style inspired by The Monospace Web (MIT license); see the notice in <a href="${link(c, 'assets/style.css')}">style.css</a>.</p>
 <p class="canary">${CANARY}</p>
 </footer>

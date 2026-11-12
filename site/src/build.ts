@@ -12,7 +12,8 @@ import { cellSlug, crossCheck, parseCells, type Cell } from './cells';
 import { assertNoHeldOutSite, heldOutNames, isHeldOut } from './heldout';
 import { cellPage, cellPath, gridPage, parseProvisional, type Provisional } from './provisional';
 import { comparePages, safetyRows } from './safety';
-import { parsePooled } from './pooled';
+import { parsePooled, runsOf } from './pooled';
+import { RECORD_RUNS } from './statements';
 import { parseModels } from './models';
 import { setEfforts } from './svg';
 import type { ReleaseState } from './release';
@@ -67,6 +68,8 @@ export type BuildOptions = {
   provisionalJson?: unknown;
   /** Three-run averages (pooled.json from site-data --pooled); provisional builds only. */
   pooledJson?: unknown;
+  /** The three-run table of v0.1.0 (pooled.json as published with the tag); default: site/content/record-v0.1.0-pooled.json. */
+  recordPooledJson?: unknown;
   /** The same averages under the registered pending-review bullet (rendered as a table only, never published as data). */
   registeredJson?: unknown;
   /** Models under test (data/models.json); provisional builds only. */
@@ -92,6 +95,8 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const pooled = o.pooledJson === undefined ? null : parsePooled(o.pooledJson);
   if (pooled && !prov) throw new Error('pooled data needs a provisional build');
   const registered = pooled && o.registeredJson !== undefined ? parsePooled(o.registeredJson) : null;
+  const recordFile = join(import.meta.dir, '..', 'content', 'record-v0.1.0-pooled.json');
+  const record = pooled && runsOf(pooled) > RECORD_RUNS ? parsePooled(o.recordPooledJson ?? JSON.parse(readFileSync(recordFile, 'utf8'))) : null;
   if (prov && (o.published || o.pending || o.resultsJson === undefined || o.cellsJson === undefined)) throw new Error('a provisional build needs results and cell data and is neither PUBLISHED nor PENDING');
   if (prov) {
     results = parseResults(o.resultsJson);
@@ -131,7 +136,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
   setEfforts(models ?? []);
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, models, snapshots: o.snapshots ?? [] });
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));

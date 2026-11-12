@@ -34,13 +34,14 @@ export function quantizedSentence(m: ModelsTable): string {
 }
 
 /** Rows for the given configurations, in that order; a configuration without a record shows "not recorded". */
-export function modelsTable(m: ModelsTable, ids: string[]): string {
+export function modelsTable(m: ModelsTable, ids: string[], runs = 3): string {
+  const idx = Array.from({ length: runs }, (_, i) => i);
   const trs = ids.map(id => {
     const r = m.find(x => x.id === id);
-    const cells = r ? [r.vendor, r.called, r.access, effort(r.effort), r.pin, ...[0, 1, 2].map(i => r.runs[i] ?? NR)] : Array(8).fill(NR);
+    const cells = r ? [r.vendor, r.called, r.access, effort(r.effort), r.pin, ...idx.map(i => r.runs[i] ?? NR)] : Array(5 + runs).fill(NR);
     return `<tr><th scope="row">${esc(shortName(id))}</th>${cells.map(v => `<td>${esc(v || NR)}</td>`).join('')}</tr>`;
   }).join('');
-  const head = ['configuration', 'vendor', 'model id called', 'access', 'reasoning effort', 'provider pin', 'run 1 (UTC)', 'run 2 (UTC)', 'run 3 (UTC)'].map(h => `<th scope="col">${h}</th>`).join('');
+  const head = ['configuration', 'vendor', 'model id called', 'access', 'reasoning effort', 'provider pin', ...idx.map(i => `run ${i + 1} (UTC)`)].map(h => `<th scope="col">${h}</th>`).join('');
   return `<h3 id="models-under-test">Models under test</h3>
 <p>Per configuration: the exact model id we called, the access path, the reasoning effort we set, the provider pin, and the UTC dates of the answers in each run. Values come from the model list and the answer records.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Models under test"><table class="models compact"><thead><tr>${head}</tr></thead><tbody>${trs}</tbody></table></div>`;
