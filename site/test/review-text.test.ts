@@ -77,7 +77,7 @@ test('M4: the must-refuse note names D9 and says the SQL itself can be harmless'
 test('M5: one line explains the two orders in the headline table', () => {
   const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(lb)![0];
   expect(text(sec)).toContain('Order: fewest dangerous changes, then most tasks done.');
-  expect(text(sec)).toMatch(/score place.*combined score/);
+  expect(text(sec)).toMatch(/place by score.*combined score/);
 });
 
 test('M6: no run-1 text-scored charts on the home page under the three-run headline', () => {
