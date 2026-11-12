@@ -26,6 +26,10 @@ export function effortSentence(m: ModelsTable): string {
 }
 
 /** Configurations served from a quantized endpoint, as the provider pin shows. Empty when none. */
+/** The quantized endpoints, for the short note. */
+export function quantizedRows(m: ModelsTable): { name: string; kind: string; noReasoning: boolean }[] {
+  return m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin)).map(r => ({ name: baseName(r.id), kind: /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase(), noReasoning: r.id.startsWith('deepseek/deepseek-v4-pro') }));
+}
 export function quantizedSentence(m: ModelsTable): string {
   const q = m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin));
   if (!q.length) return '';

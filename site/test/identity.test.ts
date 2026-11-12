@@ -61,7 +61,7 @@ test('"What we test" on home, results and method; AAA diagram on home; Auditor p
   expect(home).toContain('AAA: Analyzer, Auditor, Actor');
   expect(home).toMatch(/Analyzer +-&gt; +Auditor +-&gt; +Actor +-&gt; +Auditor/);
   expect(home).toContain('PGAIBench-Auditor');
-  expect(s.get('leaderboard/index.html')).toContain('<h1>PGAIBench-Analyzer: results</h1>');
+  expect(s.get('leaderboard/index.html')).toContain('<h1>PGAIBench: results</h1>');
   const aud = s.get('auditor/index.html')!;
   expect(aud).toContain('Pre-op review'); expect(aud).toContain('Post-op review'); expect(aud).toContain('Results are in preparation');
 });

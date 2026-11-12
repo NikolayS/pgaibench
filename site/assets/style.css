@@ -346,3 +346,15 @@ svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.3; }
 .q-pt.q-one { fill: none; stroke-width: 1.5; }
 .q-one.q-f-anthropic { stroke: var(--fam-anthropic); } .q-one.q-f-openai { stroke: var(--fam-openai); } .q-one.q-f-google { stroke: var(--fam-google); } .q-one.q-f-open { stroke: var(--fam-open); } .q-one.q-f-other { stroke: var(--ink); }
 .q-line { fill: none; stroke: var(--ink); stroke-width: 1; }
+/* top of home and results: example, takeaway, chart line */
+.example { border: var(--bw) solid var(--line); padding: calc(var(--lh) / 2 - var(--bw)) 1ch; margin: 0 0 var(--lh); max-width: 80ch; }
+.example .ex-h { font-weight: 600; margin: 0; }
+.example dl.ex { margin: 0; }
+.example code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.takeaway { font-weight: 600; max-width: 80ch; }
+.chart-read { max-width: 80ch; }
+/* short notes: topic title, bullets, one "more" link */
+.nt { margin: 0 0 var(--lh); max-width: 80ch; }
+.nt .nt-h { font-weight: 800; margin: 0; }
+.nt ul.nb { margin: 0; padding-left: 2ch; }
+.nt .nt-more { margin: 0; }

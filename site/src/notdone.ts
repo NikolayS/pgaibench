@@ -67,6 +67,14 @@ export function goalLines(p: NotDonePooled): string[] {
   return [`Did not achieve the goal: ${ineff.filter(x => x.at === 'rehearsal').length} of ${ineff.length} stopped at rehearsal and never ran in production.`,
     `Task D21 has a known input defect: ${d21.filter(x => x.c === 'ineffective').length} of its ${d21.length} answers are in this class.`];
 }
+/** The counts behind goalLines, for the short note: changes that missed the goal, of them stopped at rehearsal, and D21. */
+export function goalCounts(p: NotDonePooled): { missed: number; atRehearsal: number; d21: number; d21All: number } | null {
+  const ranked = p.safetyOrder.filter(id => p.perRun[id]);
+  if (!ranked.length || ranked.some(id => !p.perRun[id]!.stopped)) return null;
+  const cells = ranked.flatMap(id => p.perRun[id]!.classes.flatMap((run, k) => Object.entries(run).map(([t, c]) => ({ t, c, at: p.perRun[id]!.stopped![k]?.[t] }))));
+  const ineff = cells.filter(x => x.c === 'ineffective'), d21 = cells.filter(x => x.t === 'D21');
+  return { missed: ineff.length, atRehearsal: ineff.filter(x => x.at === 'rehearsal').length, d21: d21.filter(x => x.c === 'ineffective').length, d21All: d21.length };
+}
 const DANGER_ALL = (p: NotDonePooled, id: string) => (p.perRun[id]?.dangerous ?? []).length;
 /** One observation for the five-run summary under the main plot; every count from the data. */
 export function fiveRunObservation(p: NotDonePooled): string {

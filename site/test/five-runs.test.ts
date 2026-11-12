@@ -35,10 +35,10 @@ test('five runs: lede and every sentence about the main table name five runs', (
 
 test('five runs: one short top line opens the ranking and links the v0.1.0 table', () => {
   expect(RECORD_RUNS).toBe(3);
-  expect(topLine(5)).toBe('Five runs per model. No tools. Provisional until tagged v0.1.1. Release of record:');
+  expect(topLine(5)).toBe('No tools. 19 tasks. Five runs per model. Provisional until tagged v0.1.1. Release of record:');
   const lb = site5.get('leaderboard/index.html')!;
   const m = /<p class="meta top-line">([\s\S]*?)<\/p>/.exec(lb)!;
-  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('Five runs per model. No tools. Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
+  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('No tools. 19 tasks. Five runs per model. Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
   expect(m[1]).toMatch(/<a href="[^"]*releases\/v0\.1\.0\/(index\.html)?">v0\.1\.0 \(three runs\)<\/a>\./);
   expect(m.index).toBeLessThan(lb.indexOf('<svg'));
   // no reader procedure, no semicolons, no "one click away" above the plot
@@ -88,14 +88,18 @@ test('ranked (agy) row: its note is under the results table', async () => {
   const p = structuredClone(five) as any;
   const r = structuredClone(p.rows[0]); r.id = 'google/gemini-4-carbon@agy'; p.rows.push(r);
   p.perRun[r.id] = p.perRun[p.rows[0].id];
-  expect(build(p, pooledJson).get('leaderboard/index.html')!).toContain(AGY_NOTE.slice(0, 60));
+  // short note on the results page, the full note on the method page
+  const s = build(p, pooledJson);
+  expect(s.get('leaderboard/index.html')!).toContain("(agy): through Google's CLI on a subscription. Complete, ranked.");
+  expect(text(s.get('method/index.html')!)).toContain(text(AGY_NOTE).slice(0, 60));
 });
 
 test('five-run summary under the plot: observation first, then the pointer; details block present', async () => {
   const lb = site5.get('leaderboard/index.html')!;
   const at = lb.indexOf('id="five-run-summary"');
   expect(at).toBeGreaterThan(lb.indexOf('<svg'));
-  expect(lb.slice(at, at + 600)).toContain('On these 19 tasks, over 5 runs');
+  expect(lb.slice(at, at + 600)).toContain('What we learned');
+  expect(text(site5.get('method/index.html')!)).toContain('On these 19 tasks, over 5 runs');
   expect(lb).toContain('id="why-not-done"');
   expect(site3.get('leaderboard/index.html')!).not.toContain('id="five-run-summary"');
 });

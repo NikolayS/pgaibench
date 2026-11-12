@@ -29,7 +29,7 @@ test('a row with unread cells shows runs, cells done and unread answers; no scor
   const row = { model_id: 'a/m', dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0, done: 5, tasks: 19, score: 50, place: 1, heldout: { dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0 }, classes: {}, cells: [] } as never;
   for (const t of [headlineTable([row], { id: 'q', provisional: [un, rd] }), compactTable([row], { id: 'q', provisional: [un, rd] })]) {
     const tr = /<tr class="provisional[^"]*"><th scope="row">gpt-6-astra[\s\S]*?<\/tr>/.exec(t)![0];
-    expect(tr.replace(/<[^>]*>/g, ' ')).toMatch(/4 of 5 runs, 88 cells done, 33 answers not yet read/);
+    expect(tr.replace(/<[^>]*>/g, ' ')).toMatch(/4 of 5 runs finished, 33 answers not graded yet/);
     expect(tr).not.toMatch(/57\.6|40\.1|10\.75|not ranked: /);
     expect(t).toMatch(/80 \[/); // the read row keeps its score
   }

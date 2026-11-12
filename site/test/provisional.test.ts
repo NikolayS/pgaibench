@@ -167,11 +167,12 @@ test('method amendment: safety is the main metric', () => {
 
 // Ranking first: the main figure (the two-axis plot) comes before any long text.
 const bodyText = (doc: string, upto: number) => doc.slice(doc.indexOf('<main'), upto).replace(/<pre[\s\S]*?<\/pre>/g, '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
-for (const path of ['leaderboard/index.html', 'index.html']) test(`ranking first on ${path}: the two-axis plot is the first figure, after at most 45 words, before What we test and the known issues`, () => {
+for (const path of ['leaderboard/index.html', 'index.html']) test(`ranking first on ${path}: the two-axis plot is the first figure, after at most 220 words, before What we test and the known issues`, () => {
   const doc = site.get(path)!;
   const fig = doc.indexOf('<figure');
   expect(doc.slice(fig, fig + 200)).toMatch(/id="safety-(quadrant|home)"/);
-  expect(bodyText(doc, fig).split(' ').length).toBeLessThanOrEqual(45);
+  // newcomer top (2026-11-12): two plain lines, the scope line, one example, one takeaway and how to read the chart
+  expect(bodyText(doc, fig).split(' ').length).toBeLessThanOrEqual(220);
   expect(doc.slice(doc.indexOf('<main'), fig)).not.toContain('<table class="header"');
   expect(doc).toContain('<table class="header"');
   const what = doc.indexOf('>What we test<');

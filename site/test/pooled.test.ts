@@ -310,6 +310,8 @@ test('release: version agrees in package.json, site constant, CHANGELOG and page
 
 // ---------- owner requests 2026-11-11: no tools, effort in every label, fairness, header ----------
 const main = (doc: string) => /<main[\s\S]*?<\/main>/.exec(doc)![0];
+/** The collapsed "Details and caveats" block under the first table: one click away. */
+const cav = (doc: string) => plain(/<details class="caveats">[\s\S]*?<\/details>/.exec(doc)?.[0] ?? '');
 const vis = (doc: string) => plain(doc.replace(/<details[\s\S]*?<\/details>/g, ' '));
 const ovl = (f: string) => { const a = join(import.meta.dir, '..', '..', 'public-overlay', f); return existsSync(a) ? a : join(import.meta.dir, '..', '..', f); }; // private tree: overlay; public tree: root
 const readme = readFileSync(ovl('README.md'), 'utf8').replace(/\s+/g, ' ');
@@ -354,12 +356,12 @@ test('effort: every reader-facing label is model + effort; one naming function; 
   expect(text(eff)).toContain('model-b · medium');
   const { ROW_SENTENCE } = await import('../src/statements');
   expect(ROW_SENTENCE).toBe('Effort: each row is one model at one reasoning effort. Other effort levels can give other results, so we test them as separate rows.');
-  expect(vis(main(lb))).toContain(ROW_SENTENCE);
+  expect(cav(main(lb))).toContain(ROW_SENTENCE);
   const { EFFORT_ROUND_NOTE } = await import('../src/statements');
   expect(EFFORT_ROUND_NOTE).toBe('This round runs every model at two effort levels, medium and high. Rows for the second level appear as their runs finish. Lower and higher levels come later.');
-  expect(vis(main(lb))).toContain(EFFORT_ROUND_NOTE);
-  expect(vis(main(site.get('index.html')!))).toContain(EFFORT_ROUND_NOTE);
-  expect((vis(main(lb)).match(/Effort (&quot;|")default(&quot;|") means/g) ?? []).length).toBe(1);
+  expect(cav(main(lb))).toContain(EFFORT_ROUND_NOTE);
+  expect(cav(main(site.get('index.html')!))).toContain(EFFORT_ROUND_NOTE);
+  expect((cav(main(lb)).match(/Effort (&quot;|")default(&quot;|") means/g) ?? []).length).toBe(1);
   expect(text(site.get('compare/index.html')!)).toContain('model-a · default vs model-b · medium');
   expect(site.has('compare/model-a/model-b/index.html') || [...site.keys()].some(k => /^compare\/model-[ab]\/model-[ab]\/index.html$/.test(k))).toBe(true);
 });
@@ -376,8 +378,8 @@ test('fairness: generated from the models table; at the ranking, in known issues
   expect(fairnessSentence(REAL)).toBe(FAIR);
   const f = fairnessSentence(modelsJson);
   expect(f).toMatch(/This is not an equal comparison\./);
-  const m = vis(main(lb));
-  expect(m).toContain(f);
+  const m = plain(main(lb));
+  expect(cav(main(lb))).toContain(f);
   expect(m.indexOf(f)).toBeLessThan(m.indexOf('Why each configuration'));
   expect(text(/id="known-issues"[\s\S]*?<\/section>/.exec(lb)![0])).toContain(f);
   expect(text(site.get('limits/index.html')!)).toContain(f);
