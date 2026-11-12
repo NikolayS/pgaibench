@@ -17,14 +17,17 @@ const EFFORT = z.enum(["minimal", "low", "medium", "high", "xhigh", "max"]);
 /** Every call: enough for max-effort reasoning; finish_reason length is "truncated". */
 export const MAX_TOKENS = 32000;
 
-export const ACCESS = ["openrouter", "codex-cli", "claude-cli"] as const;
+export const ACCESS = ["openrouter", "codex-cli", "claude-cli", "agy-cli"] as const;
 export type Access = (typeof ACCESS)[number];
 /** The owner's rule: OpenAI and Anthropic models run on the subscriptions, never on a paid router. */
 export const SUBSCRIPTION_VENDOR = /^(openai|anthropic)\//i;
 /** L1: the vendor part of a model id, parsed: trimmed, lower case, OpenRouter's "~" alias mark removed. */
 export const vendorOf = (id: string) => id.trim().replace(/^~/, "").split("/")[0]!.toLowerCase();
+/** Google models on the Antigravity subscription (agy CLI) carry this id suffix, e.g. google/gemini-4-carbon@agy. */
+export const AGY_SUFFIX = "@agy";
 export function requiredAccess(id: string): Access {
   const v = vendorOf(id);
+  if (id.trim().endsWith(AGY_SUFFIX)) return "agy-cli";
   return v === "openai" ? "codex-cli" : v === "anthropic" ? "claude-cli" : "openrouter";
 }
 /** L1: ids that must never reach OpenRouter: subscription vendors, and

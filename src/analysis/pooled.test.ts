@@ -118,6 +118,19 @@ describe("pooledArms", () => {
     expect(e.rows[0]!.base).toBe("m");
     expect(e.rows[0]!.paired.diff).toBeCloseTo(50, 9);
   });
+  test("access-path arm: a model id that already ends with the arm id keeps it; no place, no pair", () => {
+    const t = pooledArms({ publicIds: PUB, heldIds: HELD, arms: [
+      { id: "", configs: [{ id: "m", samples: [half, half, half] }] },
+      { id: "@agy", configs: [{ id: "v/c@agy", samples: [good] }] },
+    ] });
+    expect(t.rows.map((r) => r.id)).toEqual(["m"]);
+    const e = t.effort.find((x) => x.arm === "@agy")!.rows[0]!;
+    expect(e.id).toBe("v/c@agy");
+    expect(e.samples).toBe(1);
+    expect(e.place).toBeNull();
+    expect(e.base).toBe("v/c");
+    expect(e.paired).toBeNull();
+  });
   test("paired difference: mean of (arm points minus base mean) over tasks, bootstrap interval; without missing", () => {
     const miss = { ...good } as Record<string, SampleCell>; delete miss.A4;
     const p = pairedDiff([miss], [half, good, half], PUB);

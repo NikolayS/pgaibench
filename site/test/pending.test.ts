@@ -48,7 +48,7 @@ test('pending: results data is refused', () => {
 test('pending: the home header shows the frozen public set, the model list and the tracks, not preview zeros', () => {
   const home = text(site.get('index.html')!);
   expect(home).toContain('19 in the set');
-  expect(home).toMatch(/models +17 listed, results pending/);
+  expect(home).toMatch(/models +18 listed, results pending/);
   expect(home).toMatch(/tracks +3 by access path /);
   expect(home).not.toMatch(/set not frozen|0 shown in the preview|none yet/);
   expect(text(site.get('leaderboard/index.html')!).match(/Results are pending/g)?.length).toBe(1);

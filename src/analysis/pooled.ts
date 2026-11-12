@@ -125,16 +125,18 @@ export function pairedDiff(arm: SampleRecord[], base: SampleRecord[], publicIds:
  * Several arms: the base arm (id "") gives rows, places, safety order and variants; every other arm gets
  * its own rows (no place) named "<model><arm id>", each paired with the same model in the base arm.
  */
+/** Row id of an arm: "<model><arm id>", unless the model id already ends with the arm id (an access-path arm, "@agy"). */
+const rowId = (model: string, arm: string) => (arm && model.endsWith(arm) ? model : `${model}${arm}`);
 export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: string; configs: PooledConfig[] }[] }) {
   const baseArm = inp.arms.find((a) => a.id === "");
   if (!baseArm) throw new Error("pooledArms needs a base arm (id \"\")");
   const { arms, ...rest } = inp;
   const main = pooledTable({ ...rest, configs: baseArm.configs });
   const effort = arms.filter((a) => a.id !== "").map((a) => {
-    const t = pooledTable({ ...rest, variants: undefined, configs: a.configs.map((c) => ({ id: `${c.id}${a.id}`, samples: c.samples })) });
+    const t = pooledTable({ ...rest, variants: undefined, configs: a.configs.map((c) => ({ id: rowId(c.id, a.id), samples: c.samples })) });
     const rows = t.rows.map((r) => {
       const m = r.id.slice(0, r.id.length - a.id.length), b = baseArm.configs.find((c) => c.id === m);
-      const own = a.configs.find((c) => c.id === m)!;
+      const own = a.configs.find((c) => rowId(c.id, a.id) === r.id)!;
       return { ...r, place: null, placeLo: null, placeHi: null, base: m, paired: b ? pairedDiff(own.samples, b.samples, inp.publicIds, inp.points) : null };
     });
     return { arm: a.id, rows };

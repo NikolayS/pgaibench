@@ -13,8 +13,11 @@ export type HBarSpec = { id: string; title: string; desc: string; aria: string; 
 /** The model part of a name: the full name with its family word (claude-, gpt-, gemini-), no vendor
  *  or access path, no trailing date/build suffix (deepseek-v4-pro-0813 -> deepseek-v4-pro), no effort. */
 export function baseName(id: string): string {
-  return (id.replace(EFFORT_ARM, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
+  return (id.replace(EFFORT_ARM, '').replace(PATH_TAG, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
 }
+/** An access path other than the usual one for the vendor: "google/gemini-4-carbon@agy" (Antigravity CLI). */
+const PATH_TAG = /@([a-z]+)$/;
+const pathTag = (id: string) => PATH_TAG.exec(id)?.[1];
 /** An effort arm of the pooled data: "openai/gpt-6.1-terra (effort high)". */
 const EFFORT_ARM = / \(effort ([a-z]+)\)$/;
 let EFFORTS = new Map<string, string>();
@@ -38,14 +41,15 @@ export function effortOf(id: string): string {
 }
 /** The one reader-facing configuration name: model and reasoning effort, "claude-fable-5.2 · high". */
 export function shortName(id: string): string {
-  return `${baseName(id)} · ${effortOf(id)}`;
+  const t = pathTag(id);
+  return `${baseName(id)} · ${effortOf(id)}${t ? ` (${t})` : ''}`;
 }
 export const modelLabel = shortName;
 /** URL path segment of a model (compare pages); unchanged so that old links keep working. A further effort level of
  *  the same model gets "-<effort>" (fable-5.2-medium); the main effort of a model keeps the bare slug. */
 export function urlSlug(id: string): string {
   const arm = EFFORT_ARM.exec(id)?.[1];
-  return baseName(id).replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '') + (arm ? `-${arm}` : '');
+  return baseName(id).replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '') + (arm ? `-${arm}` : '') + (pathTag(id) ? `-${pathTag(id)}` : '');
 }
 
 const F = 14, CW = 8.5, ROW = 30, TOP = 4, NOTE = 22, VAL = 40;

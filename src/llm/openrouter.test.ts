@@ -196,7 +196,7 @@ describe("callOpenRouter", () => {
 describe("models.json", () => {
   test("repo models.json parses and lists the PLAN candidates", () => {
     const ms = loadModels();
-    expect(ms.length).toBe(17);
+    expect(ms.length).toBe(18);
     expect(ms.filter((m) => m.open_weights).length).toBe(6);
     for (const m of ms) {
       expect(m.default_effort).toBeDefined();
@@ -214,6 +214,7 @@ describe("models.json", () => {
     for (const m of loadModels()) {
       expect(m.price_in).toBeGreaterThan(0);
       expect(m.price_out).toBeGreaterThan(0);
+      if (m.access === "agy-cli") { expect(m.max_tokens).toBeUndefined(); continue; } // the CLI has no output-length setting
       expect(m.max_tokens).toBeLessThanOrEqual(lim.get(m.id) ?? 32000);
     }
     expect(loadModels().find((m) => m.id === "deepseek/deepseek-v4-pro-0813")).toMatchObject({ price_in: 1.3, price_out: 2.6 });
@@ -263,6 +264,7 @@ describe("access paths (subscription rule)", () => {
     for (const m of loadModels()) {
       if (m.id.startsWith("openai/")) expect(m).toMatchObject({ access: "codex-cli", effort: "medium", cli_model: m.id.slice(7) });
       else if (m.id.startsWith("anthropic/")) { expect(m.access).toBe("claude-cli"); expect(m.effort).toBe(m.default_effort!); expect(m.cli_model).toBe(m.id.slice(10).replace(/\./g, "-")); }
+      else if (m.id.endsWith("@agy")) { expect(m.access).toBe("agy-cli"); expect(m.effort).toBe(m.default_effort!); }
       else { expect(m.access).toBe("openrouter"); expect(m.provider).toMatchObject({ allow_fallbacks: false }); }
     }
     const f = (id: string) => loadModels().find((m) => m.id === id)!;

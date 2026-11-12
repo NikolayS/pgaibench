@@ -264,10 +264,10 @@ test('labels: every model name keeps its family word and version number', async 
   const { baseName: shortName } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string }[];
   for (const m of ms) {
-    const l = shortName(m.id);
+    const l = shortName(m.id), id = m.id.replace(/@[a-z]+$/, '');
     expect(l, m.id).toMatch(/^(claude|gpt|gemini|deepseek|qwen|grok|glm|kimi|mistral)/);
     expect(l, m.id).toMatch(/\d/);
-    expect(m.id.endsWith(l) || m.id.replace(/-\d{4}$/, '').endsWith(l), m.id).toBe(true);
+    expect(id.endsWith(l) || id.replace(/-\d{4}$/, '').endsWith(l), m.id).toBe(true);
   }
   for (const bare of ['flash', 'argon', 'fable-5.2', 'opus-5.5', 'sonnet-5.5', 'haiku-5.5']) expect(['google/gemini-3.8-flash', 'google/gemini-4-argon', 'anthropic/claude-fable-5.2'].map(shortName)).not.toContain(bare);
 });
@@ -331,7 +331,7 @@ test('no tools: one statement on results (under the plot and table), home, metho
 test('effort: every reader-facing label is model + effort; one naming function; compare URLs unchanged', async () => {
   const { shortName, urlSlug, effortOf } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string; effort?: string }[];
-  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+ · (xhigh|high|medium|low|minimal|default)$/);
+  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+ · (xhigh|high|medium|low|minimal|default)( \((agy)\))?$/);
   expect(shortName('openai/gpt-6.1-terra (effort high)')).toBe('gpt-6.1-terra · high');
   expect(effortOf('openai/gpt-6.1-terra (effort high)')).toBe('high');
   expect(urlSlug('anthropic/claude-fable-5.2')).toBe('fable-5.2');

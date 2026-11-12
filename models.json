@@ -283,5 +283,19 @@
     "price_out": 2.1,
     "max_tokens": 32000,
     "access": "openrouter"
+  },
+  {
+    "id": "google/gemini-4-carbon@agy",
+    "vendor": "Google",
+    "tier": "large",
+    "open_weights": false,
+    "provider": null,
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 2,
+    "price_out": 10,
+    "access": "agy-cli",
+    "cli_model": "gemini-4-carbon-medium",
+    "effort": "medium"
   }
 ]

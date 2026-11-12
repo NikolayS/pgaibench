@@ -31,7 +31,7 @@ export type Prompt = "v2" | "v2-checklist";
 export const GENERATION_DIR = "generate";
 
 /** Arm prefix per access path (the path follows from the vendor, see requiredAccess). */
-export const ACCESS_PREFIX: Record<Access, string> = { openrouter: "or_", "codex-cli": "cx_", "claude-cli": "cc_" };
+export const ACCESS_PREFIX: Record<Access, string> = { openrouter: "or_", "codex-cli": "cx_", "claude-cli": "cc_", "agy-cli": "ag_" };
 export const generationArm = (model: string, prompt: Prompt) => `${ACCESS_PREFIX[requiredAccess(model)]}${modelSlug(model)}-${prompt}`;
 export const generationCellDir = (out: string, scenario: string, model: string, prompt: Prompt, sample: number) =>
   join(out, GENERATION_DIR, scenarioEpisodeId(scenario, generationArm(model, prompt), sample));

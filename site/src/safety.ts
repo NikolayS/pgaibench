@@ -8,7 +8,7 @@ import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
 import { baseName, effortOf, shortName, urlSlug } from './svg';
-import { HIGH_EFFORT_NOTE, NO_TOOLS } from './statements';
+import { AGY_NOTE, HIGH_EFFORT_NOTE, NO_TOOLS, PLANNED_RUNS } from './statements';
 import { labelOf } from './results';
 import { excludedWhy, fmtDiff, fmtScore, runsOf, type Pooled } from './pooled';
 
@@ -43,7 +43,13 @@ const sc = (r: { score: number; avg?: Avg }) => (r.avg ? fmtScore(r.score) : Str
 const AVG_COLS: [string, string, string][] = [COLS[0]!, ['dangerous', 'dangerous changes per run', 'dangerous changes written, mean per run, wherever they were stopped (fewer is better)'], COLS[2]!, COLS[3]!, COLS[4]!,
   ['done', 'tasks done per run', 'right, right with a reservation, correct refusal or correct stop, mean per run (more is better)'], ['score', 'combined score [95% interval]', 'combined score, mean of three runs, with its 95 percent interval (higher is better)'], ['score place', 'score place (range)', 'place by combined score (a different order from the rows), then the place range over bootstrap resamples']];
 
-export function headlineTable(rows: SafetyRow[], o: { id: string; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
+/** A row of an access-path arm (pooled.json effort[], arm "@agy"): fewer runs, no place, listed under the ranking. */
+export type ProvRow = { id: string; samples: number; score: number; lo: number | null; hi: number | null; dangerous: number; done: number; split: { rehearsal: number; production_no_harm: number; harm_measured: number } };
+export const provisionalRows = (p: Pick<Pooled, 'effort'> | null | undefined): ProvRow[] => (p?.effort ?? []).filter(a => a.arm.startsWith('@')).flatMap(a => a.rows);
+const runsWord = (x: ProvRow) => `${x.samples} of ${PLANNED_RUNS} runs`;
+const provScore = (x: ProvRow) => `${fmtScore(x.score)} [${fmtScore(x.lo ?? 0)} to ${fmtScore(x.hi ?? 0)}]`;
+
+export function headlineTable(rows: SafetyRow[], o: { id: string; provisional?: ProvRow[]; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
   const avg = rows.some(r => r.avg), cols = avg ? AVG_COLS : COLS;
   const td = (k: number, v: string) => `<td data-label="${esc(cols[k]![1])}" class="num">${esc(v)}</td>`;
   const n = rows[0]?.tasks ?? 0;
@@ -51,7 +57,7 @@ export function headlineTable(rows: SafetyRow[], o: { id: string; baselines?: { 
     const last = avg ? `${td(6, r.avg ? `${fmtScore(r.score)} [${fmtScore(r.avg.lo ?? 0)} to ${fmtScore(r.avg.hi ?? 0)}]` : sc(r))}${td(7, r.excluded ? `excluded: ${r.excluded}` : r.place === null ? '--' : `${r.place} (${r.avg?.placeLo}-${r.avg?.placeHi})`)}`
       : `${td(6, `${fmtNum(r.heldout.dangerous)} (${fmtNum(r.heldout.rehearsal)}/${fmtNum(r.heldout.production_no_harm)}/${fmtNum(r.heldout.harm_measured)})`)}${td(7, sc(r))}`;
     return `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(labelOf(r.model_id))}</th>${td(1, fmtNum(r.dangerous))}${td(2, fmtNum(r.rehearsal))}${td(3, fmtNum(r.production_no_harm))}${td(4, fmtNum(r.harm_measured))}${td(5, `${fmtNum(r.done)} of ${r.tasks}`)}${last}</tr>`;
-  }).join('');
+  }).join('') + (o.provisional ?? []).map(x => `<tr class="provisional"><th scope="row">${esc(labelOf(x.id))}</th>${td(1, fmtNum(x.dangerous))}${td(2, fmtNum(x.split.rehearsal))}${td(3, fmtNum(x.split.production_no_harm))}${td(4, fmtNum(x.split.harm_measured))}${td(5, `${fmtNum(x.done)} of ${n}`)}${avg ? `${td(6, provScore(x))}${td(7, `not ranked: ${runsWord(x)}`)}` : `<td></td>${td(7, provScore(x))}`}</tr>`).join('');
   const bl = o.baselines?.length ? `<tr class="baseline"><th scope="row" colspan="${cols.length}">baselines (no model)</th></tr>${o.baselines.map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}</th>${td(1, b.note ?? fmtNum(b.dangerous))}<td></td><td></td><td></td>${td(5, `${fmtNum(b.done)} of ${n}`)}${avg ? `${td(6, String(Math.round(b.score)))}<td></td>` : `<td></td>${td(7, String(Math.round(b.score)))}`}</tr>`).join('')}` : '';
   return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety, table"><table class="safety" data-chart-for="${esc(o.id)}"><thead><tr>${cols.map(([h, , t]) => `<th scope="col" title="${esc(t)}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${trs}${bl}</tbody></table></div>`;
 }
@@ -306,11 +312,12 @@ function baselineRows(res: Results, n: number) {
 }
 
 /** Phone-size table under the plot: number and name, dangerous, done, score. */
-export function compactTable(rows: SafetyRow[], o: { id: string; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
+export function compactTable(rows: SafetyRow[], o: { id: string; provisional?: ProvRow[]; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
   const n = rows[0]?.tasks ?? 0;
   const trs = safetyOrder(rows).map((r, i) => r.excluded
     ? `<tr class="excluded"><th scope="row">${esc(short(r.model_id))}<br><span class="dim">excluded: ${esc(r.excluded)}</span></th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td><td class="num">${sc(r)}</td></tr>`
     : `<tr><th scope="row">${i + 1} ${esc(short(r.model_id))}</th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td><td class="num">${sc(r)}</td></tr>`).join('')
+    + (o.provisional ?? []).map(x => `<tr class="provisional"><th scope="row">${esc(short(x.id))}<br><span class="dim">${runsWord(x)}, not ranked</span></th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)}</td><td class="num">${provScore(x)}</td></tr>`).join('')
     + (o.baselines ?? []).map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}</th><td class="num">${esc(fmtNum(b.dangerous))}</td><td class="num">${fmtNum(b.done)}</td><td class="num">${fmtScore(b.score)}</td></tr>`).join('');
   return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety"><table class="safety compact" data-chart-for="${esc(o.id)}"><thead><tr><th scope="col">configuration</th><th scope="col" class="num" title="dangerous changes written (fewer is better)">dangerous</th><th scope="col" class="num" title="tasks done, of ${n} (more is better)">done</th><th scope="col" class="num" title="combined score (higher is better)">score</th></tr></thead><tbody>${trs}</tbody></table></div>`;
 }
@@ -340,13 +347,14 @@ export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done
 
 /** Top of the page: the plot, the compact table and (results page) the findings. */
 export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string; /** one-run and other-level rows for the switcher */ pooled?: Pooled | null }): string {
-  const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded);
+  const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded), prov = provisionalRows(o.pooled);
   const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
   const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortOf(r.model_id), main: true })),
-      ...(o.pooled?.effort ?? []).flatMap(e => e.rows).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 }))], xMax: n, origin: 'median',
+      ...(o.pooled?.effort ?? []).flatMap(e => e.rows).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 })),
+      ...prov.map((x, i) => ({ label: `${short(x.id)}, ${runsWord(x)}, not ranked`, x: x.done, y: x.dangerous, n: ord.length + (o.pooled?.effort ?? []).flatMap(e => e.rows).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortOf(x.id), main: true }))], xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION, ...(note ? { note } : {}) });
-  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), baselines: bl })}</div>`;
-  const under = [LIMIT_LINE, o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('') + (o.prose ?? '');
+  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div>`;
+  const under = [prov.some(x => x.id.endsWith('@agy')) ? AGY_NOTE : '', LIMIT_LINE, o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('') + (o.prose ?? '');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${under}${lines}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
   return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${under}${lines}${heldoutAvgTable(rows)}
