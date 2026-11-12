@@ -6,7 +6,6 @@ import { buildSite } from '../src/build';
 import { effortTable, quadrantSvg } from '../src/safety';
 import { parsePooled } from '../src/pooled';
 import { SHAPE_HALF } from '../src/family';
-import { TOOLS_LINE } from '../src/statements';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const results = JSON.parse(readFileSync(fx('results/results.json'), 'utf8'));
@@ -64,14 +63,6 @@ test('top lines: three runs per task, averaged; the provisional line', () => {
   }
 });
 
-test('the line directly above the ranking says the models answer without tools', () => {
-  for (const doc of [lb, home]) {
-    const m = /<p class="meta">([\s\S]*?)<\/p>/.exec(doc.slice(doc.indexOf('<main')))!;
-    expect(m[1]).toStartWith(TOOLS_LINE + ' ');
-    expect(TOOLS_LINE).toBe('Models answer without tools; a study with tools is planned.');
-  }
-});
-
 test('headline: averages with two decimals, score with interval and place range; safety order', () => {
   const t = /<table class="safety"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(t).toContain('>1.33<');
@@ -113,7 +104,7 @@ test('held-out table right after the headline table: counts only, per run and me
   expect(h).toBeGreaterThan(lb.indexOf('<table class="safety"'));
   expect(h).toBeLessThan(lb.indexOf('class="why"'));
   const sec = lb.slice(h, lb.indexOf('</table>', h));
-  expect(text(sec)).toContain('Held-out tasks are not public; counts only. A configuration can look safe on the public tasks and not on these.');
+  expect(text(sec)).toContain('Held-out tasks are not public, so we show counts only. A configuration can look safe on the public tasks and not on these.');
   expect(text(sec)).toContain('0 / 2 / 0');
   expect(sec).toContain('>0.67<');
   expect(sec).toContain('>2.33<');
@@ -325,7 +316,7 @@ const unrel = changelogMd.slice(changelogMd.indexOf('## [Unreleased]'), changelo
 
 test('no tools: one statement on results (under the plot and table), home, method ("No tools" section), limits and README', async () => {
   const { NO_TOOLS } = await import('../src/statements');
-  expect(NO_TOOLS).toBe('The models work without tools here: one written answer per task, no web search, no queries against the database, no experiments. In real use, agents usually have such tools, so we expect results with tools to be better. We plan to measure that too.');
+  expect(NO_TOOLS).toBe('No tools: each model gives one written answer per task. It cannot search the web, query the database or run experiments. Agents in real use usually have such tools, so we expect better results with tools. We plan to measure this.');
   for (const doc of [lb, home, site.get('method/index.html')!, site.get('limits/index.html')!]) expect(vis(doc)).toContain(NO_TOOLS);
   const m = main(lb), at = m.indexOf(NO_TOOLS);
   expect(at).toBeGreaterThan(m.indexOf('data-chart-for="safety-quadrant"'));
@@ -360,10 +351,10 @@ test('effort: every reader-facing label is model + effort; one naming function; 
   expect(text(eff)).toContain('one run');
   expect(text(eff)).toContain('model-b · medium');
   const { ROW_SENTENCE } = await import('../src/statements');
-  expect(ROW_SENTENCE).toBe('Each row is one model at one reasoning effort. Other effort levels can give different results; we test them as separate rows.');
+  expect(ROW_SENTENCE).toBe('Effort: each row is one model at one reasoning effort. Other effort levels can give other results, so we test them as separate rows.');
   expect(vis(main(lb))).toContain(ROW_SENTENCE);
   const { EFFORT_ROUND_NOTE } = await import('../src/statements');
-  expect(EFFORT_ROUND_NOTE).toBe('In this round we run every model at two effort levels, medium and high. Each row shows its level in its label, and results for the second level appear as its runs finish. Lower and higher effort levels are planned for later.');
+  expect(EFFORT_ROUND_NOTE).toBe('This round runs every model at two effort levels, medium and high. Rows for the second level appear as their runs finish. Lower and higher levels come later.');
   expect(vis(main(lb))).toContain(EFFORT_ROUND_NOTE);
   expect(vis(main(site.get('index.html')!))).toContain(EFFORT_ROUND_NOTE);
   expect((vis(main(lb)).match(/Effort (&quot;|")default(&quot;|") means/g) ?? []).length).toBe(1);
@@ -375,7 +366,8 @@ const REAL = [['openai/gpt-6-astra', 'OpenAI', 'medium'], ['openai/gpt-6.1-sol',
   ['anthropic/claude-fable-5.2', 'Anthropic', 'high'], ['anthropic/claude-opus-5.5', 'Anthropic', 'high'], ['anthropic/claude-sonnet-5.5', 'Anthropic', 'high'], ['anthropic/claude-haiku-5.5', 'Anthropic', 'medium'],
   ['google/gemini-3.8-flash', 'Google', 'default'], ['google/gemini-4-argon', 'Google', 'default'], ['deepseek/deepseek-v4-pro-0813', 'DeepSeek', 'default'], ['qwen/qwen3.8-27b', 'Qwen', 'default']]
   .map(([id, vendor, effort]) => ({ id: id!, vendor: vendor!, called: id!, access: 'x', effort: effort!, pin: 'none', runs: [] }));
-export const FAIR = 'The effort levels differ between vendors in this release: three Anthropic models ran at high, the OpenAI models and one Anthropic model at medium, and the router models at the provider default. This is not an equal comparison. Rows at matching effort levels are being added.';
+const FAIR_V010 = 'The effort levels differ between vendors in this release: three Anthropic models ran at high, the OpenAI models and one Anthropic model at medium, and the router models at the provider default. This is not an equal comparison. Rows at matching effort levels are being added.';
+export const FAIR = 'The effort levels differ between vendors in this release: claude-fable-5.2, claude-opus-5.5 and claude-sonnet-5.5 ran at high, the OpenAI models and claude-haiku-5.5 at medium, and the router models at the provider default. This is not an equal comparison. Rows at matching effort levels are being added.';
 
 test('fairness: generated from the models table; at the ranking, in known issues, limits, README, CHANGELOG', async () => {
   const { fairnessSentence } = await import('../src/models');
@@ -388,7 +380,7 @@ test('fairness: generated from the models table; at the ranking, in known issues
   expect(text(/id="known-issues"[\s\S]*?<\/section>/.exec(lb)![0])).toContain(f);
   expect(text(site.get('limits/index.html')!)).toContain(f);
   expect(readme).toContain(FAIR);
-  expect(unrel).toContain(FAIR);
+  expect(unrel).toContain(FAIR_V010); // the changelog entry keeps the wording it was written with (no model names there)
   const { HIGH_EFFORT_NOTE } = await import('../src/statements');
   expect(HIGH_EFFORT_NOTE).toBe('At high effort (one run) we saw no difference clearly outside noise; five runs are in progress.');
   expect(text(/<h3 id="effort-high">[\s\S]*?<\/table>[\s\S]*?<\/p>/.exec(lb)![0])).toContain(HIGH_EFFORT_NOTE);

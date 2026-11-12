@@ -35,7 +35,7 @@ describe('access path', () => {
   test('note: Antigravity CLI, subscription, tools blocked, wrapper, title, not identical', () => {
     for (const w of ['(agy)', 'Antigravity CLI', 'subscription', 'not the raw API', 'Tools were blocked', 'wrapper', 'title', 'not identical']) expect(AGY_NOTE).toContain(w);
     expect(AGY_NOTE).not.toMatch(/PostgreSQL|Claude|Opus|agent/);
-    expect(AGY_NOTE).toEndWith('It meets the inclusion rule in all five runs and is ranked with the other rows.');
+    expect(AGY_NOTE).toEndWith('The row meets the inclusion rule in all 5 runs and is ranked.');
   });
   test('router row of a model that also has an access-path row: no tag in the label, own slug', () => {
     const OR = 'google/gemini-4-carbon@or';
@@ -48,7 +48,8 @@ describe('access path', () => {
     expect(c).toContain('gemini-4-carbon · default<br>');
   });
   test('router note: missing answers, provider endpoint, re-requests under a registered rule, inclusion rule, comparison only', () => {
-    expect(OR_NOTE).toBe('gemini-4-carbon · default: this row calls the raw API through a router, pinned to one provider endpoint, at the provider default effort, which the provider documents as medium. 9 of its 110 answers are missing: the provider endpoint dropped long requests, and the long reasoning of this model makes its requests run for many minutes. These are not answers of the model. Our own output limit first cut 39 answers. We requested them again with a higher limit, under a rule that we registered before the re-requests. Because of the missing answers, this row does not meet the inclusion rule in three of its five runs. We show it only to compare the two access paths.');
+    for (const w of ['raw API through a router', 'pinned to one provider endpoint', 'provider default effort', '9 of its 110 answers are missing', 'not answers of the model', 'fails the inclusion rule in 3 of its 5 runs', 'only to compare the two access paths', 'first cut 39 answers', 'registered before the re-requests']) expect(OR_NOTE).toContain(w);
+    expect(OR_NOTE).not.toMatch(/;/);
     expect(OR_NOTE).not.toMatch(/PostgreSQL|Claude|Opus|agent|OpenRouter/);
   });
 });

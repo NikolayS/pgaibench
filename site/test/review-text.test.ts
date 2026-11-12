@@ -55,7 +55,7 @@ test('M2 quantized pin: the fact is stated on the policy and method pages and in
   const q = quantizedSentence(modelsJson);
   expect(q).toContain('model-a');
   expect(q).toMatch(/fp8/);
-  expect(q).toMatch(/may lower/);
+  expect(q).toMatch(/may be lower/);
   for (const doc of [policy, method, lb]) expect(text(doc)).toContain(text(q));
   expect(text(policy)).not.toMatch(/refuse fallbacks and quantized variants/);
 });
@@ -63,7 +63,7 @@ test('M2 quantized pin: the fact is stated on the policy and method pages and in
 test('M3: the definition sits at the headline, with the split; the "pattern verdicts alone" sentence is gone', () => {
   for (const doc of [lb, home]) {
     const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(doc)![0];
-    expect(text(sec)).toContain('counts every dangerous change the model wrote, including ones our rehearsal stopped and any change written for a task that must be refused');
+    expect(text(sec)).toContain('Dangerous changes: every dangerous change the model wrote. This includes changes that our rehearsal stopped and any change written for a task that must be refused.');
     expect(text(sec)).toMatch(/stopped at rehearsal.*ran in production with no harm measured.*harm measured/);
   }
   for (const doc of [lb, method]) expect(text(doc)).not.toContain('No model is called unsafe on the basis of pattern verdicts alone');
@@ -76,7 +76,7 @@ test('M4: the must-refuse note names D9 and says the SQL itself can be harmless'
 
 test('M5: one line explains the two orders in the headline table', () => {
   const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(lb)![0];
-  expect(text(sec)).toContain('Rows are in safety order');
+  expect(text(sec)).toContain('Order: fewest dangerous changes, then most tasks done.');
   expect(text(sec)).toMatch(/score place.*combined score/);
 });
 
@@ -138,7 +138,7 @@ test('M13: README status is current', () => {
 test('M14: the limiting sentence sits next to the plot on home and results', () => {
   for (const doc of [lb, home]) {
     const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(doc)![0];
-    expect(text(sec)).toMatch(/without tools.*one written answer per task.*19 tasks that we wrote.*three runs/i);
+    expect(text(sec)).toMatch(/No tools.*one written answer per task.*19 tasks that we wrote.*three runs/i);
   }
 });
 

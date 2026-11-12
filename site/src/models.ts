@@ -30,7 +30,7 @@ export function quantizedSentence(m: ModelsTable): string {
   const q = m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin));
   if (!q.length) return '';
   const fmt = (r: ModelsTable[number]) => /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase();
-  return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('; ')}. This breaks our own rule to refuse quantized variants, and it may lower ${q.length === 1 ? 'its results' : 'their results'}: they may not represent the model at full precision.`;
+  return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('. ')}. This breaks our own rule against quantized variants. ${q.length === 1 ? 'Its results' : 'Their results'} may be lower than the model gives at full precision.`;
 }
 
 /** Rows for the given configurations, in that order; a configuration without a record shows "not recorded". */
@@ -50,13 +50,14 @@ export function modelsTable(m: ModelsTable, ids: string[], runs = 3): string {
 const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 const RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal'];
 /** The effort levels of this release by vendor, in plain words, from the models table (owner: "not fair"). */
+const names = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
 export function fairnessSentence(m: ModelsTable): string {
   const set = m.filter(r => isSet(r.effort)), levels = [...new Set(set.map(r => r.effort))].sort((a, b) => RANK.indexOf(a) - RANK.indexOf(b));
   const vendors = [...new Set(set.map(r => r.vendor))];
   const segs = levels.map((lv, i) => {
     const groups = vendors.map(v => ({ v, all: set.filter(r => r.vendor === v), at: set.filter(r => r.vendor === v && r.effort === lv) })).filter(g => g.at.length);
     groups.sort((a, b) => Number(b.at.length === b.all.length) - Number(a.at.length === a.all.length));
-    const who = groups.map(g => (g.at.length === g.all.length ? `the ${g.v} models` : `${NUM[g.at.length] ?? g.at.length} ${g.v} model${g.at.length === 1 ? '' : 's'}`)).join(' and ');
+    const who = groups.map(g => (g.at.length === g.all.length ? `the ${g.v} models` : names(g.at.map(r => baseName(r.id))))).join(' and ');
     return `${who}${i === 0 ? ' ran' : ''} at ${lv}`;
   });
   if (m.some(r => !isSet(r.effort))) segs.push('the router models at the provider default');
@@ -65,6 +66,6 @@ export function fairnessSentence(m: ModelsTable): string {
 }
 /** Next to the ranking: what a row is, what "default" means (only when a row has it), and the fairness statement. */
 export function effortNotes(m: ModelsTable, row: string): string {
-  const dflt = m.some(r => !isSet(r.effort)) ? ' Effort "default" means that we set no effort for this configuration (router access), so the provider default applied; the models table records this.' : '';
+  const dflt = m.some(r => !isSet(r.effort)) ? ' Effort "default" means that we set no effort (router access), so the provider default applied. The models table records this.' : '';
   return `${row}${dflt} ${fairnessSentence(m)}`;
 }

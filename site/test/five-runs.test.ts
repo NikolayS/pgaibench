@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { pooledJson, modelsJson } from './pooled.test';
-import { FIVE_RUN_LINE, RECORD_RUNS } from '../src/statements';
+import { RECORD_RUNS, topLine } from '../src/statements';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const results = JSON.parse(readFileSync(fx('results/results.json'), 'utf8'));
@@ -24,7 +24,7 @@ const site5 = build(five, pooledJson), site3 = build(pooledJson);
 test('five runs: lede and every sentence about the main table name five runs', () => {
   for (const p of ['leaderboard/index.html', 'index.html']) {
     const t = text(site5.get(p)!);
-    expect(t).toContain('Five runs per task, averaged, in a lab.');
+    expect(t).toContain('Five runs per model.');
     const bad = /Three runs per task|three-run ranking|three-run row|all three runs|in three runs,|mean of three runs|Even with three runs/.exec(t);
     expect(bad ? t.slice(Math.max(0, bad.index - 80), bad.index + 80) : null).toBeNull();
   }
@@ -33,14 +33,17 @@ test('five runs: lede and every sentence about the main table name five runs', (
   expect(site3.get('leaderboard/index.html')!).not.toContain('run 4 (UTC)');
 });
 
-test('five runs: the provisional line opens the ranking and links the v0.1.0 table', () => {
+test('five runs: one short top line opens the ranking and links the v0.1.0 table', () => {
   expect(RECORD_RUNS).toBe(3);
-  expect(FIVE_RUN_LINE(5)).toBe('This table averages five runs. The answers of runs 4 and 5 that the rules could not class were read by two AI-model readers, independently of each other; where the two agree, the cell takes their class, and where they disagree, the cell stays pending review at 0 points. This table becomes release v0.1.1 when it is tagged. Until then the ranking of record is the three-run table of v0.1.0, one click away:');
+  expect(topLine(5)).toBe('Five runs per model. No tools. Provisional until tagged v0.1.1. Release of record:');
   const lb = site5.get('leaderboard/index.html')!;
-  const at = lb.indexOf(FIVE_RUN_LINE(5));
-  expect(at).toBeGreaterThan(-1);
-  expect(at).toBeLessThan(lb.indexOf('<svg'));
-  expect(lb.slice(at, at + 900)).toMatch(/href="[^"]*releases\/v0\.1\.0\/(index\.html)?"/);
+  const m = /<p class="meta top-line">([\s\S]*?)<\/p>/.exec(lb)!;
+  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('Five runs per model. No tools. Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
+  expect(m[1]).toMatch(/<a href="[^"]*releases\/v0\.1\.0\/(index\.html)?">v0\.1\.0 \(three runs\)<\/a>\./);
+  expect(m.index).toBeLessThan(lb.indexOf('<svg'));
+  // no reader procedure, no semicolons, no "one click away" above the plot
+  const top = text(lb.slice(lb.indexOf('<main'), lb.indexOf('<svg')));
+  expect(top).not.toMatch(/;|one click away|AI-model readers|where the two agree/);
   // the record page: the three-run rows as published, places included
   const rec = site5.get('releases/v0.1.0/index.html')!;
   expect(text(rec)).toContain('three runs per task');
@@ -51,7 +54,7 @@ test('five runs: the provisional line opens the ranking and links the v0.1.0 tab
 
 test('three runs (no samples 4 and 5): no provisional line, no record page, lede unchanged', () => {
   const lb = site3.get('leaderboard/index.html')!;
-  expect(lb).not.toContain(FIVE_RUN_LINE(5));
+  expect(lb).not.toContain('class="meta top-line"');
   expect(text(lb)).toContain('Three runs per task, averaged, in a lab.');
   expect(site3.has('releases/v0.1.0/index.html')).toBe(false);
 });
@@ -70,10 +73,11 @@ test('readings of runs 4 and 5: labels and reader text', async () => {
   expect(READERS_DISAGREE).not.toMatch(/in runs 1 to 3\./);
   expect(READERS_DISAGREE).toContain('agreed on the class of 107 of 109');
   expect(READERS_DISAGREE).toContain('this round has no third reading');
-  expect(AGY_NOTE).toContain('It meets the inclusion rule in all five runs and is ranked with the other rows.');
+  expect(AGY_NOTE).toContain('The row meets the inclusion rule in all 5 runs and is ranked.');
   expect(AGY_NOTE).not.toContain('will use for ranking');
-  expect(OR_NOTE).toContain('does not meet the inclusion rule in three of its five runs');
-  for (const t of [READERS_DISAGREE, AGY_NOTE, OR_NOTE, FIVE_RUN_LINE(5)]) expect(t).not.toMatch(/only (rise|raise|go up)/);
+  expect(OR_NOTE).toContain('the row fails the inclusion rule in 3 of its 5 runs');
+  for (const t of [AGY_NOTE, OR_NOTE]) expect(t).not.toMatch(/;/);
+  for (const t of [READERS_DISAGREE, AGY_NOTE, OR_NOTE, topLine(5)]) expect(t).not.toMatch(/only (rise|raise|go up)/);
   const rec = text(site5.get('releases/v0.1.0/index.html')!);
   expect(rec).not.toContain('until their unclear answers are read');
   expect(text(site5.get('leaderboard/index.html')!)).not.toContain('when runs 4 and 5 are read');
@@ -91,7 +95,7 @@ test('five-run summary under the plot: observation first, then the pointer; deta
   const lb = site5.get('leaderboard/index.html')!;
   const at = lb.indexOf('id="five-run-summary"');
   expect(at).toBeGreaterThan(lb.indexOf('<svg'));
-  expect(lb.slice(at, at + 600)).toContain('On these 19 tasks, over five runs');
+  expect(lb.slice(at, at + 600)).toContain('On these 19 tasks, over 5 runs');
   expect(lb).toContain('id="why-not-done"');
   expect(site3.get('leaderboard/index.html')!).not.toContain('id="five-run-summary"');
 });
