@@ -78,3 +78,11 @@ test('readings of runs 4 and 5: labels and reader text', async () => {
   expect(rec).not.toContain('until their unclear answers are read');
   expect(text(site5.get('leaderboard/index.html')!)).not.toContain('when runs 4 and 5 are read');
 });
+
+test('ranked (agy) row: its note is under the results table', async () => {
+  const { AGY_NOTE } = await import('../src/statements');
+  const p = structuredClone(five) as any;
+  const r = structuredClone(p.rows[0]); r.id = 'google/gemini-4-carbon@agy'; p.rows.push(r);
+  p.perRun[r.id] = p.perRun[p.rows[0].id];
+  expect(build(p, pooledJson).get('leaderboard/index.html')!).toContain(AGY_NOTE.slice(0, 60));
+});
