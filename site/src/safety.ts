@@ -7,7 +7,7 @@ import { FAMILIES, SHAPE_HALF, SHAPE_HALF as SHAPE_HALF_WIDE, familyLegend, fami
 import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
-import { shortName, urlSlug } from './svg';
+import { baseName, effortOf, shortName, urlSlug } from './svg';
 import { HIGH_EFFORT_NOTE, NO_TOOLS } from './statements';
 import { labelOf } from './results';
 import { excludedWhy, fmtDiff, fmtScore, runsOf, type Pooled } from './pooled';
@@ -58,7 +58,13 @@ export function headlineTable(rows: SafetyRow[], o: { id: string; baselines?: { 
 
 // ---------- four-quadrant plot ----------
 /** n: the point's mark (1 to N in safety order). */
-export type QPoint = { label: string; x: number; y: number; n?: number; family?: string };
+export type QPoint = { label: string; x: number; y: number; n?: number; family?: string;
+  /** switcher: model (no effort), effort level, main level of the model (default view), one run only */
+  model?: string; effort?: string; main?: boolean; oneRun?: boolean };
+/** A point outside the default view: another effort level or a one-run row. Drawn hidden; the switcher shows it. */
+const isExtra = (p: QPoint) => p.main === false || !!p.oneRun;
+const dataAttrs = (p: QPoint) => (p.model ? ` data-family="${esc(p.family ?? 'other')}" data-model="${esc(p.model)}" data-effort="${esc(p.effort ?? 'default')}"` : '');
+const EFFORT_RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'default'];
 /** A count or an average: up to two decimals, no trailing zeros (3, 0.33, 14.67). */
 export const fmtNum = (v: number) => String(Math.round(v * 100) / 100);
 /** Ticks from 0 by `step`, plus `max`; a step tick closer than half a step to `max` gives way to it. */
@@ -133,6 +139,9 @@ export function placeNames(ps: { label: string; cx: number; cy: number }[], dots
  *  point's dangerous count y), 0 at the bottom. Horizontal: tasks done, 0 at the left. Dashed lines at the medians (or the scale
  *  midpoints). Points carry numbers; the key is HTML under the plot. */
 export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMax?: number; width: number; origin?: 'median' | 'absolute'; baselines?: QPoint[]; line?: number; names?: boolean }): string {
+  const all = o.points.map((p, i) => ({ ...p, n: p.n ?? i + 1 }));
+  o = { ...o, points: all.filter(p => !isExtra(p)) };
+  const extras = all.filter(isExtra);
   const W = o.width, phone = W < 500, L = 28, R = 14, TOP = 26, PH = Math.round(phone ? W * 0.56 : W * 0.5), PAD = 26, B = 36;
   const yMax = o.yMax ?? o.xMax, safe = (p: QPoint) => o.xMax - p.y;
   const X = (v: number) => L + (Math.max(0, Math.min(o.xMax, v)) / o.xMax) * (W - L - R);
@@ -156,23 +165,46 @@ export function quadrantSvg(o: { id: string; points: QPoint[]; xMax: number; yMa
   for (const b of bmarks) out.push(`<circle class="q-base" cx="${n1(b.cx)}" cy="${n1(b.cy)}" r="${n1(5 * K)}"/>`);
   const pts = o.points.map((p, i) => ({ n: p.n ?? i + 1, cx: placed[nb + i]!.cx, cy: placed[nb + i]!.cy, family: p.family ?? 'other' }));
   // later in the safety order first, so that the first places are drawn on top where shapes overlap
-  for (const p of [...pts].sort((a, b) => b.n - a.n)) out.push(shapeSvg((FAMILIES[p.family] ?? FAMILIES.other!).shape, p.cx, p.cy, `q-pt q-f-${p.family}`, K).replace(/\/>$/, ` data-cx="${n1(p.cx)}" data-cy="${n1(p.cy)}" data-n="${p.n}"/>`));
+  for (const p of [...pts].sort((a, b) => b.n - a.n)) out.push(shapeSvg((FAMILIES[p.family] ?? FAMILIES.other!).shape, p.cx, p.cy, `q-pt q-f-${p.family}`, K).replace(/\/>$/, ` data-cx="${n1(p.cx)}" data-cy="${n1(p.cy)}" data-n="${p.n}"${dataAttrs(o.points.find(q => q.n === p.n)!)}/>`));
   const named = !phone && o.names ? placeNames(o.points.map((p, i) => ({ label: p.label, cx: pts[i]!.cx, cy: pts[i]!.cy })), [...pts, ...bmarks], { x0: L, y0: TOP, x1: W - R, y1: TOP + PH }) : null;
   if (named) for (const m of named) out.push(`<text class="q-name" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${esc(m.label)}</text>`);
   else for (const m of placeMarks(pts, W, bmarks, TOP + PH - 1, TOP + 1, HALF)) out.push(`<text class="q-num" x="${n1(m.x)}" y="${n1(m.y)}" font-weight="800" data-box="${n1(m.box.x0)} ${n1(m.box.y0)} ${n1(m.box.x1)} ${n1(m.box.y1)}">${m.n}</text>`);
+  // Switcher: thin lines joining the levels of one model (in effort order), then the extra points at their true place, hidden.
+  const byModel = new Map<string, QPoint[]>();
+  for (const p of all) if (p.model) byModel.set(p.model, [...(byModel.get(p.model) ?? []), p]);
+  const at = (p: QPoint) => { const d = pts.find(q => q.n === p.n); return d ? { cx: d.cx, cy: d.cy } : { cx: X(p.x), cy: Y(safe(p)) }; };
+  for (const [m, ps] of byModel) if (ps.length > 1) out.push(`<polyline class="q-line q-off" data-model="${esc(m)}" points="${[...ps].sort((a, b) => EFFORT_RANK.indexOf(a.effort ?? 'default') - EFFORT_RANK.indexOf(b.effort ?? 'default')).map(p => { const c = at(p); return `${n1(c.cx)},${n1(c.cy)}`; }).join(' ')}"></polyline>`);
+  for (const p of extras) {
+    const cx = X(p.x), cy = Y(safe(p));
+    out.push(shapeSvg((FAMILIES[p.family ?? 'other'] ?? FAMILIES.other!).shape, cx, cy, `q-pt q-f-${p.family ?? 'other'} q-one q-off`, K).replace(/\/>$/, ` data-cx="${n1(cx)}" data-cy="${n1(cy)}" data-n="${p.n}"${dataAttrs(p)}/>`));
+    out.push(`<text class="q-num q-off" x="${n1(Math.min(cx + HALF + 2, W - R - 10))}" y="${n1(cy + 4)}" font-weight="800" data-n="${p.n}">${p.n}</text>`);
+  }
   const H = Math.ceil((TOP + PH + B + 6) / 20) * 20, k = Math.ceil(H / (o.line ?? 20));
   const aria = `Tasks without a dangerous change (up) against tasks done (right), one numbered point per configuration; the key under the plot names them. ${o.points.filter(p => p.y === 0).length} of ${o.points.length} configurations wrote no dangerous change.`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}" data-chart="${esc(o.id)}" data-origin-x="${ox}" data-origin-y="${oy}" data-xmin="0" data-y0="${n1(Y(0))}" data-ymax="${n1(Y(yMax))}" font-family="inherit" font-size="${F}" style="--h: ${k}" preserveAspectRatio="xMinYMin meet"><title>Tasks without a dangerous change and tasks done</title><desc>Scatter plot, origin 0, 0 at the bottom left. Vertical: tasks without a dangerous change, from 0 to ${yMax}. Horizontal: tasks done, from 0 to ${o.xMax}. Dashed lines: ${origin === 'median' ? 'the medians of the configurations' : 'the middle of each scale'}.</desc>${out.join('')}</svg>`;
 }
 
 /** Figure: phone and wide plots, the key (numbers to names and values) as HTML in two columns, one short caption. */
+/** Controls above the plot (hidden without JavaScript; assets/plot.js shows them). Plain text toggles like the theme switch. */
+function switcher(id: string, pts: QPoint[]): string {
+  const fams = Object.keys(FAMILIES).filter(f => pts.some(p => (p.family ?? 'other') === f));
+  const effs = EFFORT_RANK.filter(e => pts.some(p => p.effort === e));
+  const btn = (k: string, label: string, on: boolean) => `<button type="button" data-k="${esc(k)}" aria-pressed="${on}">${esc(label)}</button>`;
+  const models = [...new Set(pts.filter(p => p.model).map(p => p.model!))].sort();
+  return `<div class="qctl" data-for="${esc(id)}" hidden><p><span class="dim">vendor:</span> ${fams.map(f => btn(`f:${f}`, FAMILIES[f]!.label, true)).join(' ')}</p>`
+    + `<p><span class="dim">effort:</span> ${effs.map(e => btn(`e:${e}`, e, true)).join(' ')} ${btn('levels', 'other levels', false)} ${pts.some(p => p.oneRun) ? btn('onerun', 'one run', false) : ''}</p>`
+    + `<p><label><span class="dim">one model, all levels:</span> <select aria-label="one model, all levels"><option value="">none</option>${models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select></label> <button type="button" data-reset>reset</button></p></div>`;
+}
 export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption: string; note?: string }): string {
   const pts = o.points.map((p, i) => ({ ...p, n: p.n ?? i + 1 }));
   const narrow = quadrantSvg({ ...o, points: pts, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
   const wide = quadrantSvg({ ...o, points: pts, width: 760, names: true }).replace('<svg ', '<svg class="chart-wide" ');
-  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}">${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
+  const sw = pts.some(p => p.model);
+  const liAttr = (p: QPoint) => (sw ? ` data-n="${p.n}"${dataAttrs(p)} data-main="${isExtra(p) ? 0 : 1}" data-onerun="${p.oneRun ? 1 : 0}"${isExtra(p) ? ' hidden' : ''}` : '');
+  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}"${liAttr(p)}>${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
+  const ctl = sw ? switcher(o.id, pts) : '';
   const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.x)}, ${fmtNum(o.xMax - b.y)})`).join(', ');
-  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.${o.note ? ` ${esc(o.note)}` : ''}</p></figure>`;
+  return `<figure class="svg-chart" id="${esc(o.id)}">${ctl}${narrow}${wide}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.${o.note ? ` ${esc(o.note)}` : ''}</p></figure>`;
 }
 
 // ---------- list of dangerous changes ----------
@@ -307,10 +339,11 @@ const quadId = (home: boolean) => (home ? 'safety-home' : 'safety-quadrant');
 export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done.';
 
 /** Top of the page: the plot, the compact table and (results page) the findings. */
-export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string }): string {
+export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string; /** one-run and other-level rows for the switcher */ pooled?: Pooled | null }): string {
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded);
   const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
-  const quad = quadrantFigure({ id: quadId(o.home), points: ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id) })), xMax: n, origin: 'median',
+  const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortOf(r.model_id), main: true })),
+      ...(o.pooled?.effort ?? []).flatMap(e => e.rows).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 }))], xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION, ...(note ? { note } : {}) });
   const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), baselines: bl })}</div>`;
   const under = [LIMIT_LINE, o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('') + (o.prose ?? '');
@@ -318,7 +351,7 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${under}${lines}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
   return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${under}${lines}${heldoutAvgTable(rows)}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
-<h3 id="separates">What separates the models</h3>${separates(rows)}<p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>
+<p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>
 <h3 id="dangerous">Every dangerous change</h3><p>Public tasks only${rows[0]!.avg ? ', all three runs' : ''}; the statement that makes the change dangerous, cut to one line.</p><p>${esc(MUST_REFUSE_NOTE)}</p><p>${esc(NOT_VALID_NOTE)}</p>${dangerList(rows)}</section>`;
 }
 

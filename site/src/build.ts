@@ -151,6 +151,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   // Favicon files are binary: the CLI copies them over these placeholders (the map holds text only).
   for (const f of BINARY_ASSETS) files.set(`assets/${f}`, '');
   files.set('favicon.ico', '');
+  files.set('assets/plot.js', readFileSync(join(import.meta.dir, '..', 'assets', 'plot.js'), 'utf8'));
   files.set('assets/theme.js', readFileSync(join(import.meta.dir, '..', 'assets', 'theme.js'), 'utf8'));
   files.set('.nojekyll', '');
   if (o.cname) files.set('CNAME', `${o.cname}\n`);

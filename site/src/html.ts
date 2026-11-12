@@ -117,6 +117,7 @@ ${cardTables(o.body)}${o.rankingFirst ? `
 </div>
 <script src="${link(c, 'assets/sort.js')}" defer></script>
 <script src="${link(c, 'assets/theme.js')}" defer></script>
+<script src="${link(c, 'assets/plot.js')}" defer></script>
 </body>
 </html>
 `;

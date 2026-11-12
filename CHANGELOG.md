@@ -29,6 +29,16 @@ text and numbers. No published score, class, place or rule changed.
   three Anthropic models ran at high, the OpenAI models and one Anthropic
   model at medium, and the router models at the provider default. This is
   not an equal comparison. Rows at matching effort levels are being added.
+- "What we learned": plain paragraphs directly under the plot and the
+  table on the results page, and a shorter variant on the home page. The
+  "What separates the models" bullets on the results page gave way to
+  them; the detail tables stay below.
+- Plot switcher: controls above the two-axis plot show or hide points by
+  vendor family and by effort level, add other effort levels and the
+  one-run rows (hollow, off by default), and show one model at all its
+  levels joined by a thin line. The view is kept in the URL, so it can be
+  linked. Without JavaScript the controls are hidden and the plot shows
+  one point per model at its main effort level, as before.
 - Header: every page shows "v0.1.0 (2026-11-11)" next to the site name,
   linking the GitHub release. The release line left the page bodies; the
   number of unreleased changes is in the footer and on the updates page.

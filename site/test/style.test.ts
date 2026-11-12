@@ -227,7 +227,7 @@ describe('page structure', () => {
       const inline = [...doc.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
       expect(inline, p).toEqual([THEME_HEAD]);
       expect(doc, p).toMatch(/<span class="theme" hidden>theme: <button type="button" data-theme-set="system" aria-pressed="true">system<\/button>/);
-      expect([...doc.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]!.replace(/^(\.\.\/)*/, ''))).toEqual(['assets/sort.js', 'assets/theme.js']);
+      expect([...doc.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)].map(m => m[1]!.replace(/^(\.\.\/)*/, ''))).toEqual(['assets/sort.js', 'assets/theme.js', 'assets/plot.js']);
     }
   });
 });

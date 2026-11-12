@@ -33,6 +33,11 @@ const blob = (p: string) => `${REPO}/blob/${RELEASE_TAG}/${p}`;
 /** The configurations of this build, from the models table (rows of the pooled data only). */
 const runModels = (d?: SiteData): ModelsTable => (d?.models && d.pooled ? d.models.filter(m => d.pooled!.rows.some(r => r.id === m.id)) : []);
 const effortLine = (d?: SiteData) => (runModels(d).length ? effortSentence(runModels(d)) : '');
+/** "What we learned": plain paragraphs from one source file per variant (site/content), published as written. */
+export function learned(file: string): string {
+  const ps = readFileSync(join(import.meta.dir, '..', 'content', file), 'utf8').trim().split(/\n\s*\n/).map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return `<div class="learned" role="region" aria-labelledby="what-we-learned"><h2 id="what-we-learned">What we learned</h2>${ps.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
+}
 const fairLine = (d?: SiteData) => (runModels(d).length ? fairnessSentence(runModels(d)) : '');
 const rankNotes = (d?: SiteData) => (runModels(d).length ? effortNotes(runModels(d), ROW_SENTENCE) : ROW_SENTENCE);
 const quantLine = (d?: SiteData) => (runModels(d).length ? quantizedSentence(runModels(d)) : '');
@@ -217,7 +222,7 @@ function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: Si
     // Ranking first: one line, the provisional line, the plot and its table; every explanation below.
     const split = ratingChart(pooled ? withPooledRating(res, pooled) : res, { provisional: true, table: true, id: 'rating', split: true });
     const pp = profiles(res, d?.cells ?? null, p);
-    const body = `${TOP_LINES(c, true, !!pooled)}${safetyTop(c, res, sr, { home: false, effort: rankNotes(d), extra: quantLine(d) })}${split ? split.top : ''}${profileChart(pp, { id: 'profile', table: false, lede: PROFILE_LEDE(p) })}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'))}${issues}
+    const body = `${TOP_LINES(c, true, !!pooled)}${safetyTop(c, res, sr, { home: false, effort: rankNotes(d), extra: quantLine(d), prose: pooled ? learned('what-we-learned.md') : '', pooled })}${split ? split.top : ''}${profileChart(pp, { id: 'profile', table: false, lede: PROFILE_LEDE(p) })}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'))}${issues}
 <section class="block" aria-labelledby="notes-h"><h2 id="notes-h">Notes and details</h2>${safetyDetails(res, sr, pooled)}${rulesAfter()}${pooled && d?.registered ? registeredTable(pooled, d.registered) : ''}${d?.models && pooled ? modelsTable(d.models, pooled.rows.map(r => r.id)) : ''}${split ? split.details : ''}${profileChart(pp, { id: 'profile', table: 'only', lede: '' })}</section>
 <section class="block" aria-labelledby="about-data"><h2 id="about-data">About this data</h2>${pv}${raw}</section>
 <section class="block" aria-labelledby="prereg-analyses"><h2 id="prereg-analyses">Preregistered analyses</h2><p>Counts with Wilson intervals per track, paired tests, held-out counts and the text-against-lab table, as fixed in the ${PREREG()} before the scored run.</p>${intro}${res.tracks.map((t, i) => trackSection(c, res, t, i, p)).join('')}
@@ -257,7 +262,7 @@ function home(c: Ctx, d: SiteData): string {
     ['order', 'the rating by score; other tables by label'], ['marks', '+ higher is better, - lower is better'], ['', '. not a quality measure'],
     ['baselines', 'fixed policies with no model, scored on the same tasks'], ['', 'always escalate: escalates on every task'], ['', 'safe reference: our own known-safe change, at the ceiling'], ['', 'trapped reference: our own known-dangerous change, scored from its text (-0.5 per task); a measured harm in the lab scores lower'], ['', 'a model result means something only next to these']]);
   const hsr = res && d.provisional ? safetyRows(res, d.provisional, d.pooled) : null;
-  const body = `${hsr && res ? `${TOP_LINES(c, false, !!d.pooled)}${safetyTop(c, res, hsr, { home: true, effort: rankNotes(d), extra: quantLine(d) })}` : ''}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'))}${aaa(c)}<div class="head" role="group" aria-label="About this benchmark"><p class="prompt">-- pgaibench report --</p>${head}<p><span class="prompt">$</span> <span class="cursor">_</span></p></div>
+  const body = `${hsr && res ? `${TOP_LINES(c, false, !!d.pooled)}${safetyTop(c, res, hsr, { home: true, effort: rankNotes(d), extra: quantLine(d), prose: d.pooled ? learned('what-we-learned-home.md') : '', pooled: d.pooled })}` : ''}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'))}${aaa(c)}<div class="head" role="group" aria-label="About this benchmark"><p class="prompt">-- pgaibench report --</p>${head}<p><span class="prompt">$</span> <span class="cursor">_</span></p></div>
 <p class="lede">PGAIBench is an open benchmark that checks whether AI models can change a production Postgres database safely. Each model gets a routine task: add a column, change a setting, fix some rows. Each task hides a trap that an experienced Postgres engineer knows, and the model either writes a change request or escalates. Our harness then runs that change for real: first on a clone, then on a lab primary under load with a streaming standby. The lab outcome and fixed rules set the class of most cells; AI model readers classed the answers the rules could not (see the ${a(link(c, 'method/#adjudication'), 'method')}). ${esc(DISCLOSURE)}</p>
 <p class="actions">-&gt; ${a(link(c, 'scenarios/'), 'see the scenarios')}<br>-&gt; ${a(link(c, 'method/'), 'read the method')}<br>-&gt; <a href="${REPO}">run it</a></p>
 <section class="status" aria-labelledby="status"><h2 id="status">Status</h2>${status}</section>

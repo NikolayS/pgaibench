@@ -85,7 +85,7 @@ test('excluded configuration: greyed, marked, no place, not in the plot; the lin
     expect(tb.indexOf('model-b')).toBeLessThan(tb.indexOf('model-c'));
   }
   const fig = /<figure class="svg-chart" id="safety-quadrant">[\s\S]*?<\/figure>/.exec(lb)![0];
-  expect([...fig.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)].reduce((a, m) => a + (m[0].match(/class="q-pt /g) ?? []).length, 0)).toBe(4); // 2 points x (phone + wide)
+  expect([...fig.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)].reduce((a, m) => a + (m[0].match(/class="q-pt (?![^"]*q-off)/g) ?? []).length, 0)).toBe(4); // 2 points x (phone + wide); the one-run point starts hidden
   expect(/<ol class="qkey">[\s\S]*?<\/ol>/.exec(fig)![0]).not.toContain('model-c');
   expect(text(fig)).toContain('model-c · default is not in the plot: excluded, no answer on 4 tasks in run 2, 8 in run 3.');
   const r = /<table class="rating"[\s\S]*?<\/table>/.exec(lb)![0];
@@ -394,4 +394,35 @@ test('header: "v0.1.0 (date)" next to the site name on every page, linking the r
   const foot = /<footer[\s\S]*?<\/footer>/.exec(later.get('index.html')!)![0];
   expect(text(foot)).toContain(`v${RELEASE.version} + 3 changes (unreleased)`);
   expect(text(later.get('updates/index.html')!)).toContain('(unreleased)');
+});
+
+test('prose "What we learned": results and home variants from one source file each, under the plot and table, as written', () => {
+  const src = (f: string) => readFileSync(join(import.meta.dir, '..', 'content', f), 'utf8').trim().split(/\n\s*\n/).map(p => p.replace(/\s+/g, ' ').trim());
+  for (const [doc, f, other] of [[lb, 'what-we-learned.md', 'what-we-learned-home.md'], [home, 'what-we-learned-home.md', 'what-we-learned.md']] as const) {
+    const m = main(doc), at = m.indexOf('<h2 id="what-we-learned">What we learned</h2>');
+    expect(at, f).toBeGreaterThan(m.indexOf('data-chart-for="safety-'));
+    if (doc === lb) expect(at).toBeLessThan(m.indexOf('id="why"'));
+    const ps = src(f);
+    expect(ps.length).toBeGreaterThan(0);
+    for (const p of ps) expect(plain(m).replace(/\s+/g, ' ').replace(/&#39;/g, "'"), f).toContain(p);
+    expect(plain(m)).not.toContain(src(other)[0]!);
+  }
+  for (const f of ['what-we-learned.md', 'what-we-learned-home.md']) {
+    const t = src(f).join(' ');
+    expect(t, f).not.toMatch(/\| *sentence *\||ledger|source \|/i);
+    // model names in the prose carry their effort
+    for (const n of t.matchAll(/\b(?:claude-[a-z]+-\d+(?:\.\d+)?|gpt-\d+(?:\.\d+)?-[a-z]+|gemini-\d+(?:\.\d+)?-[a-z]+|deepseek-v\d+-[a-z]+|qwen\d+(?:\.\d+)?-\d+b)(.{0,3})/g)) expect(n[1], `${f}: ${n[0]}`).toMatch(/^ · /);
+    expect(t, f).not.toMatch(/\b29\b.*always|always escalate.*\b(29|3 of 19)\b/i);
+  }
+  // one block of findings: the "What separates the models" bullets gave way to the prose
+  expect(lb).not.toContain('id="separates"');
+});
+
+test('switcher on the built results page: every configuration has a point; the one-run row is an extra point, off by default', () => {
+  const fig = /<figure class="svg-chart" id="safety-quadrant">[\s\S]*?<\/figure>/.exec(lb)![0];
+  for (const [m, e] of [['model-a', 'default'], ['model-b', 'medium'], ['model-b', 'high']]) expect(fig).toMatch(new RegExp(`class="q-pt[^"]*"[^>]*data-model="${m}" data-effort="${e}"`));
+  expect(fig).toMatch(/class="q-pt q-f-[a-z]+ q-one q-off"[^>]*data-model="model-b" data-effort="high"/);
+  expect(fig).toMatch(/<li value="3"[^>]*data-onerun="1" hidden>[\s\S]*?model-b · high \(one run\)/);
+  expect(fig).toContain('<div class="qctl" data-for="safety-quadrant" hidden>');
+  expect(fig).not.toContain('data-model="model-c"');
 });
