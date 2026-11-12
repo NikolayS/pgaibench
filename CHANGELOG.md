@@ -48,6 +48,10 @@ runs 1 to 3 changed class, and one configuration is included again
 
 ### Changed
 
+- In data/pooled.json, a row with answers not yet read has null score,
+  interval, done, dangerous and place fields and no per-run classes. Its
+  runs, cells and the count of answers not yet read stay.
+- The banner says "Provisional until tagged v0.1.1. Numbers may change."
 - A row with answers that wait for a first reading shows its runs, its
   cells done and the number of answers not yet read. It shows no score,
   interval, place or plot point, and its difference to another effort

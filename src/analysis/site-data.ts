@@ -404,6 +404,13 @@ function withUnread<T extends { effort: { arm: string; rows: { id: string; paire
   const count = new Map(armIn.flatMap((a) => a.configs.map((c) => [rid(c.id, a.id), c.samples.reduce((n, smp) => n + Object.values(smp).filter((x) => (x as { unread?: boolean }).unread).length, 0)] as [string, number])));
   return { ...p, effort: p.effort.map((e) => ({ ...e, rows: e.rows.map((r) => { const unread = count.get(r.id) ?? 0; return { ...r, unread, ...(unread ? { paired: null } : {}) }; }) })) };
 }
+/** The published file: a row with unread cells keeps runs, cells and the unread count; every score field is null and its per-run classes are left out, until those cells are read. */
+const REDACT = ['score', 'dangerous', 'done', 'lo', 'hi', 'place', 'placeLo', 'placeHi', 'split', 'perSample', 'heldout'] as const;
+export function redactUnread<T extends { perRun: Record<string, unknown>; effort: { rows: { id: string; unread?: number }[] }[] }>(p: T): T {
+  const hide = new Set(p.effort.flatMap((e) => e.rows.filter((r) => (r.unread ?? 0) > 0).map((r) => r.id)));
+  return { ...p, perRun: Object.fromEntries(Object.entries(p.perRun).filter(([id]) => !hide.has(id))),
+    effort: p.effort.map((e) => ({ ...e, rows: e.rows.map((r) => (hide.has(r.id) ? { ...r, ...Object.fromEntries(REDACT.map((k) => [k, null])) } : r)) })) };
+}
 export function pooledSiteData(arms: { id: string; ranked?: boolean; builds: ReturnType<typeof buildSiteData>[] }[]) {
   const ids = arms[0]?.builds[0]?.scenarioIds;
   if (!ids) throw new Error("pooled site data needs live builds");
@@ -445,7 +452,7 @@ export function writeSiteData(o: BuildInput, out: string, pooled?: PooledConfig)
   writeFileSync(join(out, "report.md"), r.markdown);
   if (r.provisional) writeFileSync(join(out, "provisional.json"), JSON.stringify(r.provisional, null, 2) + "\n");
   const arms = (pooled?.arms ?? []).map((a) => ({ id: a.id, ...(a.ranked ? { ranked: true } : {}), builds: [...(a.id === "" ? [r] : []), ...a.extra.map((x) => buildSiteData(x))] })).filter((a) => a.builds.length);
-  if (arms.length > 1 || arms.some((a) => a.builds.length > 1)) writeFileSync(join(out, "pooled.json"), JSON.stringify(pooledSiteData(arms), null, 2) + "\n");
+  if (arms.length > 1 || arms.some((a) => a.builds.length > 1)) writeFileSync(join(out, "pooled.json"), JSON.stringify(redactUnread(pooledSiteData(arms)), null, 2) + "\n");
   return r;
 }
 

@@ -58,7 +58,7 @@ const plain = (doc: string) => doc.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(
 test('top lines: three runs per task, averaged; the provisional line', () => {
   for (const doc of [lb, home]) {
     expect(text(doc)).toContain('Three runs per task, averaged');
-    expect(text(doc)).toMatch(/Provisional: not yet reviewed\. Details below ?\./);
+    expect(text(doc)).toMatch(/Provisional until tagged v0\.1\.1\. Details below ?\./);
     expect(plain(doc)).not.toMatch(/one sample per task|One answer per task/i);
   }
 });
@@ -232,7 +232,8 @@ test('method and limits say three runs, averaged; no page says "two more samples
 });
 
 test('fix publish: banner, not requested, one-decimal bar labels, pooled weight sensitivity, R2 line, D21 notes', () => {
-  expect(text(lb)).toContain('Provisional: not yet reviewed. Numbers may change.');
+  expect(text(lb)).toContain('Provisional until tagged v0.1.1. Numbers may change.');
+  expect(text(lb)).not.toContain('not yet reviewed');
   for (const doc of [lb, home]) expect(plain(doc).replace('five runs are in progress', '')).not.toMatch(/results incomplete|in progress/); // the owner's high-effort note is the one exception
   expect(text(lb)).toContain('B5 (not requested, right, right)');
   const bars = /<svg class="chart-wide"[^>]*data-chart="rating"[\s\S]*?<\/svg>/.exec(lb)![0];

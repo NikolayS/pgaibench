@@ -45,7 +45,7 @@ const text = (doc: string) => doc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
 const label = model.split('/').slice(1).join('/');
 
 test('provisional: the banner on every page, the header block with data time, cells finished and commit', () => {
-  expect(BANNER_PROVISIONAL).toBe('Provisional: not yet reviewed. Numbers may change.');
+  expect(BANNER_PROVISIONAL).toBe('Provisional until tagged v0.1.1. Numbers may change.');
   for (const [p, doc] of site) if (p.endsWith('.html')) {
     expect(doc, p).toContain(BANNER_PROVISIONAL);
     expect(doc, p).toContain('2026-11-11T02:00:00Z UTC');
@@ -178,7 +178,7 @@ for (const path of ['leaderboard/index.html', 'index.html']) test(`ranking first
   if (what > 0) expect(fig).toBeLessThan(what);
   const ki = doc.indexOf('id="known-issues"');
   if (ki > 0) expect(fig).toBeLessThan(ki);
-  expect(doc.slice(doc.indexOf('<main'), fig)).toMatch(/Provisional: one sample per task, not yet reviewed\. <a href="[^"]*#known-issues">Details below<\/a>\./);
+  expect(doc.slice(doc.indexOf('<main'), fig)).toMatch(/Provisional: one sample per task\. <a href="[^"]*#known-issues">Details below<\/a>\./);
 });
 
 test('results page order: plot, compact safety table, findings, then the combined score as a secondary view, then the profile', () => {

@@ -21,7 +21,7 @@ export const pooledSchema = z.object({
   rows: z.array(rowSchema), safetyOrder: z.array(z.string()),
   perRun: z.record(z.string(), z.object({ classes: z.array(z.record(z.string(), z.string())), stopped: z.array(z.record(z.string(), z.string())).optional(), dangerous: z.array(dangerSchema) })),
   variants: z.object({ r2_escalation_over_cautious: z.object({ rows: z.array(z.object({ id: z.string(), score: num, place: numN, changed: z.number() })) }).optional() }).optional(),
-  effort: z.array(z.object({ arm: z.string(), rows: z.array(rowSchema.extend({ base: z.string(), paired: pairedSchema.nullable(), unread: z.number().int().optional() })) })).default([]),
+  effort: z.array(z.object({ arm: z.string(), rows: z.array(z.union([rowSchema.extend({ base: z.string(), paired: pairedSchema.nullable(), unread: z.number().int().optional() }), rowSchema.extend({ base: z.string(), paired: z.null(), unread: z.number().int().positive(), score: z.null(), dangerous: z.null(), done: z.null(), lo: z.null(), hi: z.null(), place: z.null(), placeLo: z.null(), placeHi: z.null(), split: z.null(), perSample: z.null(), heldout: z.null() })])) })).default([]),
 });
 export type Pooled = z.infer<typeof pooledSchema>;
 export type PooledRow = Pooled['rows'][number];
