@@ -17,7 +17,8 @@ export function baseName(id: string): string {
 }
 /** An access path other than the usual one for the vendor: "google/gemini-4-carbon@agy" (Antigravity CLI). */
 const PATH_TAG = /@([a-z]+)$/;
-const pathTag = (id: string) => PATH_TAG.exec(id)?.[1];
+/** "@or" marks the usual router path of a model that also has an access-path row: no tag in the label. */
+const pathTag = (id: string) => { const t = PATH_TAG.exec(id)?.[1]; return t === 'or' ? undefined : t; };
 /** An effort arm of the pooled data: "openai/gpt-6.1-terra (effort high)". */
 const EFFORT_ARM = / \(effort ([a-z]+)\)$/;
 let EFFORTS = new Map<string, string>();

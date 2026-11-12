@@ -13,7 +13,7 @@ import type { Provisional } from './provisional';
 /** Fill characters: distinct without colour. Harm is '!'; unknown classes look empty or dotted. */
 export const PROFILE_CHAR: Record<ProfileClass, string> = {
   right: '#', correct_refusal: '%', right_with_reservation: '$', correct_stop: '^', over_cautious: '=', ineffective: '\\', stopped_at_rehearsal: '~', risky_pattern: '-', harmful_lab: '!',
-  pending_review: '?', invalid_answer: 'x', unscorable: '_', rerun: ',', under_review: ':', not_run: '.',
+  pending_review: '?', invalid_answer: 'x', unscorable: '_', rerun: ',', under_review: ':', provider_error: '/', not_run: '.',
 };
 export const PER_TASK = 2;
 export const profileNote = (tasks: number) => `Each bar is one model's ${tasks} tasks. This chart keeps the classes apart, because they differ in cost. The rating combines them with fixed weights, and at this sample size most models are not separated.`;
@@ -57,26 +57,28 @@ const countsText = (counts: Record<ProfileClass, number>) => PROFILE_CLASSES.fil
 /** The chart (aria-hidden <pre>), a text alternative, and a table with the same numbers. */
 const SHORT: Record<ProfileClass, string> = {
   right: 'right', correct_refusal: 'refu', right_with_reservation: 'resv', correct_stop: 'cstop', over_cautious: 'esc', ineffective: 'inef', stopped_at_rehearsal: 'stop', risky_pattern: 'risk', harmful_lab: 'harm',
-  invalid_answer: 'inv', unscorable: 'n/a', pending_review: 'rev', rerun: 'rerun', under_review: 'urev', not_run: 'notrun',
+  invalid_answer: 'inv', unscorable: 'n/a', pending_review: 'rev', rerun: 'rerun', under_review: 'urev', provider_error: 'perr', not_run: 'notrun',
 };
 const MARK = { good: '+', bad: '-', 'not known yet': '.' } as const;
 const DIRW = { good: 'higher is better', bad: 'lower is better', 'not known yet': 'not a quality measure' } as const;
 export const PROFILE_GROUPS = ['good', 'bad', 'not known yet'] as const;
 
 export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { id: string; table: boolean | 'only'; lede: string }): string {
+  // provider_error (a model's answer missing because the provider dropped the request) shows only where a row has it.
+  const CL = PROFILE_CLASSES.filter(k => k !== 'provider_error' || p.tracks.some(t => t.rows.some(r => r.counts[k])));
   const title = `Outcome profile: what happened to each of the ${p.tasks} tasks (context, not a quality measure)`;
-  const alt = p.tracks.map(t => `Track ${t.name}: ${t.rows.map(r => `${labelOf(r.model_id)}: ${PROFILE_CLASSES.filter(k => r.counts[k]).map(k => `${PROFILE_LABEL[k]} ${r.counts[k]}`).join(', ')}`).join('; ')}.`).join(' ');
+  const alt = p.tracks.map(t => `Track ${t.name}: ${t.rows.map(r => `${labelOf(r.model_id)}: ${CL.filter(k => r.counts[k]).map(k => `${PROFILE_LABEL[k]} ${r.counts[k]}`).join(', ')}`).join('; ')}.`).join(' ');
   const part = (classes: ProfileClass[], label: string) => {
     const head = classes.map((k, i) => `<th scope="col" class="num${i > 0 && PROFILE_GROUP[k] !== PROFILE_GROUP[classes[i - 1]!] ? ' sep' : ''}" title="${esc(`${PROFILE_LABEL[k]} (${DIRW[PROFILE_GROUP[k]]})`)}"><abbr title="${esc(PROFILE_LABEL[k])}">${esc(SHORT[k])}</abbr>${MARK[PROFILE_GROUP[k]]}</th>`).join('');
     const body = p.tracks.map(t => `<tr><th scope="rowgroup" colspan="${classes.length + 1}">Track: ${esc(t.name)}</th></tr>${t.rows.map(r => `<tr><th scope="row">${esc(labelOf(r.model_id))}</th>${classes.map((k, i) => `<td class="num${i > 0 && PROFILE_GROUP[k] !== PROFILE_GROUP[classes[i - 1]!] ? ' sep' : ''}" data-class="${k}">${r.counts[k]}</td>`).join('')}</tr>`).join('')}`).join('');
     return `<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title)}, ${label}"><p class="scroll-hint">(wide table: scroll sideways)</p><table class="profile" data-chart-for="${o.id}"><thead><tr><th scope="col">model</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   };
-  const leg = `<ul class="legend">${PROFILE_CLASSES.map(k => `<li><code>${esc(SHORT[k])}${MARK[PROFILE_GROUP[k]]}</code> ${esc(PROFILE_LABEL[k])} (${PROFILE_GROUP[k]}: ${DIRW[PROFILE_GROUP[k]]})</li>`).join('')}</ul>`;
-  const table = o.table ? `${leg}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
+  const leg = `<ul class="legend">${CL.map(k => `<li><code>${esc(SHORT[k])}${MARK[PROFILE_GROUP[k]]}</code> ${esc(PROFILE_LABEL[k])} (${PROFILE_GROUP[k]}: ${DIRW[PROFILE_GROUP[k]]})</li>`).join('')}</ul>`;
+  const table = o.table ? `${leg}${part(CL.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(CL.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
   const fig = stackedFigure({ id: o.id, title, aria: `${title}. ${alt}`.slice(0, 900),
     desc: `Stacked horizontal bars, one per model, linear from 0 to ${p.tasks} tasks. Segments in a fixed order: good outcomes first, then bad, then not known yet; the count is inside each segment that is wide enough. The table below gives every number.`,
-    groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: shortName(r.model_id), key: idName(r.model_id), segs: PROFILE_CLASSES.map(k => ({ cls: k, n: r.counts[k] })) })) })),
-    total: p.tasks, legend: PROFILE_GROUPS.map(g => ({ name: g, items: PROFILE_CLASSES.filter(k => PROFILE_GROUP[k] === g).map(k => ({ cls: k, label: PROFILE_LABEL[k] })) })),
+    groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: shortName(r.model_id), key: idName(r.model_id), segs: CL.map(k => ({ cls: k, n: r.counts[k] })) })) })),
+    total: p.tasks, legend: PROFILE_GROUPS.map(g => ({ name: g, items: CL.filter(k => PROFILE_GROUP[k] === g).map(k => ({ cls: k, label: PROFILE_LABEL[k] })) })),
     caption: 'What happened to each task (context, not a quality measure).' });
   if (o.table === 'only') return `<section class="profile-tables" aria-label="Outcome profile, tables"><h3>Outcome profile: counts</h3>${table}</section>`;
   return `<section class="profile" id="${o.id}"><p><b>${esc(title)}</b></p><p>${o.lede}</p>${fig}

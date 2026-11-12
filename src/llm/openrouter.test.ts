@@ -196,7 +196,7 @@ describe("callOpenRouter", () => {
 describe("models.json", () => {
   test("repo models.json parses and lists the PLAN candidates", () => {
     const ms = loadModels();
-    expect(ms.length).toBe(18);
+    expect(ms.length).toBe(19);
     expect(ms.filter((m) => m.open_weights).length).toBe(6);
     for (const m of ms) {
       expect(m.default_effort).toBeDefined();

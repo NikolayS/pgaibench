@@ -414,6 +414,25 @@ describe("site-data, later samples and the pooled table", () => {
     expect(JSON.stringify(b(f1).provisional)).toBe(JSON.stringify(one.provisional));
   });
 
+  test("provider error: no lab cell and a provider_error answer record give class provider_error, missing, not dangerous", async () => {
+    const { MISSING_CLASSES } = await import("./pooled");
+    const { PROFILE_LABEL, PROFILE_GROUP } = await import("./outcome-map");
+    const f = fixture(); addSample2(f);
+    rmSync(join(f.runs, `L2-or_${slug("fake/model-a")}-v2-s1-n2`), { recursive: true });
+    const tf = join(f.textDir, "cells.json");
+    writeFileSync(tf, JSON.stringify(JSON.parse(readFileSync(tf, "utf8")).map((t: TextCell) => (t.sample === 2 && t.scenario === "L2" && t.model === "fake/model-a" ? { ...t, status: "provider_error", outcome: "invalid" } : t))));
+    const two = b(f, 2);
+    expect(two.samples!["fake/model-a"]!.L2).toEqual({ cls: "provider_error", dangerous: false, stopped: "not_run" });
+    expect(two.samples!["fake/model-b"]!.L2!.cls).toBe("right");
+    expect(MISSING_CLASSES.has("provider_error")).toBe(true);
+    expect(PROFILE_LABEL.provider_error).toBe("provider error");
+    expect(PROFILE_GROUP.provider_error).toBe("not known yet");
+    // without the provider_error record the same gap stays "not run yet"
+    const g = fixture(); addSample2(g);
+    rmSync(join(g.runs, `L2-or_${slug("fake/model-a")}-v2-s1-n2`), { recursive: true });
+    expect(b(g, 2).samples!["fake/model-a"]!.L2!.cls).toBe("not_run");
+  });
+
   test("a later sample alone (no sample-1 lab cells) still gives every planned configuration its classes", () => {
     const f = fixture();
     for (const d of readdirSync(f.runs)) rmSync(join(f.runs, d), { recursive: true });

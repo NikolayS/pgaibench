@@ -30,7 +30,7 @@ test('profile: every bar is all tasks long, segments are count times the per-tas
 test('profile: the legend under the plot lists every class with its swatch; harm has its own fill', () => {
   const doc = finalSite.get('leaderboard/index.html')!;
   const lg = /<ul class="pf-legend">([\s\S]*?)<\/ul>/.exec(doc)![1]!;
-  for (const k of PROFILE_CLASSES) expect(lg).toContain(`<span class="sw pf-${k}" aria-hidden="true"></span>${PROFILE_LABEL[k].replace(/&/g, '&amp;')}`);
+  for (const k of PROFILE_CLASSES.filter(k => k !== 'provider_error')) expect(lg).toContain(`<span class="sw pf-${k}" aria-hidden="true"></span>${PROFILE_LABEL[k].replace(/&/g, '&amp;')}`);
   expect(svg(doc)).toMatch(/class="pf pf-harmful_lab"/);
 });
 
@@ -48,7 +48,7 @@ test('profile: the table numbers equal the chart numbers; models alphabetical, n
       const prof = doc.slice(doc.indexOf('<section class="profile" id="profile">'));
       const rowHtml = [...prof.slice(0, prof.indexOf('</section>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]} · default</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
       const nums = [...rowHtml.matchAll(/data-class="(\w+)">(\d+)</g)].map(m => [m[1], Number(m[2])]);
-      expect(Object.fromEntries(nums)).toEqual(r.counts);
+      expect(Object.fromEntries(nums)).toEqual(Object.fromEntries(Object.entries(r.counts).filter(([k, v]) => k !== 'provider_error' || v)));
     }
   }
   expect(doc.indexOf('id="profile"')).toBeLessThan(doc.indexOf('Track: '));
@@ -66,4 +66,11 @@ test('profile: held-out tasks are not run yet until the held-out set is finished
   row.heldout = { tasks: res.heldout_tasks, counts: { right: res.heldout_tasks }, profile: { right: res.heldout_tasks } };
   const q = profiles(r2, cells, null).tracks[0]!.rows[0]!.counts;
   expect(Object.values(q).reduce((a, b) => a + b, 0)).toBe(N);
+});
+
+test('profile: the provider-error class shows only where a cell has it (legend, tables, chart)', () => {
+  const doc = finalSite.get('leaderboard/index.html')!;
+  expect(doc).not.toContain('provider error');
+  expect(doc).not.toContain('pf-provider_error');
+  expect(doc).not.toContain('perr');
 });

@@ -78,3 +78,9 @@ test('family colours follow each vendor brand hue, with at least 3:1 contrast in
     const h = hue(c!); expect(h >= want[i]![0] && h <= want[i]![1], `${c} hue ${h}`).toBe(true);
   });
 });
+
+test('family: a router row "@or" takes the family of its model', async () => {
+  const { familyOf } = await import('../src/family');
+  expect(familyOf('google/gemini-4-carbon@or')).toBe('google');
+  expect(familyOf('google/gemini-4-carbon@agy')).toBe('google');
+});

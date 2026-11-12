@@ -285,6 +285,24 @@
     "access": "openrouter"
   },
   {
+    "id": "google/gemini-4-carbon",
+    "vendor": "Google",
+    "tier": "large",
+    "open_weights": false,
+    "provider": {
+      "order": [
+        "google-vertex/global"
+      ],
+      "allow_fallbacks": false
+    },
+    "reasoning": null,
+    "default_effort": "medium",
+    "price_in": 2,
+    "price_out": 10,
+    "max_tokens": 32000,
+    "access": "openrouter"
+  },
+  {
     "id": "google/gemini-4-carbon@agy",
     "vendor": "Google",
     "tier": "large",
