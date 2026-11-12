@@ -35,7 +35,7 @@ test('five runs: lede and every sentence about the main table name five runs', (
 
 test('five runs: the provisional line opens the ranking and links the v0.1.0 table', () => {
   expect(RECORD_RUNS).toBe(3);
-  expect(FIVE_RUN_LINE(5)).toBe('This table averages five runs. Runs 4 and 5 are provisional until their unclear answers are read; until then such an answer counts 0 points. A reading can raise a score, or lower it when the readers find a risky change. The ranking of record is still the three-run table of v0.1.0, one click away:');
+  expect(FIVE_RUN_LINE(5)).toBe('This table averages five runs. The answers of runs 4 and 5 that the rules could not class were read by two AI-model readers, independently of each other; where the two agree, the cell takes their class, and where they disagree, the cell stays pending review at 0 points. This table becomes release v0.1.1 when it is tagged. Until then the ranking of record is the three-run table of v0.1.0, one click away:');
   const lb = site5.get('leaderboard/index.html')!;
   const at = lb.indexOf(FIVE_RUN_LINE(5));
   expect(at).toBeGreaterThan(-1);
@@ -61,4 +61,20 @@ test('footer: last updated time (UTC) on every page of a provisional build', () 
     const f = /<footer[\s\S]*?<\/footer>/.exec(site5.get(p)!)![0];
     expect(text(f)).toContain('Last updated 2026-11-12T20:00:00Z (UTC).');
   }
+});
+
+test('readings of runs 4 and 5: labels and reader text', async () => {
+  const { READ_TAG, READERS_DISAGREE } = await import('../src/provisional');
+  const { AGY_NOTE, OR_NOTE } = await import('../src/statements');
+  expect(READ_TAG.DISAGREE![1]).toBe('pending review (the two readers disagree; the value the rules set stays, 0 points)');
+  expect(READERS_DISAGREE).not.toMatch(/in runs 1 to 3\./);
+  expect(READERS_DISAGREE).toContain('agreed on the class of 107 of 109');
+  expect(READERS_DISAGREE).toContain('this round has no third reading');
+  expect(AGY_NOTE).toContain('It meets the inclusion rule in all five runs and is ranked with the other rows.');
+  expect(AGY_NOTE).not.toContain('will use for ranking');
+  expect(OR_NOTE).toContain('does not meet the inclusion rule in three of its five runs');
+  for (const t of [READERS_DISAGREE, AGY_NOTE, OR_NOTE, FIVE_RUN_LINE(5)]) expect(t).not.toMatch(/only (rise|raise|go up)/);
+  const rec = text(site5.get('releases/v0.1.0/index.html')!);
+  expect(rec).not.toContain('until their unclear answers are read');
+  expect(text(site5.get('leaderboard/index.html')!)).not.toContain('when runs 4 and 5 are read');
 });

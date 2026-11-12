@@ -493,6 +493,18 @@ describe("site-data, later samples and the pooled table", () => {
     expect(arm.rows.map((r) => r.id)).not.toContain("fake/model-a (effort high)");
     expect(arm.effort[0]!.rows.find((r) => r.id === "fake/model-a (effort high)")!.samples).toBe(1);
   });
+
+  test("pooled site data: a ranked access-path arm gets places, perRun and no effort entry", async () => {
+    const { pooledSiteData } = await import("./site-data");
+    const f = fixture(); addSample2(f);
+    const one = b(f), two = b(f, 2);
+    const p = pooledSiteData([{ id: "", builds: [one, two] }, { id: " (via cli)", ranked: true, builds: [two, one] }]) as any;
+    expect(p.rows.map((r: any) => r.id)).toContain("fake/model-a (via cli)");
+    expect(p.rows.find((r: any) => r.id === "fake/model-a (via cli)").place).not.toBeNull();
+    expect(p.perRun["fake/model-a (via cli)"].classes).toHaveLength(2);
+    expect(p.perRun["fake/model-a (via cli)"].dangerous.filter((x: any) => x.run === 1)).toEqual(p.perRun["fake/model-a"].dangerous.filter((x: any) => x.run === 2).map((x: any) => ({ ...x, run: 1 })));
+    expect(p.effort).toHaveLength(0);
+  });
 });
 
 test("rating (score v0) in site data: public tasks only, two scores, places; held-out as a separate aggregate", async () => {

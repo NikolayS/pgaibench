@@ -131,6 +131,17 @@ describe("pooledArms", () => {
     expect(e.base).toBe("v/c");
     expect(e.paired).toBeNull();
   });
+  test("a ranked access-path arm joins the base arm: its rows get places, it has no effort entry", () => {
+    const t = pooledArms({ publicIds: PUB, heldIds: HELD, arms: [
+      { id: "", configs: [{ id: "m", samples: [half, half, half] }] },
+      { id: "@agy", ranked: true, configs: [{ id: "v/c@agy", samples: [good, good, good] }] },
+      { id: "@or", configs: [{ id: "v/c", samples: [good] }] },
+    ] });
+    expect(t.rows.map((r) => r.id)).toEqual(["v/c@agy", "m"]);
+    expect(t.rows.map((r) => r.place)).toEqual([1, 2]);
+    expect(t.safetyOrder).toContain("v/c@agy");
+    expect(t.effort.map((x) => x.arm)).toEqual(["@or"]);
+  });
   test("paired difference: mean of (arm points minus base mean) over tasks, bootstrap interval; without missing", () => {
     const miss = { ...good } as Record<string, SampleCell>; delete miss.A4;
     const p = pairedDiff([miss], [half, good, half], PUB);

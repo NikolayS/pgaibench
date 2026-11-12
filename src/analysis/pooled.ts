@@ -127,12 +127,14 @@ export function pairedDiff(arm: SampleRecord[], base: SampleRecord[], publicIds:
  */
 /** Row id of an arm: "<model><arm id>", unless the model id already ends with the arm id (an access-path arm, "@agy"). */
 const rowId = (model: string, arm: string) => (arm && model.endsWith(arm) ? model : `${model}${arm}`);
-export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: string; configs: PooledConfig[] }[] }) {
+export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: string; ranked?: boolean; configs: PooledConfig[] }[] }) {
   const baseArm = inp.arms.find((a) => a.id === "");
   if (!baseArm) throw new Error("pooledArms needs a base arm (id \"\")");
   const { arms, ...rest } = inp;
-  const main = pooledTable({ ...rest, configs: baseArm.configs });
-  const effort = arms.filter((a) => a.id !== "").map((a) => {
+  // a ranked arm (an access path that meets the rules) joins the base arm: its rows are ranked with the others
+  const rankedConfigs = arms.filter((a) => a.id !== "" && a.ranked).flatMap((a) => a.configs.map((c) => ({ id: rowId(c.id, a.id), samples: c.samples })));
+  const main = pooledTable({ ...rest, configs: [...baseArm.configs, ...rankedConfigs] });
+  const effort = arms.filter((a) => a.id !== "" && !a.ranked).map((a) => {
     const t = pooledTable({ ...rest, variants: undefined, configs: a.configs.map((c) => ({ id: rowId(c.id, a.id), samples: c.samples })) });
     const rows = t.rows.map((r) => {
       const m = r.id.slice(0, r.id.length - a.id.length), b = baseArm.configs.find((c) => c.id === m);
