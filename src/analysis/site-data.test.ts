@@ -386,6 +386,13 @@ test("live plan: sample-2 cell names (-n2) are planned", async () => {
   expect(readLivePlan([r], ["fake/model-a"]).planned).toEqual([{ model: "fake/model-a", scenario: "B5" }]);
 });
 
+test("live plan: an effort-level model id (\"<model>:high\") matches its cell slug (\"_high\")", async () => {
+  const { readLivePlan } = await import("./site-data");
+  const r = tmp("sd-plan3-");
+  writeJson(r, "batch-order-s9.json", { models: ["fake/model-a:high"], episodes: ["B5-or_fake_model-a_high-v2-s9-n2"] });
+  expect(readLivePlan([r], ["fake/model-a", "fake/model-a:high"]).planned).toEqual([{ model: "fake/model-a:high", scenario: "B5" }]);
+});
+
 describe("site-data, later samples and the pooled table", () => {
   const planned = MODELS.flatMap((m) => ["L1", "L2", "B5", "Z9"].map((scenario) => ({ model: m.id, scenario })));
   const liveN = (sample?: number) => ({ include: MODELS.map((m) => m.id), excludedReason: "x", planned, rerun: new Set<string>(), underReview: new Set<string>(), dataAt: "2026-11-11T02:00:00Z", ...(sample ? { sample } : {}) });
@@ -508,6 +515,29 @@ describe("site-data, later samples and the pooled table", () => {
     const q = pooledSiteData([{ id: "", builds: [one, two] }, { id: "@cli", builds: [two] }, { id: " (effort high)", builds: [two] }]) as any;
     expect(q.perRun["fake/model-a@cli"].classes).toHaveLength(1);
     expect(q.perRun["fake/model-a (effort high)"]).toBeUndefined();
+  });
+
+  test("pooled site data: a level arm (\":high\") merges base and \":high\" model ids; a model counts only the runs it has", async () => {
+    const { pooledSiteData } = await import("./site-data");
+    const f = fixture(); addSample2(f);
+    const one = b(f), two = b(f, 2);
+    const models = Object.keys(one.samples!).sort();
+    expect(models.length).toBeGreaterThan(1);
+    const [ma, mb] = models as [string, string];
+    // run 2 holds only the first model, under its level id
+    const lvl = (x: any) => ({ ...x, samples: { [`${ma}:high`]: x.samples[ma] }, dangerCells: { [`${ma}:high`]: x.dangerCells?.[ma] ?? [] } });
+    const p = pooledSiteData([{ id: "", builds: [one, two] }, { id: ":high", builds: [one, lvl(two)] }]) as any;
+    const rows = p.effort.find((e: any) => e.arm === ":high").rows;
+    expect(rows.map((r: any) => r.id).sort()).toEqual([`${ma}:high`, `${mb}:high`]);
+    expect(rows.find((r: any) => r.id === `${ma}:high`).samples).toBe(2);
+    expect(rows.find((r: any) => r.id === `${mb}:high`).samples).toBe(1);
+    const base = pooledSiteData([{ id: "", builds: [one, two] }]) as any;
+    expect(rows.find((r: any) => r.id === `${mb}:high`).missing).toEqual([base.rows.find((r: any) => r.id === mb).missing[0]]);
+    expect(p.perRun[`${ma}:high`].classes).toHaveLength(2);
+    expect(p.perRun[`${mb}:high`].classes).toHaveLength(1);
+    expect(p.perRun[`${ma}:high`].dangerous.filter((x: any) => x.run === 2).map(({ run, ...x }: any) => x)).toEqual((two.dangerCells?.[ma] ?? []));
+    // the base arm and its places are unchanged by the level arm
+    expect(p.rows).toEqual(base.rows);
   });
 });
 

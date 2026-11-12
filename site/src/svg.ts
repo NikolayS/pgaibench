@@ -13,7 +13,7 @@ export type HBarSpec = { id: string; title: string; desc: string; aria: string; 
 /** The model part of a name: the full name with its family word (claude-, gpt-, gemini-), no vendor
  *  or access path, no trailing date/build suffix (deepseek-v4-pro-0813 -> deepseek-v4-pro), no effort. */
 export function baseName(id: string): string {
-  return (id.replace(EFFORT_ARM, '').replace(PATH_TAG, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
+  return (id.replace(EFFORT_ARM, '').replace(LEVEL, '').replace(PATH_TAG, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
 }
 /** An access path other than the usual one for the vendor: "google/gemini-4-carbon@agy" (Antigravity CLI). */
 const PATH_TAG = /@([a-z]+)$/;
@@ -21,6 +21,8 @@ const PATH_TAG = /@([a-z]+)$/;
 const pathTag = (id: string) => { const t = PATH_TAG.exec(id)?.[1]; return t === 'or' ? undefined : t; };
 /** An effort arm of the pooled data: "openai/gpt-6.1-terra (effort high)". */
 const EFFORT_ARM = / \(effort ([a-z]+)\)$/;
+/** An effort level as its own configuration: "openai/gpt-6-astra:high" (pooled level arm ":high"). */
+const LEVEL = /:([a-z]+)$/;
 let EFFORTS = new Map<string, string>();
 let FALLBACK: Map<string, string> | null = null;
 /** The site build sets the efforts from the models table ("Models under test"), the one source. */
@@ -36,7 +38,7 @@ function fallback(): Map<string, string> {
 }
 /** Reasoning effort of a configuration: the arm suffix, else the models table, else models.json; "default" when we set none. */
 export function effortOf(id: string): string {
-  const arm = EFFORT_ARM.exec(id)?.[1];
+  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1];
   if (arm) return arm;
   return EFFORTS.get(id) ?? fallback().get(id) ?? 'default';
 }
@@ -49,7 +51,7 @@ export const modelLabel = shortName;
 /** URL path segment of a model (compare pages); unchanged so that old links keep working. A further effort level of
  *  the same model gets "-<effort>" (fable-5.2-medium); the main effort of a model keeps the bare slug. */
 export function urlSlug(id: string): string {
-  const arm = EFFORT_ARM.exec(id)?.[1];
+  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1];
   return baseName(id).replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '') + (arm ? `-${arm}` : '') + (pathTag(id) ? `-${pathTag(id)}` : '');
 }
 

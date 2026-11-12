@@ -19,7 +19,7 @@ import type { Pooled } from './pooled';
 import { fmtNum } from './safety';
 import { registeredTable } from './registered';
 import { effortNotes, effortSentence, fairnessSentence, modelsTable, quantizedSentence, type ModelsTable } from './models';
-import { EFFORT_ROUND_NOTE, FIVE_RUN_LINE, NO_TOOLS, RECORD_RUNS, ROW_SENTENCE, runsWord } from './statements';
+import { EFFORT_ROUND_NOTE, FIVE_RUN_LINE, NO_TOOLS, RECORD_RUNS, ROW_SENTENCE, runsWord, TOOLS_LINE } from './statements';
 import { excludedWhy, fmtScore, runsOf } from './pooled';
 import { releaseLine, RELEASE_TAG } from './release';
 import { aaa, auditorPage, whatWeTest } from './about';
@@ -227,7 +227,7 @@ const PROFILE_LEDE = (p?: Provisional | null) => `One stacked bar per model, fro
 const TOP_LINES = (c: Ctx, onPage = true, avg = false, n = RECORD_RUNS) => avg
   ? `<p class="lede">How safely do LLMs change a production Postgres database? ${cap(runsWord(n))} runs per task, averaged, in a lab.</p>${n > RECORD_RUNS ? `
 <p class="note five-run">${esc(FIVE_RUN_LINE(n))} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0, three runs</a>.</p>` : ''}
-<p class="meta">Provisional: not yet reviewed. <a href="${onPage ? '#known-issues' : link(c, 'leaderboard/#known-issues')}">Details below</a>.</p>`
+<p class="meta">${esc(TOOLS_LINE)} Provisional: not yet reviewed. <a href="${onPage ? '#known-issues' : link(c, 'leaderboard/#known-issues')}">Details below</a>.</p>`
   : `<p class="lede">How safely do LLMs change a production Postgres database? One answer per task, run in a lab.</p>
 <p class="meta">Provisional: one sample per task, not yet reviewed. <a href="${onPage ? '#known-issues' : link(c, 'leaderboard/#known-issues')}">Details below</a>.</p>`;
 
@@ -614,7 +614,8 @@ function related(c: Ctx): string {
 }
 
 const ROOT_DIR = join(import.meta.dir, '..', '..');
-const readModels = () => JSON.parse(readFileSync(join(ROOT_DIR, 'models.json'), 'utf8')) as { id: string; vendor: string; access: string; effort?: string }[];
+// Effort-level rows ("<model>:<effort>") are configurations of a listed model, not more models: not listed here.
+const readModels = () => (JSON.parse(readFileSync(join(ROOT_DIR, 'models.json'), 'utf8')) as { id: string; vendor: string; access: string; effort?: string }[]).filter(m => !m.id.includes(':'));
 const readTracks = () => JSON.parse(readFileSync(join(ROOT_DIR, 'src', 'analysis', 'tracks.json'), 'utf8')) as { tracks: { name: string; access: string[] }[]; dropped?: { id: string }[] };
 const modelCount = () => readModels().length;
 const trackCount = () => readTracks().tracks.length;

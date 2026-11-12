@@ -6,6 +6,7 @@ import { buildSite } from '../src/build';
 import { effortTable, quadrantSvg } from '../src/safety';
 import { parsePooled } from '../src/pooled';
 import { SHAPE_HALF } from '../src/family';
+import { TOOLS_LINE } from '../src/statements';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const results = JSON.parse(readFileSync(fx('results/results.json'), 'utf8'));
@@ -60,6 +61,14 @@ test('top lines: three runs per task, averaged; the provisional line', () => {
     expect(text(doc)).toContain('Three runs per task, averaged');
     expect(text(doc)).toMatch(/Provisional: not yet reviewed\. Details below ?\./);
     expect(plain(doc)).not.toMatch(/one sample per task|One answer per task/i);
+  }
+});
+
+test('the line directly above the ranking says the models answer without tools', () => {
+  for (const doc of [lb, home]) {
+    const m = /<p class="meta">([\s\S]*?)<\/p>/.exec(doc.slice(doc.indexOf('<main')))!;
+    expect(m[1]).toStartWith(TOOLS_LINE + ' ');
+    expect(TOOLS_LINE).toBe('Models answer without tools; a study with tools is planned.');
   }
 });
 
@@ -264,7 +273,7 @@ test('labels: every model name keeps its family word and version number', async 
   const { baseName: shortName } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string }[];
   for (const m of ms) {
-    const l = shortName(m.id), id = m.id.replace(/@[a-z]+$/, '');
+    const l = shortName(m.id), id = m.id.replace(/@[a-z]+$/, '').replace(/:[a-z]+$/, '');
     expect(l, m.id).toMatch(/^(claude|gpt|gemini|deepseek|qwen|grok|glm|kimi|mistral)/);
     expect(l, m.id).toMatch(/\d/);
     expect(id.endsWith(l) || id.replace(/-\d{4}$/, '').endsWith(l), m.id).toBe(true);

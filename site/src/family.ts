@@ -21,7 +21,7 @@ export function familyOf(modelId: string): string {
     const m = JSON.parse(readFileSync(join(import.meta.dir, '..', '..', 'models.json'), 'utf8')) as { id: string; vendor: string; open_weights: boolean }[];
     cache = new Map(m.map(x => [x.id, familyFrom(x)]));
   }
-  return cache.get(modelId) ?? cache.get(modelId.replace(/@or$/, '')) ?? 'other';
+  return cache.get(modelId) ?? cache.get(modelId.replace(/@or$/, '')) ?? cache.get(modelId.replace(/:[a-z]+$/, '')) ?? 'other';
 }
 
 // Equal area: a circle of radius R; square side, diamond and equilateral triangle sized to the same area.

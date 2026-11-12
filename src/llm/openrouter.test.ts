@@ -195,7 +195,7 @@ describe("callOpenRouter", () => {
 
 describe("models.json", () => {
   test("repo models.json parses and lists the PLAN candidates", () => {
-    const ms = loadModels();
+    const ms = loadModels().filter((m) => !m.id.includes(":")); // effort-level rows: configurations of a listed model
     expect(ms.length).toBe(19);
     expect(ms.filter((m) => m.open_weights).length).toBe(6);
     for (const m of ms) {
@@ -260,8 +260,18 @@ describe("access paths (subscription rule)", () => {
     expect(() => loadModels(write([{ ...cc, effort: undefined }]))).toThrow(/effort/);
     expect(() => loadModels(write([{ ...cc, effort: "high" }]))).toThrow(/default_effort/);
   });
+  test("repo models.json: effort-level rows (as run in the lab) copy their base row except id, effort and default_effort", () => {
+    const ms = loadModels(), lv = ms.filter((m) => m.id.includes(":"));
+    for (const m of lv) {
+      const [b, e] = m.id.split(":") as [string, string], base = ms.find((x) => x.id === b)!;
+      expect(base, m.id).toBeDefined();
+      expect(m.effort).toBe(e);
+      const { id: _i, effort: _e, default_effort: _d, ...rest } = m as any, { id: _bi, effort: _be, default_effort: _bd, ...brest } = base as any;
+      expect(rest, m.id).toEqual(brest);
+    }
+  });
   test("repo models.json: OpenAI on codex-cli, Anthropic on claude-cli at vendor default effort, every OpenRouter model pinned without fallbacks", () => {
-    for (const m of loadModels()) {
+    for (const m of loadModels().filter((x) => !x.id.includes(":"))) {
       if (m.id.startsWith("openai/")) expect(m).toMatchObject({ access: "codex-cli", effort: "medium", cli_model: m.id.slice(7) });
       else if (m.id.startsWith("anthropic/")) { expect(m.access).toBe("claude-cli"); expect(m.effort).toBe(m.default_effort!); expect(m.cli_model).toBe(m.id.slice(10).replace(/\./g, "-")); }
       else if (m.id.endsWith("@agy")) { expect(m.access).toBe("agy-cli"); expect(m.effort).toBe(m.default_effort!); }

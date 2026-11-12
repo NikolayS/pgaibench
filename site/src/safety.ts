@@ -45,7 +45,11 @@ const AVG_COLS: [string, string, string][] = [COLS[0]!, ['dangerous', 'dangerous
 
 /** A row of an access-path arm (pooled.json effort[], arm "@agy"): fewer runs, no place, listed under the ranking. */
 export type ProvRow = { id: string; samples: number; score: number; lo: number | null; hi: number | null; dangerous: number; done: number; split: { rehearsal: number; production_no_harm: number; harm_measured: number } };
-export const provisionalRows = (p: Pick<Pooled, 'effort'> | null | undefined): ProvRow[] => (p?.effort ?? []).filter(a => a.arm.startsWith('@')).flatMap(a => a.rows);
+/** Provisional rows: access-path arms ("@agy") and effort-level arms (":high", rows "<model>:high"). */
+const provArm = (arm: string) => arm.startsWith('@') || arm.startsWith(':');
+export const provisionalRows = (p: Pick<Pooled, 'effort'> | null | undefined): ProvRow[] => (p?.effort ?? []).filter(a => provArm(a.arm)).flatMap(a => a.rows);
+/** Other effort levels shown only by the plot switcher (the older one-run arms " (effort high)"). */
+export const otherLevelRows = (p: Pick<Pooled, 'effort'> | null | undefined): ProvRow[] => (p?.effort ?? []).filter(a => !provArm(a.arm)).flatMap(a => a.rows);
 const runsWord = (x: ProvRow) => `${x.samples} of ${PLANNED_RUNS} runs`;
 const provScore = (x: ProvRow) => `${fmtScore(x.score)} [${fmtScore(x.lo ?? 0)} to ${fmtScore(x.hi ?? 0)}]`;
 
@@ -351,8 +355,8 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded), prov = provisionalRows(o.pooled);
   const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
   const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortOf(r.model_id), main: true })),
-      ...(o.pooled?.effort ?? []).flatMap(e => e.rows).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 })),
-      ...prov.map((x, i) => ({ label: `${short(x.id)}, ${runsWord(x)}, not ranked`, x: x.done, y: x.dangerous, n: ord.length + (o.pooled?.effort ?? []).flatMap(e => e.rows).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortOf(x.id), main: true }))], xMax: n, origin: 'median',
+      ...otherLevelRows(o.pooled).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 })),
+      ...prov.map((x, i) => ({ label: `${short(x.id)}, ${runsWord(x)}, not ranked`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortOf(x.id), main: true }))], xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION, ...(note ? { note } : {}) });
   const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div>`;
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', limitLine(rows[0]!.avg?.runs ?? 3), o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('') + (o.prose ?? '');
