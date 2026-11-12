@@ -329,3 +329,20 @@ tr.excluded th, tr.excluded td { color: var(--muted); }
 table.compact tr.excluded th[scope="row"] { white-space: normal; }
 /* 320 px phones: the compact tables shrink a little and row names may wrap, so they fit with decimals. */
 @media (max-width: 21rem) { .wrap table.compact { font-size: 0.8em; } .wrap table.compact th, .wrap table.compact td { padding-left: 0.25ch; padding-right: 0.25ch; } .wrap table.compact tbody th[scope="row"] { white-space: normal; } }
+
+/* plot switcher (assets/plot.js): hidden without JavaScript; extra points start hidden */
+.qctl[hidden] { display: none; }
+.qctl p { margin: 0; }
+.qctl button { all: unset; cursor: pointer; color: var(--accent); text-decoration: underline; white-space: nowrap; margin-right: 1ch; }
+.qctl button[aria-pressed="true"] { color: var(--ink); text-decoration: none; font-weight: 800; }
+.qctl button[aria-pressed="true"]::before { content: "["; } .qctl button[aria-pressed="true"]::after { content: "]"; }
+.qctl button:focus-visible, .qctl select:focus-visible { outline: var(--bw) solid var(--accent); }
+.qctl select { font-family: inherit; font-size: inherit; color: var(--ink); background: var(--bg); border: var(--bw) solid var(--ink); max-width: 100%; }
+.qctl { margin-bottom: calc(var(--lh) / 2); }
+@media (max-width: 40rem) { .qctl button, .qctl select { min-height: 40px; } }
+svg[data-chart] .q-off { display: none; }
+.q-off { display: none; }
+svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.3; }
+.q-pt.q-one { fill: none; stroke-width: 1.5; }
+.q-one.q-f-anthropic { stroke: var(--fam-anthropic); } .q-one.q-f-openai { stroke: var(--fam-openai); } .q-one.q-f-google { stroke: var(--fam-google); } .q-one.q-f-open { stroke: var(--fam-open); } .q-one.q-f-other { stroke: var(--ink); }
+.q-line { fill: none; stroke: var(--ink); stroke-width: 1; }
