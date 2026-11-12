@@ -17,7 +17,7 @@ import { safetyDetails, safetyRows, safetyTop } from './safety';
 import type { Pooled } from './pooled';
 import { registeredTable } from './registered';
 import { effortNotes, effortSentence, fairnessSentence, modelsTable, quantizedSentence, type ModelsTable } from './models';
-import { NO_TOOLS, ROW_SENTENCE } from './statements';
+import { EFFORT_ROUND_NOTE, NO_TOOLS, ROW_SENTENCE } from './statements';
 import { releaseLine, RELEASE_TAG } from './release';
 import { aaa, auditorPage, whatWeTest } from './about';
 import { updatesPage, type Snapshot } from './updates';
@@ -39,7 +39,7 @@ export function learned(file: string): string {
   return `<div class="learned" role="region" aria-labelledby="what-we-learned"><h2 id="what-we-learned">What we learned</h2>${ps.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
 }
 const fairLine = (d?: SiteData) => (runModels(d).length ? fairnessSentence(runModels(d)) : '');
-const rankNotes = (d?: SiteData) => (runModels(d).length ? effortNotes(runModels(d), ROW_SENTENCE) : ROW_SENTENCE);
+const rankNotes = (d?: SiteData) => `${runModels(d).length ? effortNotes(runModels(d), ROW_SENTENCE) : ROW_SENTENCE} ${EFFORT_ROUND_NOTE}`;
 const quantLine = (d?: SiteData) => (runModels(d).length ? quantizedSentence(runModels(d)) : '');
 const OK: Record<string, string> = { right: 'right', harmful: 'harmful', escalated: 'escalated where a safe change existed', ineffective: 'ineffective', pending: 'pending review' };
 /** ASCII tags: outcome classes never rely on colour. */

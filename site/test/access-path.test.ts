@@ -35,5 +35,6 @@ describe('access path', () => {
   test('note: Antigravity CLI, subscription, tools blocked, wrapper, title, not identical', () => {
     for (const w of ['(agy)', 'Antigravity CLI', 'subscription', 'not the raw API', 'Tools were blocked', 'wrapper', 'title', 'not identical']) expect(AGY_NOTE).toContain(w);
     expect(AGY_NOTE).not.toMatch(/PostgreSQL|Claude|Opus|agent/);
+    expect(AGY_NOTE).toEndWith('This row is the Carbon result we will use for ranking once the five-run table for all models is ready.');
   });
 });
