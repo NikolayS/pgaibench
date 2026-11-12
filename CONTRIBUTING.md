@@ -80,3 +80,25 @@ Every change gets a review before merge. Scenario changes get a second
 review by someone who did not write the scenario. Changes to scoring or to
 outcome definitions are recorded in [CHANGELOG.md](CHANGELOG.md) with their
 known effect on scores.
+
+## Report a scoring error
+
+Open an issue. Name the run, the model row and the task id. Say which
+class the answer got and which class you expect, and why. Link the answer
+file in `data/` if you can. We check the report against the lab outcome.
+If the class is wrong, we fix it and record the change in
+[CHANGELOG.md](CHANGELOG.md).
+
+## Open a pull request
+
+1. Fork the repository and make a branch.
+2. Keep one change per pull request.
+3. Add a test that fails before the change and passes after it.
+4. Run `bun test`. All tests must pass.
+5. Describe what the change does and why.
+
+## License
+
+PGAIBench is under the Apache License 2.0 (see [LICENSE](LICENSE)). By
+opening a pull request, you agree that your contribution is under the same
+license.

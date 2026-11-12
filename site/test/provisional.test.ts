@@ -45,7 +45,7 @@ const text = (doc: string) => doc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
 const label = model.split('/').slice(1).join('/');
 
 test('provisional: the banner on every page, the header block with data time, cells finished and commit', () => {
-  expect(BANNER_PROVISIONAL).toBe('Provisional until tagged v0.1.1. Numbers may change.');
+  expect(BANNER_PROVISIONAL).toBe('Young project. <a href="https://github.com/NikolayS/pgaibench/issues">Feedback</a>, proposals and PRs are welcome on <a href="https://github.com/NikolayS/pgaibench">GitHub</a>.');
   for (const [p, doc] of site) if (p.endsWith('.html')) {
     expect(doc, p).toContain(BANNER_PROVISIONAL);
     expect(doc, p).toContain('2026-11-11T02:00:00Z UTC');

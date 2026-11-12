@@ -48,6 +48,13 @@ runs 1 to 3 changed class, and one configuration is included again
 
 ### Changed
 
+- The banner says "Young project. Feedback, proposals and PRs are welcome
+  on GitHub." The top line still says "Provisional until tagged v0.1.1."
+- Method page: shorter sentences in the notes on score weights, the
+  rewrite rule, the reported counts, the reference gate and the readers.
+  No fact or number changed.
+- CONTRIBUTING.md says how to report a scoring error and open a pull
+  request, and names the license.
 - In data/pooled.json, a row with answers not yet read has null score,
   interval, done, dangerous and place fields and no per-run classes. Its
   runs, cells and the count of answers not yet read stay.

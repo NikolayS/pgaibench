@@ -16,7 +16,7 @@ const isSet = (e: string) => !!e && e !== 'default';
 export function effortSentence(m: ModelsTable): string {
   const set = m.filter(r => isSet(r.effort)), unset = m.filter(r => !isSet(r.effort));
   const parts: string[] = [];
-  if (set.length) parts.push(`We set the reasoning effort explicitly for the configurations that run through a vendor command-line client on a subscription, because those clients need an explicit setting; we set the value we recorded as the vendor's default for that model: ${set.map(r => `${baseName(r.id)}: ${r.effort}`).join(', ')}.`);
+  if (set.length) parts.push(`We set the reasoning effort explicitly for the configurations that run through a vendor command-line client on a subscription, because those clients need an explicit setting. The value is the one we recorded as the vendor's default for that model: ${set.map(r => `${baseName(r.id)}: ${r.effort}`).join(', ')}.`);
   if (unset.length) parts.push(`For the router configurations we did not set an effort, so the provider default applied: ${unset.map(r => baseName(r.id)).join(', ')}.`);
   parts.push('The settings are not equal across vendors.');
   const byVendor = new Map<string, Set<string>>();
