@@ -48,6 +48,20 @@ runs 1 to 3 changed class, and one configuration is included again
 
 ### Changed
 
+- A row with answers that wait for a first reading shows its runs, its
+  cells done and the number of answers not yet read. It shows no score,
+  interval, place or plot point, and its difference to another effort
+  level is not published, until those answers are read.
+- The page of release v0.1.0 is again as tagged: rows in safety order, no
+  separate score-order column, no provisional banner and no update stamp.
+- Next to "did not achieve the goal": how many of these answers stopped at
+  rehearsal and never ran in production, and the known input defect of
+  task D21.
+- The note on the quantized endpoint also says that this endpoint returned
+  no reasoning tokens.
+- Section 13 of the preregistration has three entries for the Antigravity
+  CLI path that were first written in a separate branch, unchanged, and a
+  dated note with their commit times.
 - The paragraph above the results table is now one short line: run
   count, no tools, provisional status, and a link to the release of
   record. The reader procedure for runs 4 and 5 is stated once, in the

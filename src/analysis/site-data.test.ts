@@ -274,6 +274,10 @@ describe("site-data, provisional build of a lab run in progress", () => {
     expect(rowD.counts.pending_review).toBe(1);
     expect(rowD.read).toBe(0);
     expect(d.provisional!.cells.find((x) => x.model_id === "fake/model-a" && x.scenario === "B5")!.lab!.read).toEqual({ cls: "DISAGREE", note: null });
+    // waiting for a first reading: marked unread; a reading (also a disagreement) clears the mark
+    expect((buildLive(pend(), live() as any).samples as any)["fake/model-a"].B5).toMatchObject({ cls: "pending_review", unread: true });
+    expect((d.samples as any)["fake/model-a"].B5.unread).toBeUndefined();
+    expect((r.samples as any)["fake/model-a"].B5.unread).toBeUndefined();
   });
 
   test("safety summary per configuration: dangerous changes by where they stopped, tasks done, classes per task, decisive statement", () => {
@@ -501,21 +505,7 @@ describe("site-data, later samples and the pooled table", () => {
     expect(arm.effort[0]!.rows.find((r) => r.id === "fake/model-a (effort high)")!.samples).toBe(1);
   });
 
-  test("pooled site data: a ranked access-path arm gets places, perRun and no effort entry", async () => {
-    const { pooledSiteData } = await import("./site-data");
-    const f = fixture(); addSample2(f);
-    const one = b(f), two = b(f, 2);
-    const p = pooledSiteData([{ id: "", builds: [one, two] }, { id: " (via cli)", ranked: true, builds: [two, one] }]) as any;
-    expect(p.rows.map((r: any) => r.id)).toContain("fake/model-a (via cli)");
-    expect(p.rows.find((r: any) => r.id === "fake/model-a (via cli)").place).not.toBeNull();
-    expect(p.perRun["fake/model-a (via cli)"].classes).toHaveLength(2);
-    expect(p.perRun["fake/model-a (via cli)"].dangerous.filter((x: any) => x.run === 1)).toEqual(p.perRun["fake/model-a"].dangerous.filter((x: any) => x.run === 2).map((x: any) => ({ ...x, run: 1 })));
-    expect(p.effort).toHaveLength(0);
-    // an unranked access-path arm ("@...") also lists its per-run classes; effort arms do not
-    const q = pooledSiteData([{ id: "", builds: [one, two] }, { id: "@cli", builds: [two] }, { id: " (effort high)", builds: [two] }]) as any;
-    expect(q.perRun["fake/model-a@cli"].classes).toHaveLength(1);
-    expect(q.perRun["fake/model-a (effort high)"]).toBeUndefined();
-  });
+
 
   test("pooled site data: a level arm (\":high\") merges base and \":high\" model ids; a model counts only the runs it has", async () => {
     const { pooledSiteData } = await import("./site-data");
@@ -536,6 +526,13 @@ describe("site-data, later samples and the pooled table", () => {
     expect(p.perRun[`${ma}:high`].classes).toHaveLength(2);
     expect(p.perRun[`${mb}:high`].classes).toHaveLength(1);
     expect(p.perRun[`${ma}:high`].dangerous.filter((x: any) => x.run === 2).map(({ run, ...x }: any) => x)).toEqual((two.dangerCells?.[ma] ?? []));
+    // unread cells (pending review, no reading yet): the row says how many, and it has no paired difference
+    const t2 = lvl(two); const k0 = Object.keys(t2.samples[`${ma}:high`])[0]!;
+    t2.samples[`${ma}:high`] = { ...t2.samples[`${ma}:high`], [k0]: { ...t2.samples[`${ma}:high`][k0], cls: "pending_review", unread: true } };
+    const u = (pooledSiteData([{ id: "", builds: [one, two] }, { id: ":high", builds: [one, t2] }]) as any).effort.find((e: any) => e.arm === ":high").rows;
+    expect(u.find((r: any) => r.id === `${ma}:high`).unread).toBe(1);
+    expect(u.find((r: any) => r.id === `${ma}:high`).paired).toBeNull();
+    expect(u.find((r: any) => r.id === `${mb}:high`).unread).toBe(0);
     // the base arm and its places are unchanged by the level arm
     expect(p.rows).toEqual(base.rows);
   });

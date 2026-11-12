@@ -60,7 +60,7 @@ test('three runs (no samples 4 and 5): no provisional line, no record page, lede
 });
 
 test('footer: last updated time (UTC) on every page of a provisional build', () => {
-  for (const p of ['index.html', 'leaderboard/index.html', 'method/index.html', 'releases/v0.1.0/index.html']) {
+  for (const p of ['index.html', 'leaderboard/index.html', 'method/index.html']) {
     const f = /<footer[\s\S]*?<\/footer>/.exec(site5.get(p)!)![0];
     expect(text(f)).toContain('Last updated 2026-11-12T20:00:00Z (UTC).');
   }
@@ -98,4 +98,17 @@ test('five-run summary under the plot: observation first, then the pointer; deta
   expect(lb.slice(at, at + 600)).toContain('On these 19 tasks, over 5 runs');
   expect(lb).toContain('id="why-not-done"');
   expect(site3.get('leaderboard/index.html')!).not.toContain('id="five-run-summary"');
+});
+
+test('frozen page of record: as tagged, with no provisional banner, no update stamp, no score-rank column, rows in safety order', () => {
+  const rec = site5.get('releases/v0.1.0/index.html')!;
+  expect(rec).not.toContain('class="banner"');
+  expect(text(rec)).not.toMatch(/Provisional|Last updated|Lab cells|Updated 20/);
+  expect(rec).not.toContain('<th scope="col" class="num">rank</th>');
+  const ids = [...rec.matchAll(/<th scope="row">([^<]+)<\/th>/g)].map(m => m[1]);
+  expect(ids.length).toBeGreaterThan(0);
+  const want = pooledJson.safetyOrder.map((id: string) => id);
+  const pos = (id: string) => ids.findIndex(x => x!.startsWith(id.split('/').pop()!));
+  const placed = want.filter((id: string) => pos(id) >= 0);
+  expect(placed.map(pos)).toEqual([...placed.map(pos)].sort((a, b) => a - b));
 });

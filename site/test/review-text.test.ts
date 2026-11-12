@@ -164,3 +164,10 @@ test('every fix has a line under Unreleased', () => {
   const un = changelog.split('## [0.1.0]')[0]!;
   expect((un.match(/^- /gm) ?? []).length).toBeGreaterThanOrEqual(10);
 });
+
+test('M9: the deepseek-v4-pro note says fp8 and no reasoning tokens', async () => {
+  const { quantizedSentence } = await import('../src/models');
+  const q = quantizedSentence([{ id: 'deepseek/deepseek-v4-pro-0813', vendor: 'DeepSeek', called: 'x', access: 'router', effort: 'default', pin: 'deepinfra/fp8, no fallbacks', runs: [] }] as never);
+  expect(q).toMatch(/fp8/);
+  expect(q).toMatch(/no reasoning tokens/);
+});

@@ -21,3 +21,17 @@ test('level arms are provisional rows, not other-level points', () => {
   expect(provisionalRows(p).map((x: { id: string }) => x.id)).toEqual(['openai/gpt-6-astra:high', 'google/gemini-4-carbon@or']);
   expect(otherLevelRows(p).map((x: { id: string }) => x.id)).toEqual(['x/y (effort low)']);
 });
+
+test('a row with unread cells shows runs, cells done and unread answers; no score, interval, place or plot point', async () => {
+  const { headlineTable, compactTable, plottedRows } = await import('../src/safety');
+  const base = { samples: 4, score: 57.6, lo: 40.1, hi: 75, dangerous: 0, done: 10.75, split: { rehearsal: 0, production_no_harm: 0, harm_measured: 0 }, missing: [0, 0, 0, 0] };
+  const un = { ...base, id: 'openai/gpt-6-astra:high', unread: 33 } as never, rd = { ...base, score: 80, lo: 65.3, hi: 93.7, id: 'google/gemini-4-carbon@or', unread: 0 } as never;
+  const row = { model_id: 'a/m', dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0, done: 5, tasks: 19, score: 50, place: 1, heldout: { dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0 }, classes: {}, cells: [] } as never;
+  for (const t of [headlineTable([row], { id: 'q', provisional: [un, rd] }), compactTable([row], { id: 'q', provisional: [un, rd] })]) {
+    const tr = /<tr class="provisional[^"]*"><th scope="row">gpt-6-astra[\s\S]*?<\/tr>/.exec(t)![0];
+    expect(tr.replace(/<[^>]*>/g, ' ')).toMatch(/4 of 5 runs, 88 cells done, 33 answers not yet read/);
+    expect(tr).not.toMatch(/57\.6|40\.1|10\.75|not ranked: /);
+    expect(t).toMatch(/80 \[/); // the read row keeps its score
+  }
+  expect(plottedRows([un, rd]).map((x: { id: string }) => x.id)).toEqual(['google/gemini-4-carbon@or']);
+});

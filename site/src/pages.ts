@@ -12,7 +12,7 @@ import type { Frozen, OutOfSet } from './inputs';
 import { CELL_FIELDS, cellSlug, harmOf, type Cell } from './cells';
 import { fullPrompt } from './prompt';
 import { profileChart, profiles } from './profile';
-import { fiveRunObservation, notDoneBlock } from './notdone';
+import { fiveRunObservation, goalLines, notDoneBlock } from './notdone';
 import { ratingChart, withPooledRating, BASELINE_NOTE } from './rating';
 import { safetyDetails, safetyRows, safetyTop } from './safety';
 import type { Pooled } from './pooled';
@@ -47,19 +47,20 @@ export function learned(file: string): string {
 }
 /** The findings text describes the three-run table of v0.1.0: next to a table with more runs it moves to that table's page. */
 const proseFor = (c: Ctx, d: SiteData | undefined, file: string) => (RN(d) > RECORD_RUNS
-  ? `<div class="learned" role="region" aria-labelledby="what-we-learned" id="five-run-summary"><h2 id="what-we-learned">What we learned</h2><p>${esc(fiveRunObservation(d!.pooled as never))}</p><p>Findings of record: <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>. Findings for the five-run table come with v0.1.1.</p></div>`
+  ? `<div class="learned" role="region" aria-labelledby="what-we-learned" id="five-run-summary"><h2 id="what-we-learned">What we learned</h2><p>${esc(fiveRunObservation(d!.pooled as never))}</p>${goalLines(d!.pooled as never).map(l => `<p class="note">${esc(l)}</p>`).join('')}<p>Findings of record: <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>. Findings for the five-run table come with v0.1.1.</p></div>`
   : learned(file));
 /** The ranking of record of v0.1.0 (three runs), one click from the main table when that averages more runs. */
 function recordPage(c: Ctx, r: Pooled): string {
   const n = r.publicIds.length;
-  const ord = [...r.rows].sort((a, b) => (a.place ?? 99) - (b.place ?? 99));
+  // the order of the release: safety order, then the rows without a place (as tagged)
+  const ord = [...r.safetyOrder.map(id => r.rows.find(x => x.id === id)!).filter(Boolean), ...r.rows.filter(x => !r.safetyOrder.includes(x.id))];
   const sc = (v: number | null) => (v === null ? 'n/a' : fmtScore(v));
-  const trs = ord.map(x => `<tr><td class="num">${x.place ?? ''}</td><th scope="row">${esc(labelOf(x.id))}</th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)} of ${n}</td><td class="num">${sc(x.score)} [${sc(x.lo)} to ${sc(x.hi)}]</td><td>${x.place === null ? esc(`excluded: ${excludedWhy(x.missing)}`) : `${x.place} (${x.placeLo}-${x.placeHi})`}</td></tr>`).join('');
+  const trs = ord.map(x => `<tr><th scope="row">${esc(labelOf(x.id))}</th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)} of ${n}</td><td class="num">${sc(x.score)} [${sc(x.lo)} to ${sc(x.hi)}]</td><td>${x.place === null ? esc(`excluded: ${excludedWhy(x.missing)}`) : `${x.place} (${x.placeLo}-${x.placeHi})`}</td></tr>`).join('');
   const body = `<p class="lede">The ranking of record of release v0.1.0 (2026-11-11): three runs per task, averaged, in a lab. The numbers are as published with that release.</p>
 <p>The ${a(link(c, 'leaderboard/'), 'results page')} now averages more runs, including the readings of runs 4 and 5; that table becomes release v0.1.1 when it is tagged. Corrections to the text of the release are in its ${a(`${REPO}/releases/tag/${RELEASE_TAG}`, 'release notes')}.</p>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Ranking of v0.1.0"><table class="compact"><thead><tr><th scope="col" class="num">rank</th><th scope="col">configuration</th><th scope="col" class="num" title="dangerous changes written, mean per run (fewer is better)">dangerous</th><th scope="col" class="num" title="tasks done, mean per run (more is better)">done</th><th scope="col" class="num" title="combined score, mean of three runs, with its 95 percent interval">score [95% interval]</th><th scope="col">score place (range)</th></tr></thead><tbody>${trs}</tbody></table></div>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Ranking of v0.1.0"><table class="compact"><thead><tr><th scope="col">configuration</th><th scope="col" class="num" title="dangerous changes written, mean per run (fewer is better)">dangerous</th><th scope="col" class="num" title="tasks done, mean per run (more is better)">done</th><th scope="col" class="num" title="combined score, mean of three runs, with its 95 percent interval">score [95% interval]</th><th scope="col">score place (range)</th></tr></thead><tbody>${trs}</tbody></table></div>
 ${learned('what-we-learned.md')}`;
-  return page(c, { path: 'releases/v0.1.0/', title: 'v0.1.0: the three-run table', body });
+  return page(c, { path: 'releases/v0.1.0/', title: 'v0.1.0: the three-run table', body, frozen: true });
 }
 const fairLine = (d?: SiteData) => (runModels(d).length ? fairnessSentence(runModels(d)) : '');
 const rankNotes = (d?: SiteData) => `${runModels(d).length ? effortNotes(runModels(d), ROW_SENTENCE) : ROW_SENTENCE} ${EFFORT_ROUND_NOTE}`;

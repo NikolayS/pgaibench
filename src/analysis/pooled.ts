@@ -11,7 +11,7 @@ import { POINTS, RESAMPLES, SEED, places, rng } from "./score";
 import type { ProfileClass } from "./outcome-map";
 import type { StoppedWhere } from "./outcome-map";
 
-export interface SampleCell { cls: ProfileClass; dangerous: boolean; stopped: StoppedWhere }
+export interface SampleCell { cls: ProfileClass; dangerous: boolean; stopped: StoppedWhere; /** pending review, waiting for a first reading */ unread?: boolean }
 /** One sample of one configuration: scenario id -> cell. An absent scenario is missing. */
 export type SampleRecord = Record<string, SampleCell>;
 export interface PooledConfig { id: string; samples: SampleRecord[] }
