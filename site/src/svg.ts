@@ -36,8 +36,8 @@ export function setEfforts(rows: { id: string; effort: string }[]): void { EFFOR
 function fallback(): Map<string, string> {
   if (!FALLBACK) {
     try {
-      const m = JSON.parse(readFileSync(join(import.meta.dir, '..', '..', 'models.json'), 'utf8')) as { id: string; effort?: string }[];
-      FALLBACK = new Map(m.map(x => [x.id, x.effort || 'default']));
+      const m = JSON.parse(readFileSync(join(import.meta.dir, '..', '..', 'models.json'), 'utf8')) as { id: string; effort?: string; reasoning?: { effort?: string } | null }[];
+      FALLBACK = new Map(m.map(x => [x.id, x.effort || x.reasoning?.effort || 'default'])); // router rows: the effort in the request
     } catch { FALLBACK = new Map(); }
   }
   return FALLBACK;

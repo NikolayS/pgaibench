@@ -44,3 +44,10 @@ test('model and row counts: a model at two levels and two paths is one model', a
   const c = modelCounts({ rows: [r('a/fable'), r('a/fable:medium'), r('g/carbon@agy'), r('g/carbon-high@agy')], effort: [{ arm: '@or', rows: [r('g/carbon@or', null)] }] } as never);
   expect(c).toEqual({ models: 2, rows: 5, placed: 4 });
 });
+
+test('known issue: the earlier requests of the router row under other settings do not count', async () => {
+  const { EARLIER_KIMI } = await import('../src/statements');
+  const { pooledIssues } = await import('../src/provisional');
+  expect(EARLIER_KIMI).toBe('8 earlier requests to kimi-k3.1-pro, on 2026-11-10, used another endpoint pin and sent no effort setting: 5 answers and 3 errors. They are another configuration and do not count. We keep the files.');
+  expect(pooledIssues({ rows: [], samplesPerArm: [{ id: '', samples: 5 }] } as never)).toContain(EARLIER_KIMI);
+});

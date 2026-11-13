@@ -29,12 +29,12 @@ export function effortSentence(m: ModelsTable): string {
 /** Configurations served from a quantized endpoint, as the provider pin shows. Empty when none. */
 /** The quantized endpoints, for the short note. */
 export function quantizedRows(m: ModelsTable): { name: string; kind: string; noReasoning: boolean }[] {
-  return m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin)).map(r => ({ name: baseName(r.id), kind: /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase(), noReasoning: r.id.startsWith('deepseek/deepseek-v4-pro') }));
+  return m.filter(r => /mxfp4|fp8|fp4|int8|int4|bf8/i.test(r.pin)).map(r => ({ name: baseName(r.id), kind: /(mxfp4|fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase(), noReasoning: r.id.startsWith('deepseek/deepseek-v4-pro') }));
 }
 export function quantizedSentence(m: ModelsTable): string {
-  const q = m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin));
+  const q = m.filter(r => /mxfp4|fp8|fp4|int8|int4|bf8/i.test(r.pin));
   if (!q.length) return '';
-  const fmt = (r: ModelsTable[number]) => /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase();
+  const fmt = (r: ModelsTable[number]) => /(mxfp4|fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase();
   return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('. ')}. This breaks our own rule against quantized variants. ${q.length === 1 ? 'Its results' : 'Their results'} may be lower than the model gives at full precision.${q.some(r => r.id.startsWith('deepseek/deepseek-v4-pro')) ? ` ${DEEPSEEK_ISSUE}` : ''}`;
 }
 

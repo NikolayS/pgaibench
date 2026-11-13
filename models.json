@@ -255,11 +255,13 @@
     "open_weights": true,
     "provider": {
       "order": [
-        "moonshotai"
+        "moonshotai/mxfp4"
       ],
       "allow_fallbacks": false
     },
-    "reasoning": null,
+    "reasoning": {
+      "effort": "high"
+    },
     "default_effort": "max",
     "price_in": 2,
     "price_out": 10,

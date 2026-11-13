@@ -1,6 +1,6 @@
 // Effort labels (effort study 2026-11-13): no bare "default"; served behaviour named; reasoning tokens shown.
 import { expect, test } from 'bun:test';
-import { effortOf, effortGroup, frozenName, shortName } from '../src/svg';
+import { effortOf, effortGroup, effortLabel, frozenName, shortName, setEfforts } from '../src/svg';
 import { NOTE_EFFORT, WORDS } from '../src/front';
 import { effortNotes, quantizedSentence } from '../src/models';
 import { headlineTable, type SafetyRow } from '../src/safety';
@@ -50,4 +50,10 @@ test('url slug of the carbon high CLI row differs from the carbon CLI row', asyn
   const { urlSlug } = await import('../src/svg');
   expect(urlSlug('google/gemini-4-carbon-high@agy')).toBe('carbon-high-agy');
   expect(urlSlug('google/gemini-4-carbon@agy')).toBe('carbon-agy');
+});
+
+test('a router row with a requested effort and a quantised vendor endpoint', () => {
+  const m = [{ id: 'moonshotai/kimi-k3.1-pro', vendor: 'Moonshot AI', called: 'x', access: 'router', effort: 'high', pin: 'moonshotai/mxfp4 (quantized vendor endpoint), no fallbacks', runs: [] }] as never;
+  expect(quantizedSentence(m)).toContain('kimi-k3.1-pro · high ran on a quantized (mxfp4) endpoint');
+  expect(effortLabel('moonshotai/kimi-k3.1-pro', 'high')).toBe('high');
 });

@@ -41,3 +41,5 @@ export const ACCESS_ROWS: string[][] = [
   ['OpenAI CLI', 'not set (client default)', '900 s', '1 after a fault; 3 waits (30, 60, 120 s) after a usage limit', 'one'],
   ['Google CLI', 'not set (client default)', '900 s', '1 after a fault; none after a usage limit', 'one'],
 ];
+/** Known issue: generation records of 2026-11-10 in run 1 of the router models (pin "moonshotai", effort not set), read 2026-11-13. */
+export const EARLIER_KIMI = '8 earlier requests to kimi-k3.1-pro, on 2026-11-10, used another endpoint pin and sent no effort setting: 5 answers and 3 errors. They are another configuration and do not count. We keep the files.';
