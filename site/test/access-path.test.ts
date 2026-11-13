@@ -40,12 +40,12 @@ describe('access path', () => {
   test('router row of a model that also has an access-path row: no tag in the label, own slug', () => {
     const OR = 'google/gemini-4-carbon@or';
     expect(baseName(OR)).toBe('gemini-4-carbon');
-    expect(shortName(OR)).toBe('gemini-4-carbon API · default');
+    expect(shortName(OR)).toBe('gemini-4-carbon API · provider default');
     expect(urlSlug(OR)).toBe('carbon');
     const p = { effort: [{ arm: '@agy', rows: [{ ...prow, base: 'google/gemini-4-carbon' }] }, { arm: '@or', rows: [{ ...prow, id: OR, base: 'google/gemini-4-carbon' }] }] };
     expect(provisionalRows(p as never).map(x => x.id)).toEqual([ID, OR]);
     const c = compactTable([row('a/m')], { id: 'q', provisional: provisionalRows(p as never) });
-    expect(c).toContain('gemini-4-carbon API · default<br>');
+    expect(c).toContain('gemini-4-carbon API · provider default<br>');
   });
   test('router note: missing answers, provider endpoint, re-requests under a registered rule, inclusion rule, comparison only', () => {
     for (const w of ['raw API through a router', 'pinned to one provider endpoint', 'provider default effort', '9 of its 110 answers are missing', 'not answers of the model', 'fails the inclusion rule in 3 of its 5 runs', 'only to compare the two access paths', 'first cut 39 answers', 'registered before the re-requests']) expect(OR_NOTE).toContain(w);

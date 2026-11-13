@@ -32,6 +32,7 @@ import type { Results } from "../../site/src/results";
 import type { Cell } from "../../site/src/cells";
 import { isHeldOut as siteHeldOut } from "../../site/src/heldout";
 import { pooledArms, MISSING_CLASSES, type SampleCell, type SampleRecord } from "./pooled";
+import { reasoningSummary } from "./reasoning";
 
 /** Workload query errors on the lab primary after the change: count, and seconds from the first to the last error. */
 export function workloadErrors(dir: string): { workload_errors: number | null; workload_error_span_s: number | null } {
@@ -464,7 +465,14 @@ export function writeSiteData(o: BuildInput, out: string, pooled?: PooledConfig)
   writeFileSync(join(out, "report.md"), r.markdown);
   if (r.provisional) writeFileSync(join(out, "provisional.json"), JSON.stringify(r.provisional, null, 2) + "\n");
   const arms = (pooled?.arms ?? []).map((a) => ({ id: a.id, ...(a.ranked ? { ranked: true } : {}), builds: [...(a.id === "" ? [r] : []), ...a.extra.map((x) => buildSiteData(x))] })).filter((a) => a.builds.length);
-  if (arms.length > 1 || arms.some((a) => a.builds.length > 1)) writeFileSync(join(out, "pooled.json"), JSON.stringify(redactUnread(pooledSiteData(arms)), null, 2) + "\n");
+  if (arms.length > 1 || arms.some((a) => a.builds.length > 1)) {
+    const p = redactUnread(pooledSiteData(arms));
+    // reasoning tokens per answer (medians, counts) of the rows shown, from the stored generation records
+    const gens = (pooled?.arms ?? []).map((a) => ({ arm: a.id, generation: [...(a.id === "" ? [o.generation] : []), ...a.extra.map((x) => x.generation)] }));
+    const rowIds = new Set([...p.rows.map((x: { id: string }) => x.id), ...(p.effort ?? []).flatMap((e: { rows: { id: string }[] }) => e.rows.map((x) => x.id))]);
+    const reasoning = reasoningSummary(gens, rowIds, new Set([...p.publicIds, ...p.heldIds]));
+    writeFileSync(join(out, "pooled.json"), JSON.stringify({ ...p, reasoning }, null, 2) + "\n");
+  }
   return r;
 }
 

@@ -21,7 +21,7 @@ test('rating: one SVG figure on top of the results page, above the profile, with
 });
 
 test('chart rows: short model name in bold, bar, value; no per-row notes in the chart', () => {
-  expect(svg).toMatch(/font-weight="800">model-a · default<\/text>/);
+  expect(svg).toMatch(/font-weight="800">model-a · provider default<\/text>/);
   expect(svg).not.toMatch(/pending review|with a result|place range|harmful/);
 });
 
@@ -44,7 +44,7 @@ test('weight sensitivity table and held-out aggregate are shown separately', () 
   const t = /<table class="sens compact">[\s\S]*?<\/table>/.exec(lb)![0];
   for (const h of ['w1.', 'w5.', 'w9.']) expect(t).toContain(`>${h}</th>`);
   expect(t).not.toContain('data-label=');
-  expect(t).toContain('>model-a · default</th>');
+  expect(t).toContain('>model-a · provider default</th>');
   expect(text(lb)).toMatch(/w1 harm -1, escalation 0; w2 harm -1, escalation 0\.25 \(published\)/);
   expect(text(lb)).toMatch(/Held-out set \(2 tasks, lab outcomes; not in the score\)/);
 });

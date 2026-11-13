@@ -87,7 +87,7 @@ test('excluded configuration: greyed, marked, no place, not in the plot; the lin
   const fig = /<figure class="svg-chart" id="safety-quadrant">[\s\S]*?<\/figure>/.exec(lb)![0];
   expect([...fig.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)].reduce((a, m) => a + (m[0].match(/class="q-pt (?![^"]*q-off)/g) ?? []).length, 0)).toBe(4); // 2 points x (phone + wide); the one-run point starts hidden
   expect(/<ol class="qkey">[\s\S]*?<\/ol>/.exec(fig)![0]).not.toContain('model-c');
-  expect(text(fig)).toContain('model-c · default is not in the plot: excluded, no answer on 4 tasks in run 2, 8 in run 3.');
+  expect(text(fig)).toContain('model-c · provider default is not in the plot: excluded, no answer on 4 tasks in run 2, 8 in run 3.');
   const r = /<table class="rating"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(r).toContain('model-c');
   expect(text(r)).toContain('excluded');
@@ -95,7 +95,7 @@ test('excluded configuration: greyed, marked, no place, not in the plot; the lin
 
 test('plot key and points use the averages', () => {
   const key = /<ol class="qkey">([\s\S]*?)<\/ol>/.exec(lb)![1]!;
-  expect(key).toContain('model-a · default <span class="dim">5.67 done, 0 dangerous</span>');
+  expect(key).toContain('model-a · provider default <span class="dim">5.67 done, 0 dangerous</span>');
   expect(key).toContain('model-b · medium <span class="dim">4.67 done, 1.33 dangerous</span>');
 });
 
@@ -258,7 +258,7 @@ test('model labels: one naming function, the family word kept, the same name in 
     expect(readFileSync(dir + f, 'utf8'), f).not.toMatch(/replace\(\/\^(claude|gemini)/);
   const bars = [...lb.matchAll(/<text class="ch-lbl"[^>]*>([^<]*)</g)].map(m => m[1]!.replace(/ \(excl\.\)$/, ''));
   const key = [...lb.matchAll(/<li><b>\d+\.<\/b>[\s\S]*?<\/span>\s*([^<(]+?)\s*<span class="dim">/g)].map(m => m[1]!);
-  for (const n of ['model-a · default', 'model-b · medium']) { expect(bars).toContain(n); expect(text(lb)).toContain(n); }
+  for (const n of ['model-a · provider default', 'model-b · medium']) { expect(bars).toContain(n); expect(text(lb)).toContain(n); }
   void key;
 });
 
@@ -335,7 +335,7 @@ test('no tools: one statement on results (under the plot and table), home, metho
 test('effort: every reader-facing label is model + effort; one naming function; compare URLs unchanged', async () => {
   const { shortName, urlSlug, effortOf } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string; effort?: string }[];
-  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+( CLI| API)? · (xhigh|high|medium|low|minimal|default)$/);
+  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+( CLI| API)? · (xhigh|high|medium|low|minimal|provider default( \(thinking on\))?|no thinking)$/);
   expect(shortName('openai/gpt-6.1-terra (effort high)')).toBe('gpt-6.1-terra · high');
   expect(effortOf('openai/gpt-6.1-terra (effort high)')).toBe('high');
   expect(urlSlug('anthropic/claude-fable-5.2')).toBe('fable-5.2');
@@ -343,12 +343,12 @@ test('effort: every reader-facing label is model + effort; one naming function; 
   expect(urlSlug('openai/gpt-6.1-sol')).toBe('gpt-6.1-sol');
   // the site build takes efforts from the models table
   const bars = [...lb.matchAll(/<text class="ch-lbl"[^>]*>([^<]*)</g)].map(m => m[1]!);
-  expect(bars).toContain('model-a · default');
+  expect(bars).toContain('model-a · provider default');
   expect(bars).toContain('model-b · medium');
   for (const t of ['safety', 'heldout-avg', 'per-run']) {
     const tb = new RegExp(`<table class="${t}[^"]*"[\\s\\S]*?</table>`).exec(lb);
     expect(tb, t).not.toBeNull();
-    for (const th of tb![0].matchAll(/<th scope="row">([\s\S]*?)<\/th>/g)) if (/model-/.test(th[1]!)) expect(text(th[1]!), t).toMatch(/model-[abc] · (default|medium)/);
+    for (const th of tb![0].matchAll(/<th scope="row">([\s\S]*?)<\/th>/g)) if (/model-/.test(th[1]!)) expect(text(th[1]!), t).toMatch(/model-[abc]( · (provider default|medium)|$)/);
   }
   const eff = /<table class="effort"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(text(eff)).toContain('model-b · high');
@@ -361,8 +361,8 @@ test('effort: every reader-facing label is model + effort; one naming function; 
   expect(EFFORT_ROUND_NOTE).toBe('This round runs every model at two effort levels, medium and high. Rows for the second level appear as their runs finish. Lower and higher levels come later.');
   expect(cav(main(lb))).toContain(EFFORT_ROUND_NOTE);
   expect(cav(main(site.get('index.html')!))).toContain(EFFORT_ROUND_NOTE);
-  expect((cav(main(lb)).match(/Effort (&quot;|")default(&quot;|") means/g) ?? []).length).toBe(1);
-  expect(text(site.get('compare/index.html')!)).toContain('model-a · default vs model-b · medium');
+  expect((cav(main(lb)).match(/Provider default\. We sent no effort setting\./g) ?? []).length).toBe(1);
+  expect(text(site.get('compare/index.html')!)).toContain('model-a · provider default vs model-b · medium');
   expect(site.has('compare/model-a/model-b/index.html') || [...site.keys()].some(k => /^compare\/model-[ab]\/model-[ab]\/index.html$/.test(k))).toBe(true);
 });
 
@@ -431,7 +431,7 @@ test('prose "What we learned": results and home variants from one source file ea
 
 test('switcher on the built results page: every configuration has a point; the one-run row is an extra point, off by default', () => {
   const fig = /<figure class="svg-chart" id="safety-quadrant">[\s\S]*?<\/figure>/.exec(lb)![0];
-  for (const [m, e] of [['model-a', 'default'], ['model-b', 'medium'], ['model-b', 'high']]) expect(fig).toMatch(new RegExp(`class="q-pt[^"]*"[^>]*data-model="${m}" data-effort="${e}"`));
+  for (const [m, e] of [['model-a', 'provider default'], ['model-b', 'medium'], ['model-b', 'high']]) expect(fig).toMatch(new RegExp(`class="q-pt[^"]*"[^>]*data-model="${m}" data-effort="${e}"`));
   expect(fig).toMatch(/class="q-pt q-f-[a-z]+ q-one q-off"[^>]*data-model="model-b" data-effort="high"/);
   expect(fig).toMatch(/<li value="3"[^>]*data-onerun="1" hidden>[\s\S]*?model-b · high \(one run\)/);
   expect(fig).toContain('<div class="qctl" data-for="safety-quadrant" hidden>');

@@ -37,11 +37,22 @@ function fallback(): Map<string, string> {
   return FALLBACK;
 }
 /** Reasoning effort of a configuration: the arm suffix, else the models table, else models.json; "default" when we set none. */
-export function effortOf(id: string): string {
+export function rawEffortOf(id: string): string {
   const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1];
   if (arm) return arm;
   return EFFORTS.get(id) ?? fallback().get(id) ?? 'default';
 }
+/** Rows that sent no effort setting, by what the stored answers show (reasoning tokens per answer, effort study
+ *  2026-11-13): thinking on for these, none at all for deepseek-v4-pro on its pinned endpoint. */
+const SERVED: Record<string, string> = {
+  'google/gemini-3.8-flash': 'provider default (thinking on)', 'google/gemini-4-argon': 'provider default (thinking on)',
+  'qwen/qwen3.8-27b': 'provider default (thinking on)', 'deepseek/deepseek-v4-pro-0813': 'no thinking',
+};
+/** The effort label of a configuration: the level we set, else what the provider default did. */
+export const effortLabel = (id: string, raw: string) => (raw === 'default' || !raw ? SERVED[id] ?? 'provider default' : raw);
+export function effortOf(id: string): string { return effortLabel(id, rawEffortOf(id)); }
+/** Filter group of an effort label: "provider default (thinking on)" filters with "provider default". */
+export const effortGroup = (e: string) => (e.startsWith('provider default') ? 'provider default' : e);
 /** The one reader-facing configuration name: model and reasoning effort, "claude-fable-5.2 · high". */
 export function shortName(id: string): string {
   return `${baseName(id)}${pathWord(id)} · ${effortOf(id)}`;
@@ -52,9 +63,11 @@ export const pathWord = (id: string) => { const t = PATH_TAG.exec(id)?.[1]; retu
 /** The name as the tagged releases v0.1.0 and v0.1.1 printed it: frozen pages keep it. */
 export function frozenName(id: string): string {
   const t = pathTag(id);
-  return `${baseName(id)} · ${effortOf(id)}${t ? ` (${t})` : ''}`;
+  return `${baseName(id)} · ${rawEffortOf(id)}${t ? ` (${t})` : ''}`;
 }
 export const modelLabel = shortName;
+/** Chart text: the label with the effort group only ("provider default"), short enough for a chart row. */
+export const chartName = (id: string) => `${baseName(id)}${pathWord(id)} · ${effortGroup(effortOf(id))}`;
 /** URL path segment of a model (compare pages); unchanged so that old links keep working. A further effort level of
  *  the same model gets "-<effort>" (fable-5.2-medium); the main effort of a model keeps the bare slug. */
 export function urlSlug(id: string): string {

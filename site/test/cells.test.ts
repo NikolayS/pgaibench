@@ -62,7 +62,7 @@ describe('published cell data', () => {
   test('the scenario grid links each cell and shows null as not measured', () => {
     const p = site.get('scenarios/L1/index.html')!;
     expect(p).toContain('href="../../data/cells/model-a/L1/1-lab.json"');
-    const b = p.slice(p.indexOf('>model-b · default<'));
+    const b = p.slice(p.indexOf('>model-b · provider default<'));
     expect(text(b)).toContain('lock wait not measured');
     expect(text(b)).not.toMatch(/lock wait 0(?![.\d])/);
   });

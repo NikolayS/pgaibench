@@ -56,7 +56,7 @@ describe('results page', () => {
   });
   test('held-out results are counts only', () => {
     expect(text(lb)).toContain('Counts only; no rate.');
-    expect(text(lb)).toMatch(/model-a · default: right change 2/);
+    expect(text(lb)).toMatch(/model-a · provider default: right change 2/);
   });
   test('the text-by-lab confusion matrix is shown', () => {
     const cf = lb.slice(lb.indexOf('id="confusion"'));

@@ -98,9 +98,9 @@ export const NOTE_NO_TOOLS: NoteTopic = { id: 'no-tools', title: 'No tools', bul
   'With tools we expect better results. Not measured yet.',
   '19 tasks, five runs. Not proof that a model is safe on your production database.'] };
 export const NOTE_EFFORT: NoteTopic = { id: 'effort', title: 'Effort', bullets: [
-  'Each row is one model at one effort level.',
-  'This release: effort is not matched between models. See each row\'s label.',
-  'Matched rows (medium and high) are running.'] };
+  'Reasoning effort: how long the model may think before it answers.',
+  'We set it where the provider has the setting. Provider default: we sent none.',
+  'Effort names compare within a vendor only. See reasoning tokens on results.'] };
 /** Access paths: the Antigravity CLI row and the router row of gemini-4-carbon, each shown when present. */
 export function noteAccess(agy: boolean, router: boolean): NoteTopic | null {
   if (!agy && !router) return null;

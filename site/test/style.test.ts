@@ -209,7 +209,7 @@ describe('page structure', () => {
     expect(txt).not.toMatch(/<[a-z]/i);
     expect(txt).toContain('PGAIBench');
     expect(txt).toContain('Baseline (no model): always escalate');
-    expect(txt).toContain('not separated at this sample size');
+    expect(txt.replace(/\s+/g, ' ')).toContain('not separated at this sample size');
     expect(JSON.parse(sites.published.get('data/results.json')!).scenario_set).toBe(fixture().scenario_set);
     for (const m of lb.matchAll(/data-k="(\d+)" data-n="(\d+)"/g)) expect(txt).toContain(`${m[1]} of ${m[2]}`);
   });

@@ -46,7 +46,7 @@ test('profile: the table numbers equal the chart numbers; models alphabetical, n
       expect(sg.map(x => x[0])).toEqual(PROFILE_CLASSES.filter(k => r.counts[k]));
       for (const [k, n] of sg) expect(n).toBe(r.counts[k as keyof typeof r.counts]);
       const prof = doc.slice(doc.indexOf('<section class="profile" id="profile">'));
-      const rowHtml = [...prof.slice(0, prof.indexOf('</section>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]} · default</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
+      const rowHtml = [...prof.slice(0, prof.indexOf('</section>')).matchAll(new RegExp(`<tr><th scope="row">${r.model_id.split('/')[1]} · provider default</th>(.*?)</tr>`, 'g'))].map(m => m[1]).join('');
       const nums = [...rowHtml.matchAll(/data-class="(\w+)">(\d+)</g)].map(m => [m[1], Number(m[2])]);
       expect(Object.fromEntries(nums)).toEqual(Object.fromEntries(Object.entries(r.counts).filter(([k, v]) => k !== 'provider_error' || v)));
     }

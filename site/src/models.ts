@@ -1,7 +1,8 @@
 // "Models under test": per configuration, what we called and how, from models.json and the generation records.
 import { z } from 'zod';
 import { esc } from './html';
-import { baseName, shortName } from './svg';
+import { baseName, effortLabel, shortName } from './svg';
+import { DEEPSEEK_ISSUE } from './statements';
 
 const row = z.object({ id: z.string(), vendor: z.string(), called: z.string(), access: z.string(), effort: z.string(), pin: z.string(), runs: z.array(z.string()) });
 export const modelsSchema = z.array(row);
@@ -9,7 +10,7 @@ export type ModelsTable = z.infer<typeof modelsSchema>;
 export const parseModels = (x: unknown): ModelsTable => modelsSchema.parse(x);
 
 const NR = 'not recorded';
-const effort = (e: string) => (e === 'default' ? 'provider default (not set)' : e || NR);
+const effort = (id: string, e: string) => (e ? effortLabel(id, e) : NR);
 
 const isSet = (e: string) => !!e && e !== 'default';
 /** The effort statement, generated from the same rows as the table, so the text cannot contradict it. */
@@ -34,7 +35,7 @@ export function quantizedSentence(m: ModelsTable): string {
   const q = m.filter(r => /fp8|fp4|int8|int4|bf8/i.test(r.pin));
   if (!q.length) return '';
   const fmt = (r: ModelsTable[number]) => /(fp8|fp4|int8|int4|bf8)/i.exec(r.pin)![1]!.toLowerCase();
-  return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('. ')}. This breaks our own rule against quantized variants. ${q.length === 1 ? 'Its results' : 'Their results'} may be lower than the model gives at full precision.${q.some(r => r.id.startsWith('deepseek/deepseek-v4-pro')) ? ' deepseek-v4-pro · default also returned no reasoning tokens: 0 in each of the 22 answers of run 1 and of run 4. Its results describe this endpoint, which did not reason.' : ''}`;
+  return `${q.map(r => `${shortName(r.id)} ran on a quantized (${fmt(r)}) endpoint of its pinned provider`).join('. ')}. This breaks our own rule against quantized variants. ${q.length === 1 ? 'Its results' : 'Their results'} may be lower than the model gives at full precision.${q.some(r => r.id.startsWith('deepseek/deepseek-v4-pro')) ? ` ${DEEPSEEK_ISSUE}` : ''}`;
 }
 
 /** Rows for the given configurations, in that order; a configuration without a record shows "not recorded". */
@@ -42,7 +43,7 @@ export function modelsTable(m: ModelsTable, ids: string[], runs = 3): string {
   const idx = Array.from({ length: runs }, (_, i) => i);
   const trs = ids.map(id => {
     const r = m.find(x => x.id === id);
-    const cells = r ? [r.vendor, r.called, r.access, effort(r.effort), r.pin, ...idx.map(i => r.runs[i] ?? NR)] : Array(5 + runs).fill(NR);
+    const cells = r ? [r.vendor, r.called, r.access, effort(r.id, r.effort), r.pin, ...idx.map(i => r.runs[i] ?? NR)] : Array(5 + runs).fill(NR);
     return `<tr><th scope="row">${esc(shortName(id))}</th>${cells.map(v => `<td>${esc(v || NR)}</td>`).join('')}</tr>`;
   }).join('');
   const head = ['configuration', 'vendor', 'model id called', 'access', 'reasoning effort', 'provider pin', ...idx.map(i => `run ${i + 1} (UTC)`)].map(h => `<th scope="col">${h}</th>`).join('');
@@ -70,6 +71,6 @@ export function fairnessSentence(m: ModelsTable): string {
 }
 /** Next to the ranking: what a row is, what "default" means (only when a row has it), and the fairness statement. */
 export function effortNotes(m: ModelsTable, row: string): string {
-  const dflt = m.some(r => !isSet(r.effort)) ? ' Effort "default" means that we set no effort (router access), so the provider default applied. The models table records this.' : '';
+  const dflt = m.some(r => !isSet(r.effort)) ? ' Provider default. We sent no effort setting. The models table records this.' : '';
   return `${row}${dflt} ${fairnessSentence(m)}`;
 }

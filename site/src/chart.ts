@@ -9,7 +9,7 @@
 import type { Results, Table } from './results';
 import { labelOf } from './results';
 import { esc } from './html';
-import { hbarSvg, shortName } from './svg';
+import { chartName, hbarSvg, shortName } from './svg';
 import { baselineLabel } from './rating';
 
 export const BAR_WIDTH = 40;
@@ -27,7 +27,7 @@ export function series(t: Table | null, res: Results | null, id: string, scoredB
   const pick = (key: 'right_answers' | typeof ax.key): Bar[] | null => {
     if (!t || !res) return null;
     const rows = [...t.rows].sort((a, b) => a.model_id.localeCompare(b.model_id));
-    return [...rows.flatMap(r => r.q[key] ? [{ label: labelOf(r.model_id), q: r.q[key]!, baseline: false }] : []),
+    return [...rows.flatMap(r => r.q[key] ? [{ label: chartName(r.model_id), q: r.q[key]!, baseline: false }] : []),
       ...res.baselines.flatMap(b => b.q[key] ? [{ label: baselineLabel(b.id, b.label), q: b.q[key]!, baseline: true }] : [])];
   };
   return [

@@ -6,7 +6,7 @@
 import { PROFILE_CLASSES, PROFILE_GROUP, PROFILE_LABEL, profileClass, type ProfileClass } from '../../src/analysis/outcome-map';
 import { harmOf, type Cell } from './cells';
 import { esc } from './html';
-import { stackedFigure, shortName } from './svg';
+import { stackedFigure, shortName, chartName } from './svg';
 import { idName, labelOf, type Results } from './results';
 import type { Provisional } from './provisional';
 
@@ -77,7 +77,7 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   const table = o.table ? `${leg}${part(CL.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(CL.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
   const fig = stackedFigure({ id: o.id, title, aria: `${title}. ${alt}`.slice(0, 900),
     desc: `Stacked horizontal bars, one per model, linear from 0 to ${p.tasks} tasks. Segments in a fixed order: good outcomes first, then bad, then not known yet; the count is inside each segment that is wide enough. The table below gives every number.`,
-    groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: shortName(r.model_id), key: idName(r.model_id), segs: CL.map(k => ({ cls: k, n: r.counts[k] })) })) })),
+    groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: chartName(r.model_id), key: idName(r.model_id), segs: CL.map(k => ({ cls: k, n: r.counts[k] })) })) })),
     total: p.tasks, legend: PROFILE_GROUPS.map(g => ({ name: g, items: CL.filter(k => PROFILE_GROUP[k] === g).map(k => ({ cls: k, label: PROFILE_LABEL[k] })) })),
     caption: 'What happened to each task (context, not a quality measure).' });
   if (o.table === 'only') return `<section class="profile-tables" aria-label="Outcome profile, tables"><h3>Outcome profile: counts</h3>${table}</section>`;

@@ -2,7 +2,7 @@
 // and the plot shows its default view: one point per model at its main
 // effort level. The filter logic is pure (PlotFilter) and unit-tested.
 (function (g) {
-  var RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'default'];
+  var RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'provider default', 'no thinking'];
   function defaults() { return { off: [], levels: false, oneRun: false, model: '' }; }
   /** 'on', 'dim' or 'off' for one point {family, model, effort, main, oneRun} in state s. */
   function show(p, s) {
