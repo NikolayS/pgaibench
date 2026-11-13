@@ -411,3 +411,16 @@ svg.mc-narrow { display: none; }
 .wrap figure.mc-fig { max-width: none; }
 .mc-tick { font-size: 12px; } svg.mc-narrow .mc-tick { font-size: 11px; }
 .wrap p.mc-leg { max-width: none; }
+
+:root { --mc-warn: #b3261e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --mc-warn: #ff8a80; } }
+:root[data-theme="dark"] { --mc-warn: #ff8a80; }
+.wrap figure.bc-fig { max-width: none; }
+svg.bc { display: block; max-width: 100%; width: 100%; height: auto; font-family: var(--mono); }
+svg.bc-narrow { display: none; }
+@media (max-width: 40rem) { svg.bc-narrow { display: block; } svg.bc-wide { display: none; } }
+svg.bc .bc-bar { fill: var(--c); } svg.bc .bc-lab, svg.bc .bc-val { fill: var(--ink); } svg.bc .bc-head, svg.bc .bc-atitle { fill: var(--ink); font-weight: 800; }
+svg.bc .bc-pl, svg.bc .bc-eff, svg.bc .bc-tick, svg.bc .bc-d0 { fill: var(--muted); } svg.bc .bc-dw { fill: var(--mc-warn); font-weight: 800; }
+.bc-noplace .bc-lab { font-style: italic; }
+.bc-grid { stroke: var(--soft); stroke-width: 1; } .bc-axis { stroke: var(--ink); stroke-width: 1.5; }
+.bc-row:focus { outline: none; } .bc-row:focus .bc-lab, .bc-row:hover .bc-lab { text-decoration: underline; }
