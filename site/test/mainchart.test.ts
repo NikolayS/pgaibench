@@ -100,6 +100,8 @@ describe('main chart', () => {
 
   test('figure: legend of at most three lines with the two glossary links, no key', () => {
     const f = mainChartFigure(TODAY, { id: 'main', tasks: 19, words: '#words' });
+    // the muted note goes on its own line under the glossary links on a phone
+    expect(f).toContain('<span class="mc-leg-note">Italic: no place. Tap a point for its 95% interval.</span>');
     expect(f).toContain('<a href="#words">tasks done</a> · <a href="#words">dangerous changes</a>.');
     expect((f.match(/<p class="mc-leg/g) ?? []).length).toBeLessThanOrEqual(3);
     expect(f).not.toMatch(/<ol|;/);
@@ -109,6 +111,10 @@ describe('main chart', () => {
 });
 
 void chartRows;
+test('style: the legend note takes a full line on a phone', async () => {
+  const css = await Bun.file(new URL('../assets/style.css', import.meta.url)).text();
+  expect(css).toMatch(/@media \(max-width: 40rem\) \{ \.mc-leg-note \{ flex-basis: 100%; \} \}/);
+});
 
 // Earlier and variant A (owner, 2026-11-13): one name per model, effort words only where the fill does not say it,
 // phone labels clear of the axis, joins and marks with short leaders, smaller inset, titles apart.

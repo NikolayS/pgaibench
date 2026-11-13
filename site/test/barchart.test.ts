@@ -29,8 +29,11 @@ describe('bar chart', () => {
     });
     test('axis linear from 0 to the task count, ticks 0 5 10 15 19, title under it', () => {
       const t = [...svg.matchAll(/data-xtick="([\d.]+) ([\d.]+)"/g)].map(m => [Number(m[1]), Number(m[2])] as const);
-      expect(t.map(x => x[0])).toEqual([0, 5, 10, 15, 19]);
-      const k = (t[4]![1] - t[0]![1]) / 19;
+      // phone: no "19" label next to "15"; the axis line still ends at 19
+      expect(t.map(x => x[0])).toEqual(W === 340 ? [0, 5, 10, 15] : [0, 5, 10, 15, 19]);
+      const k = (t[3]![1] - t[0]![1]) / 15;
+      const ax = /<line class="bc-axis" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="\2"\/>/.exec(svg)!;
+      expect(Math.abs(Number(ax[3]) - (t[0]![1] + 19 * k))).toBeLessThan(0.16);
       for (const [v, px] of t) expect(Math.abs(t[0]![1] + k * v - px)).toBeLessThan(0.16);
       for (const m of svg.matchAll(/<rect class="bc-bar[^"]*" x="([\d.]+)" y="[\d.]+" width="([\d.]+)"[^>]*data-v="([\d.]+)"/g)) {
         expect(Math.abs(Number(m[1]) - t[0]![1])).toBeLessThan(0.11);

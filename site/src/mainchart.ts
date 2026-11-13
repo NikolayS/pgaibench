@@ -352,5 +352,5 @@ export function mainChartFigure(rows: CRow[], o: { id: string; tasks: number; wo
   return `<figure class="svg-chart mc-fig" id="${esc(o.id)}">${narrow}${wide}`
     + `<p class="mc-leg"><span class="dim">vendor</span> ${fams.map(f => it(sw(f, 'full', ''), VENDOR_LABEL[f]!)).join(' ')}</p>`
     + `<p class="mc-leg"><span class="dim">effort</span> ${effs.map(f => it(sw('neutral', f, `${o.id}-lg-${f}`), EW[f])).join(' ')}${half}</p>`
-    + `<p class="mc-leg dim"><span><a href="${o.words}">tasks done</a> · <a href="${o.words}">dangerous changes</a>.${noPlace} Tap a point for its 95% interval.</span></p></figure>`;
+    + `<p class="mc-leg dim"><span><a href="${o.words}">tasks done</a> · <a href="${o.words}">dangerous changes</a>.</span><span class="mc-leg-note">${noPlace.trim()}${noPlace ? ' ' : ''}Tap a point for its 95% interval.</span></p></figure>`;
 }

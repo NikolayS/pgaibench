@@ -56,7 +56,8 @@ export function barChartSvg(rows: CRow[], o: { id: string; width: number; tasks:
     y += h;
   }
   const Y0 = y + 4;
-  for (const t of [0, 5, 10, 15, n].filter((t, i, a) => t <= n && a.indexOf(t) === i)) {
+  // on a phone the end label sits too close to 15: the axis line ends at the task count without it
+  for (const t of [0, 5, 10, 15, ...(phone ? [] : [n])].filter((t, i, a) => t <= n && a.indexOf(t) === i)) {
     const x = X(t), ty = Y0 + fs + 4, w = tw(String(t), fs);
     out.push(`<line class="${t ? 'bc-grid' : 'bc-axis'}" x1="${n1(x)}" y1="${TOP - 2}" x2="${n1(x)}" y2="${n1(Y0)}"/>`);
     out.push(`<text class="bc-tick" x="${n1(x)}" y="${n1(ty)}" text-anchor="middle" data-xtick="${t} ${n1(x)}"${lb(x - w / 2, ty - fs * 0.8, x + w / 2, ty + fs * 0.25)}>${t}</text>`);
