@@ -16,8 +16,8 @@ test('rating paragraph: rule in force and all +1 classes', () => {
 });
 
 test('readers: share, vendor, no semicolon, printed once on the method page', () => {
-  expect(READERS.text).toContain('152 of 1235 public cells');
-  expect(READERS.text).toContain('one of the vendors under test');
+  expect(READERS.text).toContain('216 of 1615 public cells');
+  expect(READERS.text).toContain('Anthropic is one of the vendors under test');
   expect(READERS.text).not.toContain('No model under test takes part in scoring');
   expect(READERS.text).not.toContain(';');
   expect(src.split('${esc(READERS.text)}').length - 1).toBe(2); // method (failure labels) and limits
@@ -71,4 +71,15 @@ test('nav: no dated version item on live pages, [releases] after github; footer 
   expect(footVersion({ ahead: 0 })).toBe('v0.1.0, 2026-11-11');
   const html = readFileSync(join(import.meta.dir, '../src/html.ts'), 'utf8');
   expect(html).toContain("[['releases/', 'releases']]");
+});
+
+test('release state derives from RELEASE.version: the tag is a label change', async () => {
+  const r = await import('../src/release');
+  expect(r.NEXT).toBe('0.1.1');
+  if (r.RELEASE.version === r.NEXT) { expect(r.PROV).toBe(''); expect(r.releaseState()).toBe('Release v0.1.1. Earlier release:'); }
+  else { expect(r.PROV).toBe(' (provisional)'); expect(r.releaseState()).toBe('Provisional until tagged v0.1.1. Release of record:'); }
+  const pages = readFileSync(join(import.meta.dir, '../src/pages.ts'), 'utf8');
+  expect(pages).not.toContain("'PGAIBench: results (provisional)'");
+  expect(pages).not.toContain('before the first release');
+  expect(pages).not.toContain('Each release publishes a hash of the held-out set');
 });

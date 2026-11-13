@@ -140,7 +140,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
-    add('grid/index.html', gridPage(ctx, prov, results, scenarios, !!pooled));
+    add('grid/index.html', gridPage(ctx, prov, results, scenarios, pooled ? runsOf(pooled) : 0));
     for (const x of prov.cells) { const s = scenarios.find(y => y.id === x.scenario); if (s) add(`${cellPath(x.model_id, x.scenario)}index.html`, cellPage(ctx, x, s, trackOf.get(x.model_id) ?? 'none', names, o.withheld ?? [])); }
     const sr = safetyRows(results, prov, pooled);
     if (sr) for (const [k, v] of comparePages(ctx, sr)) add(k, v);

@@ -29,8 +29,7 @@ Every row also names the exact harness commit.
 ## Held-out set
 
 The held-out scenarios have their own version line. They are never
-published. With each release we publish a hash of the held-out set, so that
-readers can see whether it changed.
+published.
 
 ## Releases
 

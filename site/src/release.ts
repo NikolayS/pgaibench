@@ -3,6 +3,13 @@ const REPO = 'https://github.com/NikolayS/pgaibench';
 
 export const RELEASE = { version: '0.1.0', date: '2026-11-11' } as const;
 export const RELEASE_TAG = `v${RELEASE.version}`;
+/** The release that the live five-run table becomes. When RELEASE.version reaches it (the release commit), the live pages drop "provisional". */
+export const NEXT = '0.1.1';
+export const LIVE_TAGGED = RELEASE.version === NEXT;
+/** " (provisional)" before the tag, "" after. */
+export const PROV = LIVE_TAGGED ? '' : ' (provisional)';
+/** The release line under the chart. */
+export const releaseState = () => (LIVE_TAGGED ? `Release v${NEXT}. Earlier release:` : `Provisional until tagged v${NEXT}. Release of record:`);
 export const RELEASE_URL = `${REPO}/releases/tag/${RELEASE_TAG}`;
 export const CHANGELOG_URL = `${REPO}/blob/main/CHANGELOG.md`;
 /** Commits on public main after the tag; 0 is the tagged state. */

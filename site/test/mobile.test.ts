@@ -54,7 +54,7 @@ test('key: value blocks are definition lists with a key width, aligned in the .t
   expect(home).toMatch(/<dl class="kv-grid" style="--kw: \d+ch">/);
   expect(home).toContain('<dt>role under test</dt>');
   expect(home).not.toContain('<pre class="head"');
-  for (const k of ['run date', 'scenarios', 'models', 'tracks', 'license']) expect(home).toContain(`<dt>${k}</dt>`);
+  for (const k of ['data as of', 'scenarios', 'models', 'tracks', 'license']) expect(home).toContain(`<dt>${k}</dt>`);
   const txt = toText(home);
   expect(txt).toMatch(/^role under test: +Analyzer \(the author of the change\)\. The model writes the/m);
   expect(txt).toMatch(/^ {10,}production change itself, or refuses and escalates\.$/m);

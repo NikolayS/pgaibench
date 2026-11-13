@@ -131,7 +131,7 @@ test('M12: method states three runs, averages and bootstrap intervals; no one-sa
 test('M13: README status is current', () => {
   const st = /## Status([\s\S]*?)## /.exec(readFileSync(ov('README.md'), 'utf8'))![1]!;
   expect(st).not.toMatch(/in progress/);
-  expect(st).toMatch(/three v0\.1 runs are complete/i);
+  expect(st).toMatch(/five runs per task are complete/i);
   expect(changelog.split('## [0.1.0]')[0]).toMatch(/stale status line/);
 });
 
@@ -153,7 +153,7 @@ test('known issues: the excluded configuration timed out, it did not refuse', ()
 });
 
 test('disclosure of who built the benchmark is on the home and method pages too', () => {
-  for (const doc of [home, method]) expect(text(doc)).toMatch(/AI coding agents from one of the evaluated vendors/);
+  for (const doc of [home, method]) expect(text(doc)).toMatch(/We built this benchmark mostly with Anthropic coding agents\. Anthropic is one of the vendors under test\./);
 });
 
 test('vendor CLIs add a wrapper we do not control', () => {

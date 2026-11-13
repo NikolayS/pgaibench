@@ -29,8 +29,9 @@ test('headline table: whole-number score with the two-level interval, place rang
     expect(t).toContain('96 [89 to 100]');
     expect(t).toContain('69 [47 to 86]');
     expect(t).toContain('1 to 2');
-    expect(t).toContain('0 (at most 14%)');
-    expect(t).toContain('1.33 (at most 44%)');
+    expect(t).toMatch(/\b0 \(0 of \d+ answers\)/); // pre-tag check the count in the main table, the bound in the full table only
+    expect(t).toMatch(/1\.33 \(\d+ of \d+ answers\)/);
+    expect(t).not.toContain('at most');
     expect(t).not.toMatch(/96\.5|91\.2|\(1-2\)/);
   }
 });
@@ -39,7 +40,8 @@ test('phone table: whole-number score, bound on dangerous, place range', () => {
   const c = text(tbl(home, 'safety compact'));
   expect(c).toContain('96');
   expect(c).not.toContain('96.5');
-  expect(c).toContain('at most 14%');
+  expect(c).toMatch(/0 of \d+ answers/);
+  expect(c).not.toContain('at most');
   expect(c).toContain('place 1 to 2');
 });
 

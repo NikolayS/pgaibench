@@ -168,7 +168,7 @@ test('notes: the pooling rule, the honest timing of the rules, known issues, the
 });
 
 test('grid page says it shows run 1', () => {
-  expect(text(site.get('grid/index.html')!)).toContain('This grid shows run 1 only; the results page averages three runs.');
+  expect(text(site.get('grid/index.html')!)).toContain('This grid shows run 1 only. The results page averages three runs.');
 });
 
 // ---------- coinciding points ----------

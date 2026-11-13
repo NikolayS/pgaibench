@@ -974,7 +974,7 @@ review):
   precision. The task-only interval and place range stay in the data
   file for comparison.
 - This changes no point estimate, no order and no place.
-- We chose this after we saw the data, following an outside review. It is
+- We chose this after we saw the data, following a review by AI models. It is
   marked as such where it is shown.
 
 Added 2026-11-12, before any place was computed under it (no class,
