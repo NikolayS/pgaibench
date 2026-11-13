@@ -1,7 +1,7 @@
 // Results changelog of a provisional build: one line per refresh, with a
 // dated copy of data/provisional.json kept under data/snapshots/.
 import { esc, link, page, type Ctx } from './html';
-import { RELEASE, RELEASE_TAG, RELEASE_URL } from './release';
+import { PROV, RELEASE, RELEASE_TAG, RELEASE_URL } from './release';
 import type { Provisional } from './provisional';
 
 export type Snapshot = { at: string; file: string; lab_finished: number; lab_planned: number; lab_counted: number };
@@ -36,7 +36,7 @@ export function updatesPage(c: Ctx, snaps: Snapshot[], p: Provisional): string {
     return `<tr><th scope="row">${esc(s.at)}</th><td class="num">${s.lab_finished} of ${s.lab_planned}</td><td class="num">${s.lab_counted}</td><td>${ch ? esc(ch) : grew ? 'more lab cells finished' : 'no change in the counts'}</td><td>${!c.release?.cutoff || s.at <= c.release.cutoff ? `<a href="${RELEASE_URL}">${RELEASE_TAG}</a>` : 'after ' + RELEASE_TAG}</td><td><a href="${link(c, s.file)}">json</a></td></tr>`;
   }).reverse().join('');
   const body = `<p><a href="${RELEASE_URL}">${RELEASE_TAG} tagged</a> on ${RELEASE.date}; the full list of changes is in the changelog.</p>
-<p>Each refresh of the provisional results, newest first, with a dated copy of its data (<code>data/provisional.json</code> at that time). A change to the method or the score is named on the first refresh that includes it.</p>
+<p>Each refresh of the${PROV ? ' provisional' : ''} results, newest first, with a dated copy of its data (<code>data/provisional.json</code> at that time). A change to the method or the score is named on the first refresh that includes it.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Refreshes"><table><thead><tr><th scope="col">data as of (UTC)</th><th scope="col" class="num" title="lab cells finished (not a quality measure)">lab cells finished</th><th scope="col" class="num" title="lab cells counted (not a quality measure)">lab cells counted</th><th scope="col">what changed</th><th scope="col">release</th><th scope="col">data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  return page(c, { path: 'updates/', title: 'Results updates', lede: 'Every refresh of the provisional PGAIBench-Analyzer results.', body });
+  return page(c, { path: 'updates/', title: 'Results updates', lede: `Every refresh of the${PROV ? ' provisional' : ''} PGAIBench-Analyzer results.`, body });
 }

@@ -1,3 +1,4 @@
+import { releaseState } from '../src/release';
 // Five runs per task (samples 4 and 5, provisional): run count in every reader-facing sentence, the provisional line at
 // the top of the ranking, and the three-run table of v0.1.0 one click away on its own page.
 import { expect, test } from 'bun:test';
@@ -5,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { pooledJson, modelsJson } from './pooled.test';
-import { RECORD_RUNS, topLine } from '../src/statements';
+import { RECORD_RUNS } from '../src/statements';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
 const results = JSON.parse(readFileSync(fx('results/results.json'), 'utf8'));
@@ -37,7 +38,7 @@ test('five runs: one short top line opens the ranking and links the v0.1.0 table
   expect(RECORD_RUNS).toBe(3);
   const lb = site5.get('leaderboard/index.html')!;
   const m = /<p class="meta top-line">([\s\S]*?)<\/p>/.exec(lb)!;
-  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
+  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe(`${releaseState()} v0.1.0 (three runs).`);
   expect(m[1]).toMatch(/<a href="[^"]*releases\/v0\.1\.0\/(index\.html)?">v0\.1\.0 \(three runs\)<\/a>\./);
   expect(m.index).toBeGreaterThan(lb.indexOf('<svg'));
   // owner, 2026-11-12: at most 60 words of prose between the h1 and the chart, on home and results
@@ -83,7 +84,7 @@ test('readings of runs 4 and 5: labels and reader text', async () => {
   expect(AGY_NOTE).not.toContain('will use for ranking');
   expect(OR_NOTE).toContain('the row fails the inclusion rule in 3 of its 5 runs');
   for (const t of [AGY_NOTE, OR_NOTE]) expect(t).not.toMatch(/;/);
-  for (const t of [READERS_DISAGREE, AGY_NOTE, OR_NOTE, topLine(5)]) expect(t).not.toMatch(/only (rise|raise|go up)/);
+  for (const t of [READERS_DISAGREE, AGY_NOTE, OR_NOTE]) expect(t).not.toMatch(/only (rise|raise|go up)/);
   const rec = text(site5.get('releases/v0.1.0/index.html')!);
   expect(rec).not.toContain('until their unclear answers are read');
   expect(text(site5.get('leaderboard/index.html')!)).not.toContain('when runs 4 and 5 are read');
@@ -121,4 +122,13 @@ test('frozen page of record: as tagged, with no provisional banner, no update st
   const pos = (id: string) => ids.findIndex(x => x!.startsWith(id.split('/').pop()!));
   const placed = want.filter((id: string) => pos(id) >= 0);
   expect(placed.map(pos)).toEqual([...placed.map(pos)].sort((a, b) => a - b));
+});
+
+test('after the tag (RELEASE.version 0.1.1): no "provisional" on any live page; releases page lists both releases', () => {
+  for (const [f, doc] of site5) if (f.endsWith('.html') && !f.startsWith('releases/v0.1.0/') && f !== 'changelog/index.html') { const m = /.{0,80}provisional.{0,80}/i.exec(text(doc).replace(/first provisional (publication|results)|provisional\.json/g, "")); expect(m ? `${f}: ${m[0]}` : null).toBeNull(); }
+  const rel = site5.get('releases/index.html')!;
+  const t = text(rel);
+  expect(t.indexOf('v0.1.1')).toBeGreaterThan(-1);
+  expect(t.indexOf('v0.1.1')).toBeLessThan(t.indexOf('v0.1.0'));
+  expect(/<main[\s\S]*<\/main>/.exec(rel)![0]).toMatch(/href="[^"]*v0\.1\.0\/(index\.html)?">v0\.1\.0</);
 });

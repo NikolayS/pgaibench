@@ -1,3 +1,4 @@
+import { RELEASE_TAG } from '../src/release';
 // Public text after v0.1.0, items M1..M14 and the text items after them:
 // the public pages say what the data and the code do, and nothing that contradicts them.
 import { expect, test } from 'bun:test';
@@ -113,7 +114,7 @@ test('M10: readers are named as AI models, with counts; no "a model takes no par
     expect(text(doc)).toMatch(/AI models, not people/);
     expect(text(doc)).toMatch(/107 of 792/);
   }
-  expect(readme).toMatch(/AI models, not people/);
+  expect(readme).toMatch(/AI readers classed the answers that the rules could not class/);
   expect(text(lb)).not.toContain('They agreed on every public cell.');
 });
 
@@ -144,8 +145,8 @@ test('M14: the limiting sentence sits next to the plot on home and results', () 
 
 test('footer and links: site build commit labelled truthfully; release links pinned to the tag', () => {
   expect(text(home)).not.toMatch(/harness commit abc/i);
-  expect(method).toContain('/tree/v0.1.0/prompts');
-  expect(method).toContain('/blob/v0.1.0/docs/prereg-v0.1.md');
+  expect(method).toContain(`/tree/${RELEASE_TAG}/prompts`);
+  expect(method).toContain(`/blob/${RELEASE_TAG}/docs/prereg-v0.1.md`);
 });
 
 test('known issues: the excluded configuration timed out, it did not refuse', () => {

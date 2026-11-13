@@ -1,7 +1,7 @@
 // The tagged release of the benchmark. Bump with package.json and CHANGELOG.md (see RELEASING.md).
 const REPO = 'https://github.com/NikolayS/pgaibench';
 
-export const RELEASE = { version: '0.1.0', date: '2026-11-11' } as const;
+export const RELEASE = { version: '0.1.1', date: '2026-11-13' } as const;
 export const RELEASE_TAG = `v${RELEASE.version}`;
 /** The release that the live five-run table becomes. When RELEASE.version reaches it (the release commit), the live pages drop "provisional". */
 export const NEXT = '0.1.1';
@@ -21,7 +21,10 @@ export function releaseLine(r: ReleaseState | undefined): string {
 }
 /** The header mark next to the site name: "v0.1.0 (2026-11-11)", linking the GitHub release. Nothing more. */
 /** Tagged releases, newest first: one line each on the releases page. A release appears here once tagged. */
-export const RELEASES: { version: string; date: string; page: string }[] = [{ version: RELEASE.version, date: RELEASE.date, page: `releases/${RELEASE_TAG}/` }];
+export const RELEASES: { version: string; date: string; page: string }[] = [
+  ...(LIVE_TAGGED ? [{ version: NEXT, date: RELEASE.date, page: `releases/v${NEXT}/` }] : []),
+  { version: '0.1.0', date: '2026-11-11', page: 'releases/v0.1.0/' },
+];
 /** Small version mark in the footer of a live page. */
 export const footVersion = (r: ReleaseState | undefined) => (!r || r.ahead === 0 ? `${RELEASE_TAG}, ${RELEASE.date}` : `unreleased, after ${RELEASE_TAG}`);
-export const versionLink = () => `<a class="ver" href="${RELEASE_URL}">${RELEASE_TAG} (${RELEASE.date})</a>`;
+export const versionLink = (tag: string = RELEASE_TAG, date: string = RELEASE.date) => `<a class="ver" href="${REPO}/releases/tag/${tag}">${tag} (${date})</a>`;

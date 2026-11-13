@@ -1,3 +1,4 @@
+import { LIVE_TAGGED } from './release';
 // Static site generator. PUBLISHED=false (default) never reads a results file.
 import { BINARY_ASSETS } from './html';
 import { snapshotFile, type Snapshot } from './updates';
@@ -97,6 +98,9 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const registered = pooled && o.registeredJson !== undefined ? parsePooled(o.registeredJson) : null;
   const recordFile = join(import.meta.dir, '..', 'content', 'record-v0.1.0-pooled.json');
   const record = pooled && runsOf(pooled) > RECORD_RUNS ? parsePooled(o.recordPooledJson ?? JSON.parse(readFileSync(recordFile, 'utf8'))) : null;
+  // the five-run table of v0.1.1, frozen at the tag: later refreshes never change it
+  const record11File = join(import.meta.dir, '..', 'content', 'record-v0.1.1-pooled.json');
+  const record11 = pooled && LIVE_TAGGED && existsSync(record11File) ? parsePooled(JSON.parse(readFileSync(record11File, 'utf8'))) : null;
   if (prov && (o.published || o.pending || o.resultsJson === undefined || o.cellsJson === undefined)) throw new Error('a provisional build needs results and cell data and is neither PUBLISHED nor PENDING');
   if (prov) {
     results = parseResults(o.resultsJson);
@@ -136,7 +140,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
   setEfforts(models ?? []);
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, models, snapshots: o.snapshots ?? [] });
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, record11, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));

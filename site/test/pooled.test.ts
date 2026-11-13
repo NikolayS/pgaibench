@@ -384,7 +384,8 @@ test('fairness: generated from the models table; at the ranking, in known issues
   expect(text(/id="known-issues"[\s\S]*?<\/section>/.exec(lb)![0])).toContain(f);
   expect(text(site.get('limits/index.html')!)).toContain(f);
   expect(readme).toContain('The effort levels differ between rows in this release.');
-  expect(unrel).toContain(FAIR_V010); // the changelog entry keeps the wording it was written with (no model names there)
+  expect(unrel).toContain('The effort levels differ between rows in this release. At high: three Anthropic models and the four OpenAI high rows.'); // per row since 2026-11-13 (no model names there)
+  expect(unrel).not.toContain(FAIR_V010);
   const { HIGH_EFFORT_NOTE } = await import('../src/statements');
   expect(HIGH_EFFORT_NOTE).toBe('At high effort (one run) we saw no difference clearly outside noise; five runs are in progress.');
   expect(text(/<h3 id="effort-high">[\s\S]*?<\/table>[\s\S]*?<\/p>/.exec(lb)![0])).toContain(HIGH_EFFORT_NOTE);

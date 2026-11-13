@@ -1,7 +1,7 @@
 {
   "name": "pgaibench",
   "description": "PGAIBench: an open benchmark for LLMs and AI agents on the safety of Postgres operations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
