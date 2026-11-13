@@ -1,6 +1,6 @@
 {
-  "data_at": "2026-11-13T01:18:15Z",
-  "harness_commit": "9093f4831154",
+  "data_at": "2026-11-13T01:40:08Z",
+  "harness_commit": "abd1e480a2f2",
   "lab_commit": "913fc43, reruns bf55cef",
   "lab_planned": 264,
   "lab_finished": 263,
