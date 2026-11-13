@@ -37,3 +37,17 @@ test('full table: reasoning tokens column, median per answer', () => {
   expect(t).toContain('>2,521<');
   expect(headlineTable([r], { id: 'q' })).not.toContain('reasoning tokens');
 });
+
+test('a level row through an access path: "gemini-4-carbon-high@agy" reads as carbon CLI at high', async () => {
+  const { isLevelRow } = await import('../src/svg');
+  expect(shortName('google/gemini-4-carbon-high@agy')).toBe('gemini-4-carbon CLI · high');
+  expect(isLevelRow('google/gemini-4-carbon-high@agy')).toBe(true);
+  expect(isLevelRow('anthropic/claude-opus-5.5:medium')).toBe(true);
+  expect(isLevelRow('google/gemini-4-carbon@agy')).toBe(false);
+  expect(isLevelRow('anthropic/claude-opus-5.5')).toBe(false);
+});
+test('url slug of the carbon high CLI row differs from the carbon CLI row', async () => {
+  const { urlSlug } = await import('../src/svg');
+  expect(urlSlug('google/gemini-4-carbon-high@agy')).toBe('carbon-high-agy');
+  expect(urlSlug('google/gemini-4-carbon@agy')).toBe('carbon-agy');
+});

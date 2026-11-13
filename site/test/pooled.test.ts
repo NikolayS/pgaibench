@@ -266,7 +266,7 @@ test('labels: every model name keeps its family word and version number', async 
   const { baseName: shortName } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string }[];
   for (const m of ms) {
-    const l = shortName(m.id), id = m.id.replace(/@[a-z]+$/, '').replace(/:[a-z]+$/, '');
+    const l = shortName(m.id), id = m.id.replace(/-(low|medium|high|xhigh)(?=@)/, '').replace(/@[a-z]+$/, '').replace(/:[a-z]+$/, '');
     expect(l, m.id).toMatch(/^(claude|gpt|gemini|deepseek|qwen|grok|glm|kimi|mistral)/);
     expect(l, m.id).toMatch(/\d/);
     expect(id.endsWith(l) || id.replace(/-\d{4}$/, '').endsWith(l), m.id).toBe(true);

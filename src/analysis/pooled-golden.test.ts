@@ -5,7 +5,7 @@ import { pooledArms } from "./pooled";
 import input from "./fixtures/pooled-golden/input.json";
 import golden from "./fixtures/pooled-golden/output.json";
 
-const NEW = new Set(["unread", "twoLevel", "taskOnly", "dangerBound"]);
+const NEW = new Set(["unread", "twoLevel", "taskOnly", "dangerBound", "pairs"]);
 const strip = (v: unknown): unknown => Array.isArray(v) ? v.map(strip) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([k]) => !NEW.has(k)).map(([k, x]) => [k, strip(x)])) : v;
 
 test("old fields are identical to the v0.1.0 code; new fields are added", () => {

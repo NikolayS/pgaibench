@@ -24,6 +24,8 @@ export const pooledSchema = z.object({
   publicIds: z.array(z.string()), samplesPerArm: z.array(z.object({ id: z.string(), samples: z.number().int() })),
   rows: z.array(rowSchema), safetyOrder: z.array(z.string()),
   /** reasoning tokens per answer: median, answers with a count, answers with 0; repair turns over all answers (build time) */
+  /** ranked level rows paired with the same model at its other level (high against medium) */
+  pairs: z.array(z.object({ id: z.string(), base: z.string(), paired: pairedSchema })).default([]),
   reasoning: z.object({ rows: z.record(z.string(), z.object({ median: num, answers: z.number().int(), zero: z.number().int() })), repairs: z.object({ answers: z.number().int(), repaired: z.number().int() }) }).optional(),
   perRun: z.record(z.string(), z.object({ classes: z.array(z.record(z.string(), z.string())), stopped: z.array(z.record(z.string(), z.string())).optional(), dangerous: z.array(dangerSchema) })),
   variants: z.object({ r2_escalation_over_cautious: z.object({ rows: z.array(z.object({ id: z.string(), score: num, place: numN, changed: z.number() })) }).optional() }).optional(),

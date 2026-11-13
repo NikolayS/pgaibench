@@ -16,7 +16,7 @@ test('rating paragraph: rule in force and all +1 classes', () => {
 });
 
 test('readers: share, vendor, no semicolon, printed once on the method page', () => {
-  expect(READERS.text).toContain('216 of 1615 public cells');
+  expect(READERS.text).toMatch(/\d+ of 2090 public cells/); // exact count: readers-count.heldout.test.ts
   expect(READERS.text).toContain('Anthropic is one of the vendors under test');
   expect(READERS.text).not.toContain('No model under test takes part in scoring');
   expect(READERS.text).not.toContain(';');

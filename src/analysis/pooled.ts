@@ -166,7 +166,7 @@ export function pairedDiff(arm: SampleRecord[], base: SampleRecord[], publicIds:
  */
 /** Row id of an arm: "<model><arm id>", unless the model id already ends with the arm id (an access-path arm, "@agy"). */
 const rowId = (model: string, arm: string) => (arm && model.endsWith(arm) ? model : `${model}${arm}`);
-export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: string; ranked?: boolean; configs: PooledConfig[] }[] }) {
+export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: string; ranked?: boolean; /** partner arm of the paired difference (default the base arm) */ pairWith?: string; configs: PooledConfig[] }[] }) {
   const baseArm = inp.arms.find((a) => a.id === "");
   if (!baseArm) throw new Error("pooledArms needs a base arm (id \"\")");
   const { arms, ...rest } = inp;
@@ -182,5 +182,12 @@ export function pooledArms(inp: Omit<PooledInput, "configs"> & { arms: { id: str
     });
     return { arm: a.id, rows };
   });
-  return { ...main, effort };
+  // a ranked level arm: each row paired with the same model in its partner arm (prereg section 13, paired difference)
+  const all = arms.flatMap((a) => a.configs.map((c) => ({ id: rowId(c.id, a.id), samples: c.samples })));
+  const pairs = arms.filter((a) => a.id !== "" && a.ranked).flatMap((a) => a.configs.flatMap((c) => {
+    const id = rowId(c.id, a.id), base = rowId(id.slice(0, id.length - a.id.length), a.pairWith ?? /^-[a-z]+(@[a-z]+)$/.exec(a.id)?.[1] ?? "");
+    const b = all.find((x) => x.id === base);
+    return b && base !== id ? [{ id, base, paired: pairedDiff(c.samples, b.samples, inp.publicIds, inp.points) }] : [];
+  }));
+  return { ...main, effort, pairs };
 }

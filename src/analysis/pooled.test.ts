@@ -142,6 +142,18 @@ describe("pooledArms", () => {
     expect(t.safetyOrder).toContain("v/c@agy");
     expect(t.effort.map((x) => x.arm)).toEqual(["@or"]);
   });
+  test("ranked level arms keep their places and get a paired difference with the same model in the partner arm", () => {
+    const t = pooledArms({ publicIds: PUB, heldIds: HELD, arms: [
+      { id: "", configs: [{ id: "m", samples: [half, half, half] }] },
+      { id: ":medium", ranked: true, configs: [{ id: "m", samples: [good, good, good] }] },
+      { id: "@agy", ranked: true, configs: [{ id: "v/c@agy", samples: [half, half] }] },
+      { id: "-high@agy", ranked: true, configs: [{ id: "v/c-high@agy", samples: [good, good] }] },
+    ] });
+    expect(t.rows.map((r) => r.place).every((p) => p !== null)).toBe(true);
+    expect(t.pairs.map((p) => [p.id, p.base])).toEqual([["m:medium", "m"], ["v/c-high@agy", "v/c@agy"]]);
+    expect(t.pairs[0]!.paired.diff).toBeCloseTo(50, 9);
+    expect(t.pairs[1]!.paired.diff).toBeCloseTo(50, 9);
+  });
   test("paired difference: mean of (arm points minus base mean) over tasks, bootstrap interval; without missing", () => {
     const miss = { ...good } as Record<string, SampleCell>; delete miss.A4;
     const p = pairedDiff([miss], [half, good, half], PUB);

@@ -13,8 +13,14 @@ export type HBarSpec = { id: string; title: string; desc: string; aria: string; 
 /** The model part of a name: the full name with its family word (claude-, gpt-, gemini-), no vendor
  *  or access path, no trailing date/build suffix (deepseek-v4-pro-0813 -> deepseek-v4-pro), no effort. */
 export function baseName(id: string): string {
-  return (id.replace(EFFORT_ARM, '').replace(LEVEL, '').replace(PATH_TAG, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
+  return (id.replace(EFFORT_ARM, '').replace(LEVEL, '').replace(PATH_LEVEL, '').replace(PATH_TAG, '').split('/').pop() ?? id).replace(/-\d{4}$/, '');
 }
+/** An effort level of an access-path row: "google/gemini-4-carbon-high@agy" (the CLI model name carries the level). */
+const PATH_LEVEL = /-(minimal|low|medium|high|xhigh|max)(?=@[a-z]+$)/;
+/** A configuration that is one more effort level of a listed model (":high", or "-high@agy"). */
+export const isLevelRow = (id: string) => LEVEL.test(id) || PATH_LEVEL.test(id);
+/** The listed model of a row: the id without its effort level. */
+export const levelBase = (id: string) => id.replace(LEVEL, '').replace(PATH_LEVEL, '');
 /** An access path other than the usual one for the vendor: "google/gemini-4-carbon@agy" (Antigravity CLI). */
 const PATH_TAG = /@([a-z]+)$/;
 /** "@or" marks the usual router path of a model that also has an access-path row: no tag in the label. */
@@ -38,7 +44,7 @@ function fallback(): Map<string, string> {
 }
 /** Reasoning effort of a configuration: the arm suffix, else the models table, else models.json; "default" when we set none. */
 export function rawEffortOf(id: string): string {
-  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1];
+  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1] ?? PATH_LEVEL.exec(id)?.[1];
   if (arm) return arm;
   return EFFORTS.get(id) ?? fallback().get(id) ?? 'default';
 }
@@ -71,7 +77,7 @@ export const chartName = (id: string) => `${baseName(id)}${pathWord(id)} · ${ef
 /** URL path segment of a model (compare pages); unchanged so that old links keep working. A further effort level of
  *  the same model gets "-<effort>" (fable-5.2-medium); the main effort of a model keeps the bare slug. */
 export function urlSlug(id: string): string {
-  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1];
+  const arm = EFFORT_ARM.exec(id)?.[1] ?? LEVEL.exec(id)?.[1] ?? PATH_LEVEL.exec(id)?.[1];
   return baseName(id).replace(/^claude-/, '').replace(/^gemini-[\d.]+-/, '') + (arm ? `-${arm}` : '') + (pathTag(id) ? `-${pathTag(id)}` : '');
 }
 
