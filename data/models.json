@@ -154,12 +154,14 @@
     "vendor": "Moonshot AI",
     "called": "moonshotai/kimi-k3.1-pro",
     "access": "router (OpenRouter)",
-    "effort": "provider default",
-    "pin": "moonshotai, no fallbacks",
+    "effort": "high",
+    "pin": "moonshotai/mxfp4 (quantized vendor endpoint), no fallbacks",
     "runs": [
-      "2026-11-10",
-      "not run",
-      "not run"
+      "2026-11-12",
+      "2026-11-12",
+      "2026-11-12",
+      "2026-11-12",
+      "2026-11-12"
     ]
   },
   {
