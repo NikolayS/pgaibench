@@ -41,9 +41,9 @@ export function notDoneBlock(p: NotDonePooled): string {
   const total = Math.max(...rows.map(r => r.total));
   const used = NOTDONE_BUCKETS.filter(b => rows.some(r => r.counts[b.key]));
   const title = `Why tasks were not done: every answer of each configuration, ${total} answers (19 public tasks, all runs)`;
-  const alt = rows.map(r => `${shortName(r.id)}: ${used.filter(b => r.counts[b.key]).map(b => `${b.label} ${r.counts[b.key]}`).join(', ')}`).join('; ');
+  const alt = rows.map(r => `${shortName(r.id)}: ${used.filter(b => r.counts[b.key]).map(b => `${b.label} ${r.counts[b.key]}`).join(', ')}`).join('. ');
   const fig = stackedFigure({ id: 'not-done', title, aria: `${title}. ${alt}`.slice(0, 900),
-    desc: `Stacked horizontal bars, one per configuration in the order of the results table, linear from 0 to ${total} answers. The count is inside each segment that is wide enough; the table gives every number.`,
+    desc: `Stacked horizontal bars, one per configuration in the order of the results table, linear from 0 to ${total} answers. The count is inside each segment that is wide enough. The table gives every number.`,
     groups: [{ name: '', rows: rows.map(r => ({ label: shortName(r.id), key: r.id, segs: used.map(b => ({ cls: b.cls, n: r.counts[b.key]! })) })) }],
     total, legend: [{ name: 'answers', items: used.map(b => ({ cls: b.cls, label: b.label })) }],
     caption: `What happened to every answer, linear from 0 to ${total} answers.` });

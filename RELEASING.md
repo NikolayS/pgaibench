@@ -18,8 +18,11 @@ The date of a release is the UTC date of its tag.
 1. Run `bun test` twice. Both runs must be green.
 2. Read the diff since the last tag. It must hold no held-out task
    content, no person names, no secrets and no local paths.
-3. Build the site with the results of the release and publish it. Keep
-   two things of that build: `data/pooled.json` (the table of the
+3. Build the site with the results of the release and publish it to
+   `gh-pages`. The maintainers run this step from their own tree, because
+   the build reads lab data that is not in this repository. The site code
+   it runs is `site/src/cli.ts` (`bun run site/src/cli.ts`, with the data
+   files named in its environment). Keep two things of that build: `data/pooled.json` (the table of the
    release) and `data_at` in `data/provisional.json` (its data time).
 4. Run the release step:
    `bun run site/src/bump.ts X.Y.Z YYYY-MM-DD <pooled.json> <data time>`.

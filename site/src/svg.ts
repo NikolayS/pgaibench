@@ -166,6 +166,6 @@ export function stackedFigure(s: Omit<Parameters<typeof stackedSvg>[0], 'width' 
   const narrow = stackedSvg({ ...s, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ');
   const wide = stackedSvg({ ...s, width: 760 }).replace('<svg ', '<svg class="chart-wide" ');
   // Legend as HTML: a swatch per class (a tiny SVG would repeat the fills; a span with the same class name is enough).
-  const legend = s.legend.map(g => `<li><span class="dim">${esc(g.name)}:</span> ${g.items.map(it => `<span class="sw pf-${it.cls}" aria-hidden="true"></span>${esc(it.label)}`).join('; ')}</li>`).join('');
+  const legend = s.legend.map(g => `<li><span class="dim">${esc(g.name)}:</span> ${g.items.map(it => `<span class="sw pf-${it.cls}" aria-hidden="true"></span>${esc(it.label)}`).join(', ')}</li>`).join('');
   return `<figure class="svg-chart" id="${esc(s.id)}-fig">${narrow}${wide}<figcaption>${s.caption}</figcaption><ul class="pf-legend">${legend}</ul></figure>`;
 }

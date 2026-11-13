@@ -38,9 +38,9 @@ export const XREADER_LINES = [
 /** Limits per access path, from src/llm/openrouter.ts, cli-gen.ts and agy-cli.ts: path, output cap, timeout, retries, repair turns. */
 export const ACCESS_ROWS: string[][] = [
   ['API (router)', '32,000 tokens (96,000 on cap reruns)', '600 s per attempt', 'up to 5, within 300 s of waits', 'one'],
-  ['Anthropic CLI', 'not set (client default)', '900 s', '1 after a fault; 3 waits (30, 60, 120 s) after a usage limit', 'one'],
-  ['OpenAI CLI', 'not set (client default)', '900 s', '1 after a fault; 3 waits (30, 60, 120 s) after a usage limit', 'one'],
-  ['Google CLI', 'not set (client default)', '900 s', '1 after a fault; none after a usage limit', 'one'],
+  ['Anthropic CLI', 'not set (client default)', '900 s', '1 after a fault. 3 waits (30, 60, 120 s) after a usage limit.', 'one'],
+  ['OpenAI CLI', 'not set (client default)', '900 s', '1 after a fault. 3 waits (30, 60, 120 s) after a usage limit.', 'one'],
+  ['Google CLI', 'not set (client default)', '900 s', '1 after a fault. None after a usage limit.', 'one'],
 ];
 /** Known issue: generation records of 2026-11-10 in run 1 of the router models (pin "moonshotai", effort not set), read 2026-11-13. */
 export const EARLIER_KIMI = '8 earlier requests to kimi-k3.1-pro, on 2026-11-10, used another endpoint pin and sent no effort setting: 5 answers and 3 errors. They are another configuration and do not count. We keep the files.';

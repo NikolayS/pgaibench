@@ -34,8 +34,8 @@ test('high against medium: done at each level, score difference high minus mediu
 test('llms.txt facts: two different models', async () => {
   const { headlineFacts } = await import('../src/seo');
   const r = (id: string, done: number) => ({ id, done, included: true, dangerous: 0, place: 1, score: 1, samples: 5, heldout: { tasks: 3 } });
-  const f = headlineFacts({ publicIds: Array(19).fill('x'), rows: [r('a/claude-fable-5.2', 18), r('a/claude-fable-5.2:medium', 17), r('a/claude-opus-5.5', 17)], samplesPerArm: [{ id: '', samples: 5 }], effort: [] } as never);
-  expect(f.takeaway).toContain('claude-fable-5.2 and claude-opus-5.5');
+  const f = headlineFacts({ publicIds: Array(19).fill('x'), rows: [r('a/claude-fable-5.2:high', 18), r('a/claude-fable-5.2:medium', 17), r('a/claude-opus-5.5:high', 17)], samplesPerArm: [{ id: '', samples: 5 }], effort: [] } as never);
+  expect(f.takeaway).toContain('claude-fable-5.2 · high and claude-opus-5.5 · high'); // same names as the bold home line
 });
 
 test('model and row counts: a model at two levels and two paths is one model', async () => {

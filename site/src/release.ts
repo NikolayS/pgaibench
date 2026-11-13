@@ -28,7 +28,7 @@ export const releaseOf = (at: string) => RELEASE_LIST.find(r => at <= r.cutoff) 
 
 /** Commits on public main after the tag; 0 is the tagged state. */
 export type ReleaseState = { ahead: number; /** the shown results equal the newest frozen table (only code or text changed) */ released?: boolean; cutoff?: string };
-const isReleased = (r: ReleaseState | undefined) => !r || r.ahead === 0 || !!r.released;
+export const isReleased = (r: ReleaseState | undefined) => !r || r.ahead === 0 || !!r.released;
 /** The release line under the chart: the state of the shown table, then every release with its frozen page. */
 export const releaseState = (r: ReleaseState | undefined) => (isReleased(r) ? `Release ${RELEASE_TAG}.` : `Unreleased, after ${RELEASE_TAG}.`);
 /** One line: the tagged state, or how far a later build is from it. */
@@ -36,6 +36,8 @@ export function releaseLine(r: ReleaseState | undefined): string {
   const a = `<a href="${RELEASE_URL}">Release ${RELEASE_TAG}, tagged ${RELEASE.date}</a>`;
   return isReleased(r) ? a : `${a}, this build: ${RELEASE_TAG} + ${r!.ahead} change${r!.ahead === 1 ? '' : 's'} (unreleased)`;
 }
+/** The release state in words for machine-readable text: "release v0.1.1" or "unreleased, after v0.1.1". */
+export const stateLabel = (r: ReleaseState | undefined) => (isReleased(r) ? `release ${RELEASE_TAG}` : `unreleased, after ${RELEASE_TAG}`);
 /** Small version mark in the footer of a live page. */
 export const footVersion = (r: ReleaseState | undefined, build?: string) => (isReleased(r) ? `${RELEASE_TAG}, ${RELEASE.date}${build ? `, build ${build}` : ''}` : `unreleased, after ${RELEASE_TAG}`);
 export const versionLink = (tag: string = RELEASE_TAG, date: string = RELEASE.date) => `<a class="ver" href="${REPO}/releases/tag/${tag}">${tag} (${date})</a>`;

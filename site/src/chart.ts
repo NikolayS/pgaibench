@@ -78,7 +78,7 @@ export function chart(s: Series, caption: string): string {
   const table = `<div class="table-scroll" tabindex="0" role="region" aria-label="${esc(title)}"><table class="chart-data" data-chart-for="${s.id}"><caption>${esc(title)}</caption><thead><tr><th scope="col">Row</th><th scope="col" class="num" title="count ${dir}">count${m}</th><th scope="col" class="num" title="share of all tasks ${dir}">share${m}</th><th scope="col" class="num" title="Wilson 95 percent interval ${dir}">ci${m}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const toRow = (b: Bar) => ({ label: shortLabel(b), value: 100 * b.q.k / b.q.n, lo: 100 * b.q.lo, hi: 100 * b.q.hi });
   const spec = s.bars ? { id: s.id, title, unit: '%', aria: `${title}. ${s.bars.map(b => `${b.label} ${pct(b.q.k / b.q.n)}%`).join(', ')}. The table below gives every number.`,
-    desc: 'Horizontal bars, linear from 0 to 100 percent of all tasks; a thin line with caps marks the Wilson 95 percent interval.',
+    desc: 'Horizontal bars, linear from 0 to 100 percent of all tasks. A thin line with caps marks the Wilson 95 percent interval.',
     rows: s.bars.filter(b => !b.baseline).map(toRow), baselines: s.bars.filter(b => b.baseline).map(toRow) } : null;
   const svgs = spec ? `${hbarSvg({ ...spec, width: 360, line: 18.4 }).replace('<svg ', '<svg class="chart-narrow" ')}${hbarSvg({ ...spec, width: 760 }).replace('<svg ', '<svg class="chart-wide" ')}` : '<p class="none" data-result>No results yet.</p>';
   return `<figure class="svg-chart chart-block" id="${s.id}-fig">${svgs}<figcaption>${esc(title)}</figcaption></figure>

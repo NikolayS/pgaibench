@@ -76,7 +76,7 @@ export function profileChart(p: { tasks: number; tracks: ProfileTrack[] }, o: { 
   const leg = `<ul class="legend">${CL.map(k => `<li><code>${esc(SHORT[k])}${MARK[PROFILE_GROUP[k]]}</code> ${esc(PROFILE_LABEL[k])} (${PROFILE_GROUP[k]}: ${DIRW[PROFILE_GROUP[k]]})</li>`).join('')}</ul>`;
   const table = o.table ? `${leg}${part(CL.filter(k => PROFILE_GROUP[k] !== 'not known yet'), 'counted')}${part(CL.filter(k => PROFILE_GROUP[k] === 'not known yet'), 'not known yet')}` : '';
   const fig = stackedFigure({ id: o.id, title, aria: `${title}. ${alt}`.slice(0, 900),
-    desc: `Stacked horizontal bars, one per model, linear from 0 to ${p.tasks} tasks. Segments in a fixed order: good outcomes first, then bad, then not known yet; the count is inside each segment that is wide enough. The table below gives every number.`,
+    desc: `Stacked horizontal bars, one per model, linear from 0 to ${p.tasks} tasks. Segments in a fixed order: good outcomes first, then bad, then not known yet. The count is inside each segment that is wide enough. The table below gives every number.`,
     groups: p.tracks.map(t => ({ name: t.name, rows: t.rows.map(r => ({ label: chartName(r.model_id), key: idName(r.model_id), segs: CL.map(k => ({ cls: k, n: r.counts[k] })) })) })),
     total: p.tasks, legend: PROFILE_GROUPS.map(g => ({ name: g, items: CL.filter(k => PROFILE_GROUP[k] === g).map(k => ({ cls: k, label: PROFILE_LABEL[k] })) })),
     caption: 'What happened to each task (context, not a quality measure).' });

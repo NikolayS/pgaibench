@@ -9,6 +9,8 @@ const ov = (f: string) => [join(root, 'public-overlay', f), join(root, f)].find(
 test('RELEASING.md: steps that work in the public repository', () => {
   const r = readFileSync(ov('RELEASING.md'), 'utf8');
   expect(r).toContain('bun run site/src/bump.ts');
+  expect(r).toContain('bun run site/src/cli.ts');
+  expect(r).toMatch(/from their own tree/);
   expect(r).not.toMatch(/scripts\/|publish-provisional|public-check|add the compare link/);
   for (const f of r.match(/`(site\/[^`\s]+\.ts)`/g) ?? []) expect(existsSync(join(root, f.slice(1, -1)))).toBe(true);
 });
@@ -32,4 +34,26 @@ test('benchmark.md disclosure: readers of one vendor, answers public for run 1 o
   const b = readFileSync(join(root, 'docs/benchmark.md'), 'utf8').replace(/\s+/g, ' ');
   expect(b).not.toContain('the two adjudication readers come from two vendors');
   expect(b).toContain('The readers of the other cells are models of one vendor under test (Anthropic).');
+});
+
+test('llms.txt, Cite as and the header box follow the live release state', async () => {
+  const { buildSite } = await import('../src/build');
+  const fx = await import('./fixtures/seo-site');
+  const { RELEASE, RELEASE_TAG } = await import('../src/release');
+  const snap = JSON.parse(readFileSync(join(import.meta.dir, '../content', RELEASE.snapshot), 'utf8'));
+  const moved = structuredClone(snap); moved.rows[0].score -= 1;
+  const un = buildSite({ ...fx.buildOpts, pooledJson: moved, release: { ahead: 2 } });
+  expect(un.get('llms.txt')).toContain(`Results (unreleased, after ${RELEASE_TAG}, data of`);
+  expect(un.get('llms.txt')).toMatch(new RegExp(`Cite as: PGAIBench \\(unreleased, after ${RELEASE_TAG.replace(/\./g, '\\.')}`));
+  expect(/Release<\/th><td class="width-min">([^<]*)</.exec(un.get('updates/index.html') ?? un.get('index.html')!)![1]).toBe(`unreleased, after ${RELEASE_TAG}`);
+  const rel = buildSite({ ...fx.buildOpts, pooledJson: snap, release: { ahead: 2 } });
+  expect(rel.get('llms.txt')).toContain(`Results (release ${RELEASE_TAG}, data of`);
+  expect(rel.get('llms.txt')).toContain(`Cite as: PGAIBench ${RELEASE_TAG},`);
+});
+
+test('no semicolons in limits per access path, the correction text or the held-out note', async () => {
+  const { ACCESS_ROWS } = await import('../src/statements');
+  const { CORRECTIONS } = await import('../src/corrections');
+  expect(ACCESS_ROWS.flat().join(' ')).not.toContain(';');
+  expect(CORRECTIONS.map(c => c.text).join(' ')).not.toContain(';');
 });

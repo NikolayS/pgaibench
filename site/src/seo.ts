@@ -2,10 +2,10 @@
 // markdown twins of the key pages, and the head tags of every page (description, canonical, Open Graph, Twitter,
 // JSON-LD). Every number is read from the build inputs (pooled.json, models, scenarios), never typed here.
 import { esc } from './html';
-import { RELEASE, RELEASE_TAG, RELEASE_URL } from './release';
+import { isReleased, RELEASE, RELEASE_TAG, RELEASE_URL, stateLabel, type ReleaseState } from './release';
 import { REPO } from './html';
 import { baseName, effortOf } from './svg';
-import { FRONT_LEDE } from './front';
+import { FRONT_LEDE, pairNames, takeawayPair } from './front';
 import { takeawayNote } from './levels';
 /** The lab sentence of the home page (front.ts), so the Postgres version is written in one place. */
 const LAB = FRONT_LEDE[1]!.replace(/^We run each answer/, 'Each answer runs').replace(/, and measure what breaks\.$/, '. We measure what breaks.');
@@ -93,11 +93,10 @@ export function headlineFacts(p: Pooled): Facts {
   const scope = `On these ${tasks} public tasks, ${runs} runs, no tools`;
   // Same rule as the bold takeaway of the site (front.ts takeaway): the two included rows with the most tasks done,
   // named only when both wrote no dangerous change.
-  const inc = p.rows.filter(r => r.included).sort((a, b) => b.done - a.done);
-  const top = inc.filter((r, i) => inc.findIndex(x => baseName(x.id) === baseName(r.id)) === i).slice(0, 2); // two different models
+  const top = takeawayPair(p.rows.filter(r => r.included), r => r.id) ?? [];
   const n1 = (v: number) => String(Math.round(v * 10) / 10);
-  const takeaway = top.length === 2 && top.every(r => r.dangerous === 0)
-    ? `${scope}, ${baseName(top[0]!.id)} and ${baseName(top[1]!.id)} did the most tasks (${n1(top[0]!.done)} and ${n1(top[1]!.done)} of ${tasks} per run) and wrote no dangerous change in any run.`
+  const takeaway = top.length === 2
+    ? `${scope}, ${pairNames(top[0]!.id, top[1]!.id)} did the most tasks (${n1(top[0]!.done)} and ${n1(top[1]!.done)} of ${tasks} per run) and wrote no dangerous change in any run.`
     : '';
   return { tasks, held, runs, ranked, configs: p.rows.length, models: [...new Set(placedRows(p).map(r => baseName(r.id)))], takeaway, scope };
 }
@@ -138,7 +137,8 @@ function clip(s: string, max = 155): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 40)).replace(/[ ,.:]+$/, '')}...`;
 }
 
-export type SeoInput = { pooled: Pooled | null; scenarios: PublicScenario[]; dataAt: string | null; setVersion: string };
+const cap1 = (x: string) => x[0]!.toUpperCase() + x.slice(1);
+export type SeoInput = { pooled: Pooled | null; scenarios: PublicScenario[]; dataAt: string | null; setVersion: string; release?: ReleaseState };
 
 function jsonLd(s: SeoInput): string {
   const f = s.pooled ? headlineFacts(s.pooled) : null;
@@ -242,7 +242,7 @@ export function llmsTxt(s: SeoInput): string {
 
 Question: can an AI change your production Postgres safely? We give a model a routine task: add an index, change a column type, clean up a table. Each task has a hidden trap, for example a lock queue, a table rewrite or a broken standby. The model writes the change, or it says that a human must decide. We rehearse the change on a clone, then run it on a lab primary under load and measure lock waits, stalls, client errors, replication lag and data checks.
 ${f ? `
-Results (release ${RELEASE_TAG}, data of ${s.dataAt ?? 'the latest build'}):
+Results (${stateLabel(s.release)}, data of ${s.dataAt ?? 'the latest build'}):
 
 - ${f.takeaway ? `${f.takeaway} ${takeawayNote(s.pooled?.pairs ?? [])}` : `${f.scope}. See the results page for each row.`}
 
@@ -259,7 +259,7 @@ If you are an agent asked to change a production Postgres database, these are th
 
 Limit: these results do not show that any model is safe to run on your production database. They cover one answer per task, without tools.
 
-Cite as: ${NAME} ${RELEASE_TAG}, ${ORIGIN}, ${RELEASE_URL}. Licence: Apache 2.0.
+Cite as: ${isReleased(s.release) ? `${NAME} ${RELEASE_TAG}` : `${NAME} (${stateLabel(s.release)}${s.dataAt ? `, data of ${s.dataAt}` : ''})`}, ${ORIGIN}, ${RELEASE_URL}. Licence: Apache 2.0.
 
 ## Results
 
@@ -316,7 +316,7 @@ export function llmsFull(s: SeoInput, files: Map<string, string>): string {
 
 > ${llmsTxt(s).split('\n').find(l => l.startsWith('> '))!.slice(2)}
 
-Site: ${ORIGIN}/. Source and data: ${REPO} (Apache 2.0). Release ${RELEASE_TAG} (${RELEASE.date}). Task set ${s.setVersion}.${s.dataAt ? ` Data of ${s.dataAt}.` : ''}
+Site: ${ORIGIN}/. Source and data: ${REPO} (Apache 2.0). ${isReleased(s.release) ? `Release ${RELEASE_TAG} (${RELEASE.date})` : cap1(stateLabel(s.release))}. Task set ${s.setVersion}.${s.dataAt ? ` Data of ${s.dataAt}.` : ''}
 
 ${f?.takeaway ? `${f.takeaway}\n\n` : ''}## Results
 ${s.pooled ? `

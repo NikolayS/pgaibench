@@ -82,7 +82,7 @@ or removed.
 - Home example: the failed application queries carry the measured
   count and span from the lab record of that answer.
 - Known issues: one R2 cell and one L7 cell passed a check that is too
-  weak. Both checks get fixed in the next release.
+  weak. Both checks are too weak in this release.
 - Known limits: tasks done is not goal reached safely; a missing answer
   counts as not dangerous; reference rows are scored by text rules;
   reader model ids are not recorded and no person has checked a sample.

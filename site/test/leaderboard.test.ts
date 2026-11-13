@@ -55,7 +55,7 @@ describe('results page', () => {
     for (const t of tables) expect(t).not.toMatch(/model-c|model-d/);
   });
   test('held-out results are counts only', () => {
-    expect(text(lb)).toContain('Counts only; no rate.');
+    expect(text(lb)).toContain('Counts only, no rate.');
     expect(text(lb)).toMatch(/model-a · provider default: right change 2/);
   });
   test('the text-by-lab confusion matrix is shown', () => {
