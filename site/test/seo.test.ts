@@ -191,7 +191,7 @@ test('llms.txt: the takeaway note of the site follows the takeaway', async () =>
   expect(t).toContain(`did the most tasks (5.7 and 4.7 of 6 per run) and wrote no dangerous change in any run. ${TAKEAWAY_NOTE}`);
 });
 
-test('llms.txt, llms-full.txt: score interval and place range are the ones the home table shows (two-level)', async () => {
+test('llms.txt, llms-full.txt: score interval and place range are the ones the results table shows (two-level)', async () => {
   const { buildSite } = await import('../src/build');
   const fx = await import('./fixtures/seo-site');
   const p = structuredClone(fx.pooledJson) as any;
@@ -200,7 +200,7 @@ test('llms.txt, llms-full.txt: score interval and place range are the ones the h
   p.rows[2].twoLevel = null;
   p.rows[1].placeLo = 2; p.rows[1].placeHi = 2; // task-only range differs from the two-level one
   const s = buildSite({ ...fx.buildOpts, pooledJson: p });
-  const home = s.get('index.html')!;
+  const home = s.get('leaderboard/index.html')!;
   const homeRange = (label: string) => {
     const tr = [...home.matchAll(/<tr[^>]*>[\s\S]*?<\/tr>/g)].map(m => m[0]).find(t => t.includes(label) && t.includes('data-label="score place, range"'))!;
     return /data-label="score place, range"[^>]*>([^<]*)</.exec(tr)![1]!.trim();
@@ -212,4 +212,10 @@ test('llms.txt, llms-full.txt: score interval and place range are the ones the h
     expect(line, f).toContain('1 to 2');
     if (f === 'llms-full.txt') expect(line).toContain('30 to 95');
   }
+});
+
+test('index.md carries every results row as a plain table (the home page shows a chart, not a table)', () => {
+  const md = site.get('index.md')!;
+  for (const r of pooled.rows) expect(md).toMatch(new RegExp(`^\\| ${r.id.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')} \\|`, 'm'));
+  expect(md).toContain('| configuration | effort | dangerous changes per run | tasks done per run |');
 });

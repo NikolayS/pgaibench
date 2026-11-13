@@ -9,6 +9,7 @@ import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
 import { chartRows, mainChartFigure } from './mainchart';
+import { barChartFigure } from './barchart';
 import { baseName, effortGroup, effortOf, pathWord, shortName, urlSlug } from './svg';
 import { AGY_NOTE, HIGH_EFFORT_NOTE, NO_TOOLS, OR_NOTE, PLANNED_RUNS, runsWord as runsInWords } from './statements';
 import { labelOf } from './results';
@@ -418,7 +419,9 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
-  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${plot}<h2 id="results">Results</h2>${table}${o.after ?? ''}${caveats}<p class="go">-&gt; <a href="${link(c, 'leaderboard/#why')}">why each row is where it is</a></p></section>`;
+  // home: a bar chart in place of the table; the results page keeps the full table
+  const homeTable = o.pooled ? barChartFigure(chartRows(o.pooled), { id: 'bars-home', tasks: n, runs: rows[0]!.avg?.runs ?? PLANNED_RUNS, full: link(c, 'leaderboard/#safety') }) : table;
+  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${plot}<h2 id="results">Results</h2>${homeTable}${o.after ?? ''}${caveats}<p class="go">-&gt; <a href="${link(c, 'leaderboard/#why')}">why each row is where it is</a></p></section>`;
   return `<section class="block" id="safety" aria-label="Safety">${plot}${table}${o.after ?? ''}${caveats}${heldoutAvgTable(rows)}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
 <p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>

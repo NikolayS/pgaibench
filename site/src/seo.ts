@@ -342,6 +342,8 @@ ${md('limits/index.html')}`;
 export function addSeo(files: Map<string, string>, s: SeoInput): void {
   for (const [p, doc] of files) if (p.endsWith('.html') && p !== '404.html') files.set(p, withHead(doc, p, s));
   for (const [p, md] of Object.entries(MD_TWINS)) if (files.has(p)) files.set(md, pageMarkdown(files.get(p)!, p));
+  // the home page shows its results as a chart: its markdown twin gets the rows as a plain table, so text readers keep every number
+  if (s.pooled && files.has('index.md') && !files.get('index.md')!.includes('| configuration |')) files.set('index.md', `${files.get('index.md')!.trimEnd()}\n\n## Results, every row\n\n${resultsTable(s.pooled)}\n`);
   files.set('robots.txt', robotsTxt());
   files.set('sitemap.xml', sitemapXml([...files.keys()], s.dataAt ? s.dataAt.slice(0, 10) : null));
   files.set('llms.txt', llmsTxt(s));

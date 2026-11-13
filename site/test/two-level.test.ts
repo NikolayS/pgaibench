@@ -24,7 +24,10 @@ const text = (doc: string) => doc.replace(/<[^>]*>/g, ' ').replace(/&quot;/g, '"
 const tbl = (doc: string, cls: string) => new RegExp(`<table class="${cls}"[\\s\\S]*?</table>`).exec(doc)![0];
 
 test('headline table: whole-number score with the two-level interval, place range, bound on dangerous', () => {
-  for (const doc of [lb, home]) {
+  // home shows a bar chart in place of the table (owner, 2026-11-13); the results page keeps the table
+  expect(home).not.toContain('<table class="safety');
+  expect(home).toMatch(/<g class="bc-row" data-id="[^"]+" data-done="[\d.]+" data-dangerous="1\.3"/);
+  for (const doc of [lb]) {
     const t = text(tbl(doc, 'safety'));
     expect(t).toContain('96 [89 to 100]');
     expect(t).toContain('69 [47 to 86]');
@@ -37,7 +40,7 @@ test('headline table: whole-number score with the two-level interval, place rang
 });
 
 test('phone table: whole-number score, bound on dangerous, place range', () => {
-  const c = text(tbl(home, 'safety compact'));
+  const c = text(tbl(lb, 'safety compact'));
   expect(c).toContain('96');
   expect(c).not.toContain('96.5');
   expect(c).toMatch(/0 0\/\d+/);
