@@ -37,3 +37,10 @@ test('llms.txt facts: two different models', async () => {
   const f = headlineFacts({ publicIds: Array(19).fill('x'), rows: [r('a/claude-fable-5.2', 18), r('a/claude-fable-5.2:medium', 17), r('a/claude-opus-5.5', 17)], samplesPerArm: [{ id: '', samples: 5 }], effort: [] } as never);
   expect(f.takeaway).toContain('claude-fable-5.2 and claude-opus-5.5');
 });
+
+test('model and row counts: a model at two levels and two paths is one model', async () => {
+  const { modelCounts } = await import('../src/pages');
+  const r = (id: string, place: number | null = 1) => ({ id, place });
+  const c = modelCounts({ rows: [r('a/fable'), r('a/fable:medium'), r('g/carbon@agy'), r('g/carbon-high@agy')], effort: [{ arm: '@or', rows: [r('g/carbon@or', null)] }] } as never);
+  expect(c).toEqual({ models: 2, rows: 5, placed: 4 });
+});
