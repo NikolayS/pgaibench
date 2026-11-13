@@ -1,6 +1,6 @@
 {
-  "data_at": "2026-11-13T00:04:25Z",
-  "harness_commit": "dbefc9b9bc97",
+  "data_at": "2026-11-13T01:18:15Z",
+  "harness_commit": "9093f4831154",
   "lab_commit": "913fc43, reruns bf55cef",
   "lab_planned": 264,
   "lab_finished": 263,
@@ -45,7 +45,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -82,7 +84,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 12,
@@ -119,7 +123,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -155,7 +161,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -191,7 +199,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -228,7 +238,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 2.8,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 25,
@@ -265,7 +277,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 3,
-          "longest_zero_run_s": 2
+          "longest_zero_run_s": 2,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -302,7 +316,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -339,7 +355,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -376,7 +394,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 18,
@@ -413,7 +433,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0.1,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 18,
@@ -450,7 +472,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 20,
@@ -490,7 +514,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -527,7 +553,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -564,7 +592,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -602,7 +632,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 18,
@@ -639,7 +671,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -677,7 +711,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 33,
+          "workload_error_span_s": 84
         },
         "bounds": {
           "rehearsal": 12,
@@ -715,7 +751,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 22,
+          "workload_error_span_s": 89
         },
         "bounds": {
           "rehearsal": 12,
@@ -751,7 +789,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -788,7 +828,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -825,7 +867,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -861,7 +905,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -897,7 +943,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -934,7 +982,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -970,7 +1020,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -1006,7 +1058,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -1042,7 +1096,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -1078,7 +1134,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -1114,7 +1172,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -1151,7 +1211,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -1191,7 +1253,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -1231,7 +1295,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -1268,7 +1334,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -1304,7 +1372,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -1341,7 +1411,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -1378,7 +1450,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 29,
+          "workload_error_span_s": 21
         },
         "bounds": {
           "rehearsal": 6,
@@ -1415,7 +1489,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 36,
+          "workload_error_span_s": 22
         },
         "bounds": {
           "rehearsal": 8,
@@ -1451,7 +1527,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -1488,7 +1566,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 15,
@@ -1525,7 +1605,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -1561,7 +1643,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -1597,7 +1681,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -1634,7 +1720,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -1670,7 +1758,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -1706,7 +1796,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -1743,7 +1835,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -1780,7 +1874,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 12,
@@ -1817,7 +1913,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -1854,7 +1952,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -1894,7 +1994,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -1931,7 +2033,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -1968,7 +2072,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 16,
@@ -2006,7 +2112,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1.1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 17,
@@ -2043,7 +2151,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -2080,7 +2190,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 28,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 9,
@@ -2117,7 +2229,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 26,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 11,
@@ -2153,7 +2267,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -2190,7 +2306,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -2227,7 +2345,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -2263,7 +2383,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -2303,7 +2425,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -2340,7 +2464,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -2376,7 +2502,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -2413,7 +2541,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1.1,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -2454,7 +2584,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -2491,7 +2623,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -2528,7 +2662,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1.4,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -2565,7 +2701,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -2605,7 +2743,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -2642,7 +2782,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -2679,7 +2821,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -2717,7 +2861,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -2754,7 +2900,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -2791,7 +2939,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 33,
+          "workload_error_span_s": 20
         },
         "bounds": {
           "rehearsal": 7,
@@ -2828,7 +2978,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 27,
+          "workload_error_span_s": 18
         },
         "bounds": {
           "rehearsal": 10,
@@ -2864,7 +3016,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -2904,7 +3058,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -2940,7 +3096,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -2982,7 +3140,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 3308,
+          "workload_error_span_s": 150
         },
         "bounds": {
           "rehearsal": 7,
@@ -3018,7 +3178,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -3054,7 +3216,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -3090,7 +3254,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -3126,7 +3292,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3162,7 +3330,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -3198,7 +3368,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3234,7 +3406,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -3270,7 +3444,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3310,7 +3486,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -3350,7 +3528,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -3387,7 +3567,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -3423,7 +3605,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -3459,7 +3643,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -3496,7 +3682,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -3534,7 +3722,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 27,
+          "workload_error_span_s": 42
         },
         "bounds": {
           "rehearsal": 9,
@@ -3570,7 +3760,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -3607,7 +3799,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -3644,7 +3838,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -3680,7 +3876,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -3716,7 +3914,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -3753,7 +3953,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -3789,7 +3991,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3826,7 +4030,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3863,7 +4069,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -3900,7 +4108,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 5.6,
-          "longest_zero_run_s": 2
+          "longest_zero_run_s": 2,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 2,
@@ -3936,7 +4146,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -3973,7 +4185,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -4009,7 +4223,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 1,
@@ -4050,7 +4266,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -4087,7 +4305,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -4123,7 +4343,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -4160,7 +4382,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -4197,7 +4421,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 31,
+          "workload_error_span_s": 21
         },
         "bounds": {
           "rehearsal": 3,
@@ -4234,7 +4460,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 28,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 4,
@@ -4296,7 +4524,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -4333,7 +4563,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -4369,7 +4601,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -4405,7 +4639,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -4442,7 +4678,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -4478,7 +4716,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -4515,7 +4755,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -4552,7 +4794,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -4589,7 +4833,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0.6,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -4626,7 +4872,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 3.9,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -4663,7 +4911,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -4699,7 +4949,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -4739,7 +4991,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -4776,7 +5030,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -4814,7 +5070,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 17,
@@ -4851,7 +5109,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -4888,7 +5148,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 35,
+          "workload_error_span_s": 18
         },
         "bounds": {
           "rehearsal": 7,
@@ -4925,7 +5187,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 34,
+          "workload_error_span_s": 18
         },
         "bounds": {
           "rehearsal": 8,
@@ -4961,7 +5225,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -4999,7 +5265,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -5036,7 +5304,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -5072,7 +5342,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5108,7 +5380,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5145,7 +5419,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -5181,7 +5457,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 12,
@@ -5218,7 +5496,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -5255,7 +5535,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -5291,7 +5573,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -5327,7 +5611,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -5363,7 +5649,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -5403,7 +5691,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -5443,7 +5733,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5483,7 +5775,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5523,7 +5817,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5559,7 +5855,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5597,7 +5895,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 36,
+          "workload_error_span_s": 37
         },
         "bounds": {
           "rehearsal": 9,
@@ -5634,7 +5934,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 29,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 13,
@@ -5670,7 +5972,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5707,7 +6011,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -5744,7 +6050,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -5780,7 +6088,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5816,7 +6126,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5852,7 +6164,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -5888,7 +6202,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -5924,7 +6240,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 2,
@@ -5961,7 +6279,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -5998,7 +6318,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 2.1,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -6034,7 +6356,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -6071,7 +6395,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -6111,7 +6437,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 2,
@@ -6147,7 +6475,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -6187,7 +6517,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6227,7 +6559,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6264,7 +6598,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -6300,7 +6636,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -6337,7 +6675,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 27,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 9,
@@ -6373,7 +6713,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6410,7 +6752,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -6447,7 +6791,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -6483,7 +6829,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6519,7 +6867,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6556,7 +6906,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -6592,7 +6944,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -6628,7 +6982,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -6665,7 +7021,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -6702,7 +7060,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -6738,7 +7098,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -6775,7 +7137,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 12,
@@ -6815,7 +7179,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -6855,7 +7221,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6892,7 +7260,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -6932,7 +7302,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -6969,7 +7341,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -7006,7 +7380,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 31,
+          "workload_error_span_s": 19
         },
         "bounds": {
           "rehearsal": 10,
@@ -7044,7 +7420,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 30,
+          "workload_error_span_s": 41
         },
         "bounds": {
           "rehearsal": 11,
@@ -7080,7 +7458,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7117,7 +7497,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -7157,7 +7539,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -7193,7 +7577,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7229,7 +7615,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7266,7 +7654,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -7302,7 +7692,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 7,
@@ -7339,7 +7731,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -7376,7 +7770,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -7413,7 +7809,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -7449,7 +7847,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -7486,7 +7886,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -7526,7 +7928,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 3,
@@ -7566,7 +7970,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7603,7 +8009,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -7641,7 +8049,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 6,
@@ -7677,7 +8087,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7714,7 +8126,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 32,
+          "workload_error_span_s": 21
         },
         "bounds": {
           "rehearsal": 7,
@@ -7751,7 +8165,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 35,
+          "workload_error_span_s": 18
         },
         "bounds": {
           "rehearsal": 7,
@@ -7787,7 +8203,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7853,7 +8271,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -7889,7 +8309,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": null,
@@ -7925,7 +8347,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -7966,7 +8390,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -8002,7 +8428,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -8038,7 +8466,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -8074,7 +8504,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -8110,7 +8542,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 9,
@@ -8146,7 +8580,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 11,
@@ -8183,7 +8619,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 1,
-          "longest_zero_run_s": 1
+          "longest_zero_run_s": 1,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 14,
@@ -8223,7 +8661,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -8263,7 +8703,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 5,
@@ -8300,7 +8742,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
@@ -8336,7 +8780,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": 0,
-          "longest_zero_run_s": 0
+          "longest_zero_run_s": 0,
+          "workload_errors": 0,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 13,
@@ -8372,7 +8818,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 10,
@@ -8412,7 +8860,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 4,
@@ -8448,7 +8898,9 @@
           "p99_rel": null,
           "max_replication_lag_s": null,
           "stalled_seconds_total": null,
-          "longest_zero_run_s": null
+          "longest_zero_run_s": null,
+          "workload_errors": null,
+          "workload_error_span_s": null
         },
         "bounds": {
           "rehearsal": 8,
