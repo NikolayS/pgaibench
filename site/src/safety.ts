@@ -2,12 +2,13 @@
 // change written" counts every dangerous change a model wrote, wherever it
 // was stopped (rehearsal, production with no harm measured, harm measured).
 // Data: provisional.json field `safety` (src/analysis/site-data.ts).
-import { CAVEATS_SUMMARY, QUAD_CAPTION_HTML, noteAccess, NOTE_EFFORT, NOTE_NO_TOOLS, NOTE_ORDER, noteDangerous, noteHeldout, noteQuantized, noteReference, topicHtml, type NoteTopic } from './front';
+import { CAVEATS_SUMMARY, QUAD_CAPTION_HTML, WORDS_ID, noteAccess, NOTE_EFFORT, NOTE_NO_TOOLS, NOTE_ORDER, noteDangerous, noteHeldout, noteQuantized, noteReference, topicHtml, type NoteTopic } from './front';
 import { esc, link, page, type Ctx } from './html';
 import { FAMILIES, SHAPE_HALF, SHAPE_HALF as SHAPE_HALF_WIDE, familyLegend, familyOf, shapeSvg, swatch } from './family';
 import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
+import { chartRows, mainChartFigure } from './mainchart';
 import { baseName, effortGroup, effortOf, pathWord, shortName, urlSlug } from './svg';
 import { AGY_NOTE, HIGH_EFFORT_NOTE, NO_TOOLS, OR_NOTE, PLANNED_RUNS, runsWord as runsInWords } from './statements';
 import { labelOf } from './results';
@@ -410,12 +411,15 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
       ...otherLevelRows(o.pooled).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortGroup(effortOf(x.id)), main: false, oneRun: x.samples === 1 })),
       ...plottedRows(prov).map((x, i) => ({ label: `${short(x.id)}, ${noPlaceShort(x)}`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortGroup(effortOf(x.id)), main: true }))], xMax: n, origin: 'median',
     baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION_HTML(QUAD_CAPTION), ...(note ? { note } : {}) });
+  // the main chart (tasks done against dangerous changes) first; the numbered plot with filters stays, collapsed
+  const main = o.pooled ? mainChartFigure(chartRows(o.pooled), { id: `main-${quadId(o.home)}`, tasks: n, words: `#${WORDS_ID}` }) : '';
+  const plot = main ? `${main}<details class="all-points"><summary>All points, with filters</summary>${quad}</details>` : quad;
   const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl, ...(o.home ? {} : { reasoning: o.pooled?.reasoning?.rows }) })}</div>${prov.some(x => x.samples >= PLANNED_RUNS && !unreadOf(x)) ? `<p class="note legend-line">${esc(NO_PLACE_LEGEND)}</p>` : ''}`;
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
-  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}<h2 id="results">Results</h2>${table}${o.after ?? ''}${caveats}<p class="go">-&gt; <a href="${link(c, 'leaderboard/#why')}">why each row is where it is</a></p></section>`;
-  return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${o.after ?? ''}${caveats}${heldoutAvgTable(rows)}
+  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${plot}<h2 id="results">Results</h2>${table}${o.after ?? ''}${caveats}<p class="go">-&gt; <a href="${link(c, 'leaderboard/#why')}">why each row is where it is</a></p></section>`;
+  return `<section class="block" id="safety" aria-label="Safety">${plot}${table}${o.after ?? ''}${caveats}${heldoutAvgTable(rows)}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
 <p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>
 <h3 id="dangerous">Every dangerous change</h3><p>Public tasks only${rows[0]!.avg ? `, all ${runsInWords(rows[0]!.avg.runs)} runs` : ''}. Each line shows the statement that makes the change dangerous, cut to one line.</p><p>${esc(MUST_REFUSE_NOTE)}</p><p>${esc(NOT_VALID_NOTE)}</p>${dangerList(rows)}</section>`;
