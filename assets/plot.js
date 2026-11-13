@@ -84,3 +84,22 @@
   var boxes = document.querySelectorAll('.qctl');
   for (var i = 0; i < boxes.length; i++) setup(boxes[i]);
 })(globalThis);
+// Main chart: the interval of the point in focus (or under the pointer) is copied to the top layer of its
+// chart, so it draws above every mark. Without JavaScript the interval still shows inside its point.
+(function () {
+  if (typeof document === 'undefined') return;
+  function show(e) {
+    var pt = e.target.closest && e.target.closest('svg.mc g.mc-pt');
+    if (!pt) return;
+    var top = pt.ownerSVGElement.querySelector('g.mc-top');
+    top.textContent = '';
+    var ci = pt.querySelectorAll('.mc-ci');
+    for (var i = 0; i < ci.length; i++) { var c = ci[i].cloneNode(true); c.setAttribute('class', 'mc-ci mc-ci-on'); top.appendChild(c); }
+  }
+  function hide(e) {
+    var pt = e.target.closest && e.target.closest('svg.mc g.mc-pt');
+    if (pt) pt.ownerSVGElement.querySelector('g.mc-top').textContent = '';
+  }
+  document.addEventListener('focusin', show); document.addEventListener('focusout', hide);
+  document.addEventListener('mouseover', show); document.addEventListener('mouseout', hide);
+})();
