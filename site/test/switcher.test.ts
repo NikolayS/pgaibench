@@ -35,7 +35,7 @@ test('every configuration has a point element with family, model and effort; num
   expect(fig).toMatch(/<polyline class="q-line q-off" data-model="gpt-6.1-terra"/);
   // controls: hidden without JavaScript, above the plot
   expect(fig).toMatch(/<div class="qctl" data-for="q" hidden>/);
-  expect(fig.indexOf('class="qctl"')).toBeLessThan(fig.indexOf('<svg'));
+  expect(fig.indexOf('class="qctl"')).toBeGreaterThan(fig.indexOf('<svg')); // owner, 2026-11-12: controls under the chart
   for (const w of ['Anthropic', 'OpenAI', 'Google', 'high', 'medium', 'default', 'reset', 'one run', 'one model, all levels']) expect(fig).toContain(w);
 });
 

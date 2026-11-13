@@ -232,7 +232,7 @@ export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption:
   const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}"${liAttr(p)}>${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
   const ctl = sw ? switcher(o.id, pts) : '';
   const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.x)}, ${fmtNum(o.xMax - b.y)})`).join(', ');
-  return `<figure class="svg-chart" id="${esc(o.id)}">${ctl}${narrow}${wide}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.${o.note ? ` ${esc(o.note)}` : ''}</p></figure>`;
+  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}${ctl}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.${o.note ? ` ${esc(o.note)}` : ''}</p></figure>`;
 }
 
 // ---------- list of dangerous changes ----------
@@ -382,7 +382,7 @@ const quadId = (home: boolean) => (home ? 'safety-home' : 'safety-quadrant');
 export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done.';
 
 /** Top of the page: the plot, the compact table and (results page) the findings. */
-export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string; /** one-run and other-level rows for the switcher */ pooled?: Pooled | null; /** short notes (five-run pages): method link and quantized endpoints */ short?: { more: (id: string) => string; method: string; quant: { name: string; kind: string; noReasoning: boolean }[] } }): string {
+export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; /** under the chart, before the table */ after?: string; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string; /** one-run and other-level rows for the switcher */ pooled?: Pooled | null; /** short notes (five-run pages): method link and quantized endpoints */ short?: { more: (id: string) => string; method: string; quant: { name: string; kind: string; noReasoning: boolean }[] } }): string {
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded), prov = provisionalRows(o.pooled);
   const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
   const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortOf(r.model_id), main: true })),
@@ -393,8 +393,8 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const read = `<p class="chart-read">${chartRead()}</p>`, caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
-  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${read}${quad}${table}${caveats}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
-  return `<section class="block" id="safety" aria-label="Safety">${read}${quad}${table}${caveats}${heldoutAvgTable(rows)}
+  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${read}${o.after ?? ''}${table}${caveats}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
+  return `<section class="block" id="safety" aria-label="Safety">${quad}${read}${o.after ?? ''}${table}${caveats}${heldoutAvgTable(rows)}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
 <p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>
 <h3 id="dangerous">Every dangerous change</h3><p>Public tasks only${rows[0]!.avg ? `, all ${runsInWords(rows[0]!.avg.runs)} runs` : ''}. Each line shows the statement that makes the change dangerous, cut to one line.</p><p>${esc(MUST_REFUSE_NOTE)}</p><p>${esc(NOT_VALID_NOTE)}</p>${dangerList(rows)}</section>`;

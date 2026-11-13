@@ -24,7 +24,7 @@ const site5 = build(five, pooledJson), site3 = build(pooledJson);
 test('five runs: lede and every sentence about the main table name five runs', () => {
   for (const p of ['leaderboard/index.html', 'index.html']) {
     const t = text(site5.get(p)!);
-    expect(t).toContain('Five runs per model.');
+    expect(t).toContain('5 runs per model.');
     const bad = /Three runs per task|three-run ranking|three-run row|all three runs|in three runs,|mean of three runs|Even with three runs/.exec(t);
     expect(bad ? t.slice(Math.max(0, bad.index - 80), bad.index + 80) : null).toBeNull();
   }
@@ -35,12 +35,18 @@ test('five runs: lede and every sentence about the main table name five runs', (
 
 test('five runs: one short top line opens the ranking and links the v0.1.0 table', () => {
   expect(RECORD_RUNS).toBe(3);
-  expect(topLine(5)).toBe('No tools. 19 tasks. Five runs per model. Provisional until tagged v0.1.1. Release of record:');
   const lb = site5.get('leaderboard/index.html')!;
   const m = /<p class="meta top-line">([\s\S]*?)<\/p>/.exec(lb)!;
-  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('No tools. 19 tasks. Five runs per model. Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
+  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe('Provisional until tagged v0.1.1. Release of record: v0.1.0 (three runs).');
   expect(m[1]).toMatch(/<a href="[^"]*releases\/v0\.1\.0\/(index\.html)?">v0\.1\.0 \(three runs\)<\/a>\./);
-  expect(m.index).toBeLessThan(lb.indexOf('<svg'));
+  expect(m.index).toBeGreaterThan(lb.indexOf('<svg'));
+  // owner, 2026-11-12: at most 60 words of prose between the h1 and the chart, on home and results
+  for (const p of ['index.html', 'leaderboard/index.html']) {
+    const h = site5.get(p)!, i = h.indexOf('<h1'), j = h.indexOf('<svg');
+    expect(i).toBeGreaterThan(-1);
+    const words = text(h.slice(i, j).replace(/<script[\s\S]*?<\/script>/g, '')).split(/\s+/).filter(w => /[A-Za-z0-9]/.test(w));
+    expect(words.length, p).toBeLessThanOrEqual(60);
+  }
   // no reader procedure, no semicolons, no "one click away" above the plot
   const top = text(lb.slice(lb.indexOf('<main'), lb.indexOf('<svg')));
   expect(top).not.toMatch(/;|one click away|AI-model readers|where the two agree/);

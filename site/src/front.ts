@@ -12,7 +12,7 @@ export const FRONT_LEDE = [
 ];
 
 /** One line on how to read the chart, next to it. */
-export const CHART_READ = 'How to read the chart: one point per model. Further right means more tasks done. Higher means fewer dangerous changes. Best is top right.';
+export const CHART_READ = 'Right: more tasks done. Up: fewer dangerous changes. Best is top right.';
 /** CHART_READ with its first terms linked to the words at the foot of the page. */
 export const chartRead = () => esc(CHART_READ).replace('tasks done', `<a href="#${WORDS_ID}">tasks done</a>`).replace('dangerous changes', `<a href="#${WORDS_ID}">dangerous changes</a>`);
 

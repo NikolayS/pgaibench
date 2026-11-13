@@ -13,4 +13,8 @@ export function releaseLine(r: ReleaseState | undefined): string {
   return !r || r.ahead === 0 ? a : `${a}; this build: ${RELEASE_TAG} + ${r.ahead} change${r.ahead === 1 ? '' : 's'} (unreleased)`;
 }
 /** The header mark next to the site name: "v0.1.0 (2026-11-11)", linking the GitHub release. Nothing more. */
+/** Tagged releases, newest first: one line each on the releases page. A release appears here once tagged. */
+export const RELEASES: { version: string; date: string; page: string }[] = [{ version: RELEASE.version, date: RELEASE.date, page: `releases/${RELEASE_TAG}/` }];
+/** Small version mark in the footer of a live page. */
+export const footVersion = (r: ReleaseState | undefined) => (!r || r.ahead === 0 ? `${RELEASE_TAG}, ${RELEASE.date}` : `unreleased, after ${RELEASE_TAG}`);
 export const versionLink = () => `<a class="ver" href="${RELEASE_URL}">${RELEASE_TAG} (${RELEASE.date})</a>`;

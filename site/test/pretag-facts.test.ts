@@ -63,3 +63,12 @@ test('D5 example: errors and seconds come from the published cell values, no typ
   expect(whatWeTest('w', '', d5Errors(d))).toContain('failed: 3,308 errors in 150 seconds');
   expect(exampleDanger(null)).toBe('drop the column now. In the lab, the application queries that read or insert it failed');
 });
+
+test('nav: no dated version item on live pages, [releases] after github; footer version; releases page', async () => {
+  const { RELEASES, footVersion } = await import('../src/release');
+  expect(RELEASES[0]!.page).toBe('releases/v0.1.0/');
+  expect(footVersion({ ahead: 3 })).toBe('unreleased, after v0.1.0');
+  expect(footVersion({ ahead: 0 })).toBe('v0.1.0, 2026-11-11');
+  const html = readFileSync(join(import.meta.dir, '../src/html.ts'), 'utf8');
+  expect(html).toContain("[['releases/', 'releases']]");
+});

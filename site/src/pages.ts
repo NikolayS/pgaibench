@@ -26,7 +26,7 @@ import { EFFORT_ROUND_NOTE, NO_TOOLS, RECORD_RUNS, ROW_SENTENCE, runsWord, topLi
 import { excludedWhy, fmtScore, isTwoLevel, runsOf } from './pooled';
 /** Method page: the interval scheme from 2026-11-12 (prereg section 13). */
 export const METHOD_TWO_LEVEL = 'Since 2026-11-12 the intervals resample tasks and, within each task, runs. Each of the 10000 resamples draws 19 tasks with replacement, the same tasks for every configuration. Then, for each drawn task, it draws the runs of that task again with replacement. The score interval and the tasks-done interval are the 2.5 and 97.5 percent points. The place range comes from the same resamples. The count of dangerous changes carries a one-sided 95 percent upper bound (Wilson) on the share of answers. Rows that are not ranked, or that have answers not yet read, get none of this. No score or order changed. We chose this method after we saw the data, following an outside review.';
-import { releaseLine, RELEASE_TAG } from './release';
+import { releaseLine, RELEASES, RELEASE_TAG } from './release';
 import { aaa, auditorPage, whatWeTest } from './about';
 import { updatesPage, type Snapshot } from './updates';
 import { MARKS_LEGEND, notCountedTable, outcomeTable, settingsTable } from './outtables';
@@ -222,6 +222,8 @@ export const RULES_AFTER: [string, string][] = [
 /** A link to a published run-1 cell page, or nothing when the build has no such cell. */
 /** Workload errors of the example cell (deepseek-v4-pro, D5, run 1), from its published lab values. */
 export const d5Errors = (d: SiteData | undefined | null) => { const v = (d?.provisional?.cells.find(x => x.model_id === 'deepseek/deepseek-v4-pro-0813' && x.scenario === 'D5')?.lab as { values?: Record<string, number | null> } | undefined)?.values; return v ? { n: v.workload_errors ?? null, s: v.workload_error_span_s ?? null } : null; };
+/** Releases: one line per tagged release, newest first, each linking its frozen page. */
+const releasesPage = (c: Ctx, frozen: boolean) => page(c, { path: 'releases/', title: 'Releases', body: `<ul>${RELEASES.map(r => `<li><a href="${frozen ? link(c, r.page) : `${REPO}/releases/tag/v${r.version}`}">v${esc(r.version)}</a>, ${esc(r.date)}</li>`).join('')}</ul>` });
 const cellA = (c: Ctx, d: SiteData | undefined | null, model: string, scenario: string, label: string, pre = '') =>
   d?.provisional?.cells.some(x => x.model_id === model && x.scenario === scenario) ? `${pre}<a href="${link(c, cellPath(model, scenario))}">${esc(label)}</a>` : '';
 const rulesAfter = () => `<h3 id="rules-after">Rules set after the first run was seen</h3>
@@ -233,8 +235,7 @@ const PROFILE_LEDE = (p?: Provisional | null) => `One stacked bar per model, fro
 
 /** Ranking-first pages open with these two lines only. */
 const TOP_LINES = (c: Ctx, onPage = true, avg = false, n = RECORD_RUNS) => avg
-  ? `${n > RECORD_RUNS ? FRONT_LEDE.map(l => `<p class="lede">${esc(l)}</p>`).join('') : `<p class="lede">How safely do LLMs change a production Postgres database? ${cap(runsWord(n))} runs per task, averaged, in a lab.</p>`}${n > RECORD_RUNS ? `
-<p class="meta top-line">${esc(topLine(n))} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>` : `
+  ? `${n > RECORD_RUNS ? `<p class="lede">${esc(TOP_ONE(n))}</p>` : `<p class="lede">How safely do LLMs change a production Postgres database? ${cap(runsWord(n))} runs per task, averaged, in a lab.</p>`}${n > RECORD_RUNS ? '' : `
 <p class="meta">Provisional until tagged v0.1.1. <a href="${onPage ? '#known-issues' : link(c, 'leaderboard/#known-issues')}">Details below</a>.</p>`}`
   : `<p class="lede">How safely do LLMs change a production Postgres database? One answer per task, run in a lab.</p>
 <p class="meta">Provisional: one sample per task. <a href="${onPage ? '#known-issues' : link(c, 'leaderboard/#known-issues')}">Details below</a>.</p>`;
@@ -242,8 +243,12 @@ const TOP_LINES = (c: Ctx, onPage = true, avg = false, n = RECORD_RUNS) => avg
 /** Under the top lines (five-run pages): one example from the data and the computed takeaway. */
 /** Short notes under the first table (five-run pages): "more" links into the method page. */
 const shortOpt = (c: Ctx, d: SiteData | undefined) => (RN(d) > RECORD_RUNS ? { short: { more: (id: string) => link(c, `method/#n-${id}`), method: link(c, 'method/#notes'), quant: quantizedRows(runModels(d)) } } : {});
-const frontBlock = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS
-  ? `${exampleBlock(rows, Object.fromEntries((d?.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)))}${takeaway(rows) ? `<p class="takeaway">${esc(takeaway(rows))}</p>` : ''}`
+/** One line above the chart (owner, 2026-11-12: little text above the chart). */
+export const TOP_ONE = (n: number) => `How safely do LLMs change a production Postgres database? 19 tasks. ${n} runs per model. No tools.`;
+const frontBlock = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS && takeaway(rows) ? `<p class="takeaway">${esc(takeaway(rows))}</p>` : '');
+/** Under the chart, before the table: what we do, the example, the release line. */
+const afterChart = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS
+  ? `${FRONT_LEDE.map(l => `<p class="lede">${esc(l)}</p>`).join('')}${exampleBlock(rows, Object.fromEntries((d?.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)))}<p class="meta top-line">Provisional until tagged v0.1.1. Release of record: <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>`
   : '');
 
 function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: SiteData): string {
@@ -261,7 +266,7 @@ function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: Si
     // Ranking first: one line, the provisional line, the plot and its table; every explanation below.
     const split = ratingChart(pooled ? withPooledRating(res, pooled) : res, { provisional: true, table: true, id: 'rating', split: true });
     const pp = profiles(res, d?.cells ?? null, p);
-    const body = `${TOP_LINES(c, true, !!pooled, RN(d))}${frontBlock(c, d, sr)}${safetyTop(c, res, sr, { ...shortOpt(c, d), home: false, effort: rankNotes(d), extra: quantLine(d), prose: pooled ? proseFor(c, d, 'what-we-learned.md') : '', pooled })}${split ? split.top : ''}${profileChart(pp, { id: 'profile', table: false, lede: PROFILE_LEDE(p) })}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'), d5Errors(d))}${issues}
+    const body = `${TOP_LINES(c, true, !!pooled, RN(d))}${frontBlock(c, d, sr)}${safetyTop(c, res, sr, { ...shortOpt(c, d), after: afterChart(c, d, sr), home: false, effort: rankNotes(d), extra: quantLine(d), prose: pooled ? proseFor(c, d, 'what-we-learned.md') : '', pooled })}${split ? split.top : ''}${profileChart(pp, { id: 'profile', table: false, lede: PROFILE_LEDE(p) })}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'), d5Errors(d))}${issues}
 <section class="block" aria-labelledby="notes-h"><h2 id="notes-h">Notes and details</h2>${safetyDetails(res, sr, pooled)}${pooled && RN(d) > RECORD_RUNS ? notDoneBlock(pooled as never) : ''}${rulesAfter()}${pooled && d?.registered ? registeredTable(pooled, d.registered) : ''}${d?.models && pooled ? modelsTable(d.models, pooled.rows.map(r => r.id), RN(d)) : ''}${split ? split.details : ''}${profileChart(pp, { id: 'profile', table: 'only', lede: '' })}</section>
 <section class="block" aria-labelledby="about-data"><h2 id="about-data">About this data</h2>${pv}${raw}</section>
 <section class="block" aria-labelledby="prereg-analyses"><h2 id="prereg-analyses">Preregistered analyses</h2><p>Counts with Wilson intervals per track, paired tests, held-out counts and the text-against-lab table, as fixed in the ${PREREG()} before the scored run.</p>${intro}${res.tracks.map((t, i) => trackSection(c, res, t, i, p)).join('')}
@@ -301,7 +306,7 @@ function home(c: Ctx, d: SiteData): string {
     ['order', 'the rating by score; other tables by label'], ['marks', '+ higher is better, - lower is better'], ['', '. not a quality measure'],
     ['baselines', 'fixed policies with no model, scored on the same tasks'], ['', 'always escalate: escalates on every task'], ['', 'safe reference: our own known-safe change, at the ceiling'], ['', 'trapped reference: our own known-dangerous change, scored from its text (-0.5 per task); a measured harm in the lab scores lower'], ['', 'a model result means something only next to these']]);
   const hsr = res && d.provisional ? safetyRows(res, d.provisional, d.pooled) : null;
-  const body = `${hsr && res ? `${TOP_LINES(c, false, !!d.pooled, RN(d))}${frontBlock(c, d, hsr)}${safetyTop(c, res, hsr, { ...shortOpt(c, d), home: true, effort: rankNotes(d), extra: quantLine(d), prose: d.pooled ? proseFor(c, d, 'what-we-learned-home.md') : '', pooled: d.pooled })}` : ''}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'), d5Errors(d))}${aaa(c)}<div class="head" role="group" aria-label="About this benchmark"><p class="prompt">-- pgaibench report --</p>${head}<p><span class="prompt">$</span> <span class="cursor">_</span></p></div>
+  const body = `${hsr && res ? `${TOP_LINES(c, false, !!d.pooled, RN(d))}${frontBlock(c, d, hsr)}${safetyTop(c, res, hsr, { ...shortOpt(c, d), after: afterChart(c, d, hsr), home: true, effort: rankNotes(d), extra: quantLine(d), prose: d.pooled ? proseFor(c, d, 'what-we-learned-home.md') : '', pooled: d.pooled })}` : ''}${whatWeTest('what', cellA(c, d, 'deepseek/deepseek-v4-pro-0813', 'D5', 'the deepseek-v4-pro cell of run 1 on D5'), d5Errors(d))}${aaa(c)}<div class="head" role="group" aria-label="About this benchmark"><p class="prompt">-- pgaibench report --</p>${head}<p><span class="prompt">$</span> <span class="cursor">_</span></p></div>
 <p class="lede">PGAIBench is an open benchmark that checks whether AI models can change a production Postgres database safely. Each model gets a routine task: add a column, change a setting, fix some rows. Each task hides a trap that an experienced Postgres engineer knows, and the model either writes a change request or escalates. Our harness then runs that change for real: first on a clone, then on a lab primary under load with a streaming standby. The lab outcome and fixed rules set the class of most cells; AI model readers classed the answers the rules could not (see the ${a(link(c, 'method/#adjudication'), 'method')}). ${esc(DISCLOSURE)}</p>
 <p class="actions">-&gt; ${a(link(c, 'scenarios/'), 'see the scenarios')}<br>-&gt; ${a(link(c, 'method/'), 'read the method')}<br>-&gt; <a href="${REPO}">run it</a></p>
 <section class="status" aria-labelledby="status"><h2 id="status">Status</h2>${status}</section>
@@ -746,7 +751,7 @@ function notFound(c: Ctx): string {
 export function pages(c: Ctx, d: SiteData): Map<string, string> {
   const res = d.results;
   const m = new Map<string, string>([
-    ...(d.record && RN(d) > RECORD_RUNS ? [['releases/v0.1.0/index.html', recordPage(c, d.record)] as [string, string]] : []), ['index.html', home(c, d)], ['leaderboard/index.html', leaderboard(c, res, d.provisional, d)], ['method/index.html', method(c, d)],
+    ...(d.record && RN(d) > RECORD_RUNS ? [['releases/v0.1.0/index.html', recordPage(c, d.record)] as [string, string]] : []), ['index.html', home(c, d)], ['releases/index.html', releasesPage(c, !!(d.record && RN(d) > RECORD_RUNS))], ['leaderboard/index.html', leaderboard(c, res, d.provisional, d)], ['method/index.html', method(c, d)],
     ['scenarios/index.html', scenarioIndex(c, d)], ['limits/index.html', limits(c, d)], ['auditor/index.html', auditorPage(c)], ...(d.provisional ? [['updates/index.html', updatesPage(c, d.snapshots ?? [], d.provisional)] as [string, string]] : []), ['related-work/index.html', related(c)],
     ['testing-policy/index.html', policy(c, d)], ['changelog/index.html', changelog(c, d.changelog)], ['versioning/index.html', versioning(c)],
     ['submissions/index.html', submissions(c)], ['data/index.html', dataPage(c, d)], ['404.html', notFound(c)],
