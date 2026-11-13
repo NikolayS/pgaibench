@@ -424,3 +424,4 @@ svg.bc .bc-pl, svg.bc .bc-eff, svg.bc .bc-tick, svg.bc .bc-d0 { fill: var(--mute
 .bc-noplace .bc-lab { font-style: italic; }
 .bc-grid { stroke: var(--soft); stroke-width: 1; } .bc-axis { stroke: var(--ink); stroke-width: 1.5; }
 .bc-row:focus { outline: none; } .bc-row:focus .bc-lab, .bc-row:hover .bc-lab { text-decoration: underline; }
+@media (max-width: 40rem) { .mc-leg-note { flex-basis: 100%; } }
