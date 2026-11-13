@@ -13,22 +13,43 @@ model input version in the changelog.
 
 ## Checklist
 
-1. `bun test` green twice.
-2. Scanner and leak pass clean: `bun run scripts/public-check.ts .` and a
-   read of the diff for held-out task content, person names, secrets and
-   local paths.
-3. CHANGELOG.md: move "Unreleased" into a new section
-   `## [X.Y.Z] - YYYY-MM-DD`; add the compare link at the bottom. The date
-   is the UTC date of the tag.
-4. Bump the version in `package.json` and `site/src/release.ts`
-   (`RELEASE.version`, `RELEASE.date`); the site test checks that they agree
-   with the newest changelog section.
-5. Publish the site from this commit.
-6. Tag: `git tag -a vX.Y.Z -m "PGAIBench vX.Y.Z"` on `main`, and
-   `site-vX.Y.Z` on the published `gh-pages` commit; push both tags.
-7. `gh release create vX.Y.Z --title "PGAIBench vX.Y.Z" --notes-file <file>`
-   with the notes from the changelog section.
-8. Verify: `git ls-remote --tags origin`, the release page loads, the site
-   shows the release line.
+The date of a release is the UTC date of its tag.
 
-Builds after a tag show "vX.Y.Z + N changes (unreleased)".
+1. Run `bun test` twice. Both runs must be green.
+2. Read the diff since the last tag. It must hold no held-out task
+   content, no person names, no secrets and no local paths.
+3. Build the site with the results of the release and publish it. Keep
+   two things of that build: `data/pooled.json` (the table of the
+   release) and `data_at` in `data/provisional.json` (its data time).
+4. Run the release step:
+   `bun run site/src/bump.ts X.Y.Z YYYY-MM-DD <pooled.json> <data time>`.
+   It writes `site/content/record-vX.Y.Z-pooled.json` (the frozen table),
+   adds the release to `RELEASE_LIST` in `site/src/release.ts`, sets the
+   version in `package.json`, and turns "Unreleased" in CHANGELOG.md into
+   `## [X.Y.Z] - YYYY-MM-DD` with its link line. The section must state
+   the task-set version and the model input version.
+5. Run `bun test` again. A test checks that `package.json`,
+   `RELEASE_LIST` and the newest changelog section agree.
+6. Commit, then tag the commit on `main`:
+   `git tag -a vX.Y.Z -m "PGAIBench vX.Y.Z"`. Push `main` and the tag.
+7. Build the site again from the tagged commit and publish it. The footer
+   now reads "vX.Y.Z, YYYY-MM-DD", the releases page lists the release,
+   and `releases/vX.Y.Z/` shows its table. Tag the published `gh-pages`
+   commit `site-vX.Y.Z` and push that tag.
+8. `gh release create vX.Y.Z --title "PGAIBench vX.Y.Z" --notes-file <file>
+   --verify-tag`, with the changelog section as the notes.
+9. Check: `git ls-remote --tags origin` lists both tags, the release page
+   loads, and every release page on the site loads.
+
+After the tag, a build whose table differs from the newest frozen table
+shows "unreleased, after vX.Y.Z". A build that changes only code or text
+keeps the release mark.
+
+## Corrections to a tagged table
+
+A tagged table never changes. Add the correction to
+`site/src/corrections.ts` with its date and data time. The results page
+lists it, `data/corrections.json` names the releases it touches, and the
+page of each touched release gets a dated line that points to it. Add a
+dated "Corrections" section to the GitHub release notes of each touched
+release.

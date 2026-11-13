@@ -39,17 +39,16 @@ const ALL = [...site.entries()].filter(([p]) => p.endsWith('.html'));
 
 test('M1 effort: one sentence from the models table, on method, limits, testing policy and under the plot; no "vendor default" claim', () => {
   const s = effortSentence(modelsJson);
-  expect(s).toContain('model-b: medium');
-  expect(s).toContain('model-c: high');
-  expect(s).toMatch(/did not set .*provider default/);
-  expect(s).toMatch(/explicit/);
+  expect(s).toContain('Medium for model-b');
+  expect(s).toContain('high for model-c');
+  expect(s).toMatch(/we sent no effort setting: model-a/);
   for (const doc of [method, limits, policy]) expect(text(doc)).toContain(text(s)); // the results page carries the shorter fairness statement (pooled.test.ts)
   for (const [p, doc] of ALL) expect(text(doc), p).not.toMatch(/vendor('s)? default reasoning effort|reasoning effort above the vendor default/i);
   expect(readme).not.toMatch(/Vendor default reasoning effort/);
 });
 
-test('M1/S17: a vendor with mixed efforts gets a sentence that comparisons inside it are partly effort', () => {
-  expect(effortSentence(modelsJson)).toMatch(/Fixture configurations ran at different efforts/);
+test('M1/S17: the effort sentence says effort names are not equal across vendors', () => {
+  expect(effortSentence(modelsJson)).toEndWith('Effort names are not equal across vendors.');
 });
 
 test('M2 quantized pin: the fact is stated on the policy and method pages and in the known issues; the policy no longer claims a refusal', () => {

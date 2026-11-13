@@ -58,7 +58,7 @@ const plain = (doc: string) => doc.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(
 test('top lines: three runs per task, averaged; the provisional line', () => {
   for (const doc of [lb, home]) {
     expect(text(doc)).toContain('Three runs per task, averaged');
-    expect(text(doc)).toMatch(/Provisional until tagged v0\.1\.1\. Details below ?\./);
+    expect(text(doc).replace(/ \./g, '.')).toMatch(/(Release|Unreleased, after) v\d+\.\d+\.\d+\. Details below\./);
     expect(plain(doc)).not.toMatch(/one sample per task|One answer per task/i);
   }
 });
@@ -357,10 +357,8 @@ test('effort: every reader-facing label is model + effort; one naming function; 
   const { ROW_SENTENCE } = await import('../src/statements');
   expect(ROW_SENTENCE).toBe('Effort: each row is one model at one reasoning effort. Other effort levels can give other results, so we test them as separate rows.');
   expect(cav(main(lb))).toContain(ROW_SENTENCE);
-  const { EFFORT_ROUND_NOTE } = await import('../src/statements');
-  expect(EFFORT_ROUND_NOTE).toBe('This round runs every model at two effort levels, medium and high. Rows for the second level appear as their runs finish. Lower and higher levels come later.');
-  expect(cav(main(lb))).toContain(EFFORT_ROUND_NOTE);
-  expect(cav(main(site.get('index.html')!))).toContain(EFFORT_ROUND_NOTE);
+  // status-of-work lines are gone (check before v0.1.2, item 4)
+  expect(cav(main(lb))).not.toMatch(/appear as their runs finish|are being added|are running/);
   expect((cav(main(lb)).match(/Provider default\. We sent no effort setting\./g) ?? []).length).toBe(1);
   expect(text(site.get('compare/index.html')!)).toContain('model-a · provider default vs model-b · medium');
   expect(site.has('compare/model-a/model-b/index.html') || [...site.keys()].some(k => /^compare\/model-[ab]\/model-[ab]\/index.html$/.test(k))).toBe(true);
@@ -375,7 +373,7 @@ export const FAIR = 'The effort levels differ between rows in this release. At h
 
 test('fairness: generated from the models table; at the ranking, in known issues, limits, README, CHANGELOG', async () => {
   const { fairnessSentence } = await import('../src/models');
-  expect(fairnessSentence(REAL)).toBe(FAIR);
+  expect(fairnessSentence(REAL)).toContain('At medium: gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna and claude-haiku-5.5.'); // every row by name (effort-text.test.ts)
   const f = fairnessSentence(modelsJson);
   expect(f).toMatch(/This is not an equal comparison\./);
   const m = plain(main(lb));

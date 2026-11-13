@@ -1,10 +1,10 @@
 // "Models under test": per configuration, what we called and how, from models.json and the generation records.
 import { z } from 'zod';
 import { esc } from './html';
-import { baseName, effortLabel, shortName } from './svg';
+import { baseName, effortLabel, isLevelRow, pathWord, shortName } from './svg';
 import { DEEPSEEK_ISSUE } from './statements';
 
-const row = z.object({ id: z.string(), vendor: z.string(), called: z.string(), access: z.string(), effort: z.string(), pin: z.string(), runs: z.array(z.string()) });
+const row = z.object({ id: z.string(), vendor: z.string(), called: z.string(), access: z.string(), effort: z.string(), pin: z.string(), runs: z.array(z.string()), /** the vendor default effort as recorded in models.json */ default: z.string().optional() });
 export const modelsSchema = z.array(row);
 export type ModelsTable = z.infer<typeof modelsSchema>;
 export const parseModels = (x: unknown): ModelsTable => modelsSchema.parse(x);
@@ -13,16 +13,36 @@ const NR = 'not recorded';
 const effort = (id: string, e: string) => (e ? effortLabel(id, e) : NR);
 
 const isSet = (e: string) => !!e && e !== 'default';
+/** A configuration in plain words without its effort: "claude-fable-5.2", "gemini-4-carbon CLI". */
+const conf = (id: string) => `${baseName(id)}${pathWord(id)}`;
+const isCli = (r: ModelsTable[number]) => r.access.startsWith('vendor CLI');
+/** Levels present, highest first. */
+const levelsOf = (m: ModelsTable) => [...new Set(m.filter(r => isSet(r.effort)).map(r => r.effort))].sort((a, b) => RANK.indexOf(a) - RANK.indexOf(b));
+/** Models (by name) with a row at each of two or more levels, and the models with one level only. */
+function levelCounts(m: ModelsTable) {
+  const by = new Map<string, Set<string>>();
+  for (const r of m) by.set(baseName(r.id), (by.get(baseName(r.id)) ?? new Set()).add(isSet(r.effort) ? r.effort : 'default'));
+  const both = [...by.values()].filter(x => x.size > 1).length;
+  return { both, one: by.size - both };
+}
+const count = (n: number) => NUM[n] ?? String(n);
 /** The effort statement, generated from the same rows as the table, so the text cannot contradict it. */
 export function effortSentence(m: ModelsTable): string {
-  const set = m.filter(r => isSet(r.effort)), unset = m.filter(r => !isSet(r.effort));
   const parts: string[] = [];
-  if (set.length) parts.push(`We set the reasoning effort explicitly for the configurations that run through a vendor command-line client on a subscription, because those clients need an explicit setting. The value is the one we recorded as the vendor's default for that model: ${set.map(r => `${baseName(r.id)}: ${r.effort}`).join(', ')}.`);
-  if (unset.length) parts.push(`For the router configurations we did not set an effort, so the provider default applied: ${unset.map(r => baseName(r.id)).join(', ')}.`);
-  parts.push('The settings are not equal across vendors.');
-  const byVendor = new Map<string, Set<string>>();
-  for (const r of set) byVendor.set(r.vendor, (byVendor.get(r.vendor) ?? new Set()).add(r.effort));
-  for (const [v, es] of byVendor) if (es.size > 1) parts.push(`The ${v} configurations ran at different efforts (${[...es].join(' and ')}), so a comparison between them is partly a comparison of effort.`);
+  const first = m.filter(r => isCli(r) && isSet(r.effort) && !isLevelRow(r.id)), second = m.filter(r => isCli(r) && isLevelRow(r.id));
+  if (first.length) {
+    parts.push('We set the reasoning effort for every row that runs through a vendor command-line client.');
+    const groups = levelsOf(first).map((lv, i) => `${i ? cap(lv) : lv} for ${names(first.filter(r => r.effort === lv).map(r => conf(r.id)))}.`);
+    parts.push(`First level, the vendor default as we recorded it: ${groups.join(' ')}`);
+  }
+  if (second.length) {
+    const models = new Set(second.map(r => baseName(r.id))), all = new Set(first.map(r => baseName(r.id)));
+    parts.push([...all].every(x => models.has(x)) ? `Second level: the same ${count(models.size)} models at the other of the two levels.` : `Second level: ${names(second.map(r => `${conf(r.id)} at ${r.effort}`))}.`);
+  }
+  const routerSet = m.filter(r => !isCli(r) && isSet(r.effort)), unset = m.filter(r => !isSet(r.effort));
+  for (const r of routerSet) parts.push(`${conf(r.id)} runs through the router at ${r.effort}.${r.default && r.default !== r.effort ? ` Its recorded default is ${r.default}.` : ''}`);
+  if (unset.length) parts.push(`For ${routerSet.length ? 'the other' : 'the'} router rows we sent no effort setting: ${names(unset.map(r => conf(r.id)))}.`);
+  parts.push('Effort names are not equal across vendors.');
   return parts.join(' ');
 }
 
@@ -55,19 +75,20 @@ export function modelsTable(m: ModelsTable, ids: string[], runs = 3): string {
 const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 const RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal'];
 /** The effort levels of this release by vendor, in plain words, from the models table (owner: "not fair"). */
+const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
 const names = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
 export function fairnessSentence(m: ModelsTable): string {
-  const set = m.filter(r => isSet(r.effort)), levels = [...new Set(set.map(r => r.effort))].sort((a, b) => RANK.indexOf(a) - RANK.indexOf(b));
-  const vendors = [...new Set(m.map(r => r.vendor))];
-  const segs = levels.map(lv => {
-    const groups = vendors.map(v => ({ v, all: m.filter(r => r.vendor === v), at: set.filter(r => r.vendor === v && r.effort === lv) })).filter(g => g.at.length);
-    groups.sort((a, b) => Number(b.at.length === b.all.length) - Number(a.at.length === a.all.length));
-    const who = names(groups.flatMap(g => (g.at.length === g.all.length ? [`the ${g.v} models`] : g.at.map(r => baseName(r.id)))));
-    return `At ${lv}: ${who}.`;
-  });
+  const segs = levelsOf(m).map(lv => `At ${lv}: ${names(m.filter(r => isSet(r.effort) && r.effort === lv).map(r => conf(r.id)))}.`);
   const dflt = m.filter(r => !isSet(r.effort));
-  if (dflt.length) segs.push(`At the provider default (router rows): ${names(dflt.map(r => baseName(r.id)))}.`);
-  return `The effort levels differ between rows in this release. ${segs.join(' ')} This is not an equal comparison. Rows at matching effort levels are being added.`;
+  if (dflt.length) segs.push(`At the provider default (router rows, no effort sent): ${names(dflt.map(r => (effortLabel(r.id, r.effort) === 'no thinking' ? `${conf(r.id)} (its endpoint returned no thinking)` : conf(r.id))))}.`);
+  const k = levelCounts(m);
+  if (k.both) segs.push(`${cap(count(k.both))} models have a row at ${levelsOf(m).join(' and a row at ')}. ${cap(count(k.one))} model${k.one === 1 ? ' has' : 's have'} one level only.`);
+  return `The effort levels differ between rows in this release. ${segs.join(' ')} This is not an equal comparison.`;
+}
+/** "What we did not check": the effort levels not run, and how many models have more than one. */
+export function levelsSentence(m: ModelsTable): string {
+  const k = levelCounts(m);
+  return `Reasoning-effort settings other than ${names(levelsOf(m))}.${k.both ? ` ${cap(count(k.both))} models have rows at both levels. ${cap(count(k.one))} model${k.one === 1 ? ' has' : 's have'} one level only.` : ''}`;
 }
 /** Next to the ranking: what a row is, what "default" means (only when a row has it), and the fairness statement. */
 export function effortNotes(m: ModelsTable, row: string): string {

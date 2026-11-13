@@ -25,9 +25,11 @@ test('chart rows: short model name in bold, bar, value; no per-row notes in the 
   expect(svg).not.toMatch(/pending review|with a result|place range|harmful/);
 });
 
-test('table under the chart in full words: place, place range, path, effort, score, interval, tasks with a result, readers, pending review, harmful', () => {
+test('table under the chart in full words: place, place range, path, score (the effort is in the model label), interval, tasks with a result, readers, pending review, harmful', () => {
   const tb = /<table class="rating"[\s\S]*?<\/table>/.exec(lb)![0];
-  for (const h of ['place (range)', 'access path', 'reasoning effort', 'score', '95% interval', 'tasks with a result', 'read by two readers', 'pending review', 'harmful']) expect(tb).toContain(`data-label="${h}"`);
+  for (const h of ['place (range)', 'access path', 'score', '95% interval', 'tasks with a result', 'read by two readers', 'pending review', 'harmful']) expect(tb).toContain(`data-label="${h}"`);
+  expect(tb).not.toContain('data-label="reasoning effort"');
+  expect(tb).toMatch(/<th scope="row">model-a · [a-z]/);
   expect(tb).not.toMatch(/>(pl|eff|known|n|ci)<\/abbr>/);
   expect(tb).toContain('data-chart-for="rating"');
   expect(tb).toMatch(/>\d+ of 6</);

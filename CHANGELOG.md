@@ -3,10 +3,15 @@
 All notable changes to PGAIBench are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as
-described in [RELEASING.md](https://github.com/NikolayS/pgaibench/blob/v0.1.0/RELEASING.md). Each release states its task-set
+described in [RELEASING.md](https://github.com/NikolayS/pgaibench/blob/main/RELEASING.md). Each release states its task-set
 version and its model input version.
 
 ## [Unreleased]
+
+Task set `pgaibench-core 0.1.1`, model input `v2`, role: Analyzer.
+The task set label moves to 0.1.1 because scenarios/L1.json changed: its
+trap pattern no longer matches LOCK TABLE ... NOWAIT. No task was added
+or removed.
 
 ### Corrected
 
@@ -19,6 +24,26 @@ version and its model input version.
   done did not change. The registration is in section 13 of the
   preregistration. The results page lists the four answers with both
   judgements, and data/corrections.json has them.
+- The same correction touches the tagged tables: one cell of v0.1.0 and
+  four cells of v0.1.1. Those tables stay as published. Each of their
+  pages has a dated line that points to the correction. The two rows
+  moved up in the safety order.
+- Second-vendor reader check: the text said only that the reader
+  removed no dangerous flag. The reader also flagged 6 cells as
+  dangerous that the first readers did not flag: 3 public and 3 held
+  out. 2 of the 232 cells had no agreed first class. The method page
+  now says all of this. No score changed.
+- Effort statement: it called every level we set the vendor default.
+  One router row ran at high, below its recorded default (max). The
+  statement now names a first level (the vendor default as recorded), a
+  second level and the router rows. It is built from the models table.
+- Models under test: four high-effort rows and the second access path
+  of one model were missing, and some run dates read "not recorded".
+  data/models.json now has every row, with the recorded vendor default.
+- Combined score details: the effort column contradicted the row labels.
+  The label carries the effort, so the column is gone.
+- Updates page: refreshes before v0.1.0 were marked with the newest
+  tag. Each refresh now shows the release it belongs to.
 
 ### Changed
 
@@ -44,7 +69,7 @@ version and its model input version.
   labels. Effort filter order: high, medium, provider default, no
   thinking.
 - Method page: one repair turn after a format error is allowed on every
-  access path (33 of 1978 answers used it). Earlier text said there was
+  access path (40 of 2638 answers used it). Earlier text said there was
   no second turn.
 - Method page: which analysis rules were fixed before the scored run and
   which were set after are named in one place.
@@ -64,19 +89,27 @@ version and its model input version.
 
 ### Added
 
-- One more router row with a place: an open-weights model at high effort
-  on a quantized vendor endpoint. Five runs. 23 rows of 14 models have a
-  place. The scores of the 22 earlier rows did not change. Two readers
-  read its 18 cells that the rules could not class and agreed on all 18.
-  Eight earlier requests to this model used another endpoint and no
-  effort setting. They do not count. A known issue says so.
+- Machine-readable files: robots.txt, sitemap.xml, llms.txt and
+  llms-full.txt, markdown copies of the home, results, method and
+  limits pages, and page metadata for search engines.
+- Releases: each release has its own page with its table as tagged.
+  Adding a release is one step (see RELEASING.md).
 - Five more rows with a place: one model at high effort, three at medium
-  effort, and one CLI row at high effort. Five runs each. 22 rows have a place. The scores of the 17
-  earlier rows did not change. Places, intervals and place ranges are
-  computed again with the same method and seeds.
+  effort, and one CLI row at high effort. Five runs each. The scores of
+  the 17 earlier rows did not change. Places, intervals and place ranges
+  are computed again with the same method and seeds. After these, 22
+  rows have a place.
+- One more router row with a place: an open-weights model at high effort
+  on a quantized vendor endpoint. Five runs. The scores of the 22
+  earlier rows did not change. Two readers read its 18 cells that the
+  rules could not class and agreed on all 18. Eight earlier requests to
+  this model used another endpoint and no effort setting. They do not
+  count. A known issue says so. 23 rows of 14 models have a place, 24
+  rows in all.
 - Two readers read the 87 cells of these rows that the rules could not
   class (61 public, 26 held out). They agreed on 86. One cell stays
-  pending review at 0 points. The registration is in section 13 of the
+  pending review at 0 points. In all rows, 4 cells are pending review
+  at 0 points. The registration is in section 13 of the
   preregistration.
 - Results page: a high against medium table for each model with rows at
   both levels: tasks done at each level and the score difference with its
@@ -86,7 +119,8 @@ version and its model input version.
 - Method page: limits per access path (output cap, timeout, retries,
   repair turns), taken from the code.
 - Second-vendor reader check: a reader from a second vendor read 232
-  cells again and agreed on 221 of 230 (96%). No score changed. The
+  cells of the v0.1.1 rows again and gave the same class on 221 of 230
+  (96%). No score changed. The
   public cells are in readings/xreader/. The registration is in section
   13 of the preregistration.
 

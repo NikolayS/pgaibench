@@ -1,4 +1,3 @@
-import { PROV } from '../src/release';
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -60,7 +59,7 @@ test('provisional: results page has the text table label, finished-cell lab deno
   expect(t).toContain('Text-scored: from the text of the answer, patterns only');
   expect(t).toContain('Lab-executed: finished cells only');
   expect(t).toContain(`${label} · provider default 4 of 6 planned`);
-  expect(t).toContain(`Known issues in this${PROV ? ' provisional' : ''} data`);
+  expect(t).toContain("Known issues in this data");
   expect(t).toContain('Reruns pending: 1 lab cells');
   expect(t).toContain('Scenario L14 is under review');
   expect(t).toContain('not separated at this sample size');

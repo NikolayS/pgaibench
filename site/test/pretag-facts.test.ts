@@ -65,38 +65,29 @@ test('D5 example: errors and seconds come from the published cell values, no typ
 });
 
 test('nav: no dated version item on live pages, [releases] after github; footer version; releases page', async () => {
-  const { RELEASES, footVersion } = await import('../src/release');
-  expect(RELEASES.at(-1)).toEqual({ version: '0.1.0', date: '2026-11-11', page: 'releases/v0.1.0/' });
-  expect(footVersion({ ahead: 3 })).toBe('unreleased, after v0.1.1');
-  expect(footVersion({ ahead: 0 })).toBe('v0.1.1, 2026-11-13');
-  expect(footVersion({ ahead: 3, released: true })).toBe('v0.1.1, 2026-11-13');
+  const { RELEASES, RELEASE_LIST, RELEASE_TAG, RELEASE, footVersion } = await import('../src/release');
+  expect(RELEASES.at(-1)!.page).toBe(`releases/v${RELEASE_LIST[0]!.version}/`);
+  expect(footVersion({ ahead: 3 })).toBe(`unreleased, after ${RELEASE_TAG}`);
+  expect(footVersion({ ahead: 0 })).toBe(`${RELEASE_TAG}, ${RELEASE.date}`);
+  expect(footVersion({ ahead: 3, released: true })).toBe(`${RELEASE_TAG}, ${RELEASE.date}`);
   const html = readFileSync(join(import.meta.dir, '../src/html.ts'), 'utf8');
   expect(html).toContain("['releases/', 'releases']");
 });
 
-test('release state derives from RELEASE.version: the tag is a label change', async () => {
+test('release state derives from the release list: no NEXT, no typed version in the label code', async () => {
   const r = await import('../src/release');
-  expect(r.NEXT).toBe('0.1.1');
-  if (r.RELEASE.version === r.NEXT) { expect(r.PROV).toBe(''); expect(r.releaseState()).toBe('Release v0.1.1. Earlier release:'); }
-  else { expect(r.PROV).toBe(' (provisional)'); expect(r.releaseState()).toBe('Provisional until tagged v0.1.1. Release of record:'); }
+  expect('NEXT' in r).toBe(false);
+  expect('PROV' in r).toBe(false);
+  expect(r.RELEASE).toBe(r.RELEASE_LIST.at(-1)!);
+  expect(r.releaseState({ ahead: 2, released: true })).toBe(`Release ${r.RELEASE_TAG}.`);
+  expect(r.releaseState({ ahead: 2, released: false })).toBe(`Unreleased, after ${r.RELEASE_TAG}.`);
   const pages = readFileSync(join(import.meta.dir, '../src/pages.ts'), 'utf8');
   expect(pages).not.toContain("'PGAIBench: results (provisional)'");
   expect(pages).not.toContain('before the first release');
   expect(pages).not.toContain('Each release publishes a hash of the held-out set');
-});
-
-test('releases list: both releases, newest first, each link resolves', async () => {
-  const { RELEASES } = await import('../src/release');
-  expect(RELEASES.map(r => r.version)).toEqual(['0.1.1', '0.1.0']);
-  expect(RELEASES[0]!.date).toBe('2026-11-13');
-});
-
-test('no "provisional" on live pages once RELEASE.version is 0.1.1', async () => {
-  const { RELEASE, PROV } = await import('../src/release');
-  expect(RELEASE.version).toBe('0.1.1');
-  expect(PROV).toBe('');
-  for (const f of ['pages.ts', 'updates.ts', 'provisional.ts', 'html.ts', 'front.ts', 'safety.ts']) {
-    const s = readFileSync(join(import.meta.dir, '../src', f), 'utf8');
-    expect(s).not.toContain('Unreleased section, which becomes 0.1.1"');
+  for (const f of ['pages.ts', 'updates.ts', 'provisional.ts', 'html.ts', 'front.ts', 'safety.ts', 'build.ts']) {
+    const src = readFileSync(join(import.meta.dir, '../src', f), 'utf8');
+    expect(src.match(/(Provisional until tagged|which becomes) v?\d/g)).toBeNull();
+    expect(src.match(/['`"]v?0\.1\.[1-9]['`"]/g)).toBeNull();
   }
 });

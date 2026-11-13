@@ -1,4 +1,4 @@
-import { releaseState } from '../src/release';
+import { RELEASES } from '../src/release';
 // Five runs per task (samples 4 and 5, provisional): run count in every reader-facing sentence, the provisional line at
 // the top of the ranking, and the three-run table of v0.1.0 one click away on its own page.
 import { expect, test } from 'bun:test';
@@ -38,7 +38,7 @@ test('five runs: one short top line opens the ranking and links the v0.1.0 table
   expect(RECORD_RUNS).toBe(3);
   const lb = site5.get('leaderboard/index.html')!;
   const m = /<p class="meta top-line">([\s\S]*?)<\/p>/.exec(lb)!;
-  expect(text(m[1]!).trim().replace(/ \./g, '.')).toBe(`${releaseState()} v0.1.0 (three runs).`);
+  expect(text(m[1]!).trim().replace(/ \./g, '.').replace(/ ,/g, ',')).toMatch(new RegExp(`^(Release|Unreleased, after) v${RELEASES[0]!.version.replace(/\./g, '\\.')}\\. Releases: ${RELEASES.map(r => `v${r.version} \\(${r.runs === 3 ? 'three' : 'five'} runs\\)`).join(', ').replace(/\./g, '\\.')}\\.$`));
   expect(m[1]).toMatch(/<a href="[^"]*releases\/v0\.1\.0\/(index\.html)?">v0\.1\.0 \(three runs\)<\/a>\./);
   expect(m.index).toBeGreaterThan(lb.indexOf('<svg'));
   // owner, 2026-11-12: at most 60 words of prose between the h1 and the chart, on home and results
@@ -124,11 +124,12 @@ test('frozen page of record: as tagged, with no provisional banner, no update st
   expect(placed.map(pos)).toEqual([...placed.map(pos)].sort((a, b) => a - b));
 });
 
-test('after the tag (RELEASE.version 0.1.1): no "provisional" on any live page; releases page lists both releases', () => {
+test('no "provisional" on any live page; releases page lists every release, newest first', () => {
   for (const [f, doc] of site5) if (f.endsWith('.html') && !f.startsWith('releases/v0.1.0/') && f !== 'changelog/index.html') { const m = /.{0,80}provisional.{0,80}/i.exec(text(doc).replace(/first provisional (publication|results)|provisional\.json/g, "")); expect(m ? `${f}: ${m[0]}` : null).toBeNull(); }
   const rel = site5.get('releases/index.html')!;
   const t = text(rel);
-  expect(t.indexOf('v0.1.1')).toBeGreaterThan(-1);
-  expect(t.indexOf('v0.1.1')).toBeLessThan(t.indexOf('v0.1.0'));
+  const pos = RELEASES.map(r => t.replace(/ ,/g, ",").indexOf(`v${r.version},`));
+  expect(pos.every(x => x > -1)).toBe(true);
+  expect(pos).toEqual([...pos].sort((a, b) => a - b));
   expect(/<main[\s\S]*<\/main>/.exec(rel)![0]).toMatch(/href="[^"]*v0\.1\.0\/(index\.html)?">v0\.1\.0</);
 });

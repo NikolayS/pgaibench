@@ -1,4 +1,4 @@
-import { LIVE_TAGGED } from './release';
+import { RELEASE_LIST } from './release';
 import { sameResults } from './pooled';
 // Static site generator. PUBLISHED=false (default) never reads a results file.
 import { BINARY_ASSETS } from './html';
@@ -18,7 +18,7 @@ import { parsePooled, runsOf } from './pooled';
 import { RECORD_RUNS } from './statements';
 import { parseModels } from './models';
 import { effortLabel, setEfforts } from './svg';
-import { CORRECTIONS } from './corrections';
+import { correctionsJson } from './corrections';
 import type { ReleaseState } from './release';
 import { addSeo } from './seo';
 
@@ -72,7 +72,7 @@ export type BuildOptions = {
   provisionalJson?: unknown;
   /** Three-run averages (pooled.json from site-data --pooled); provisional builds only. */
   pooledJson?: unknown;
-  /** The three-run table of v0.1.0 (pooled.json as published with the tag); default: site/content/record-v0.1.0-pooled.json. */
+  /** The three-run table of v0.1.0 (pooled.json as published with the tag); default: its snapshot in RELEASE_LIST. */
   recordPooledJson?: unknown;
   /** The same averages under the registered pending-review bullet (rendered as a table only, never published as data). */
   registeredJson?: unknown;
@@ -99,13 +99,15 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const pooled = o.pooledJson === undefined ? null : parsePooled(o.pooledJson);
   if (pooled && !prov) throw new Error('pooled data needs a provisional build');
   const registered = pooled && o.registeredJson !== undefined ? parsePooled(o.registeredJson) : null;
-  const recordFile = join(import.meta.dir, '..', 'content', 'record-v0.1.0-pooled.json');
-  const record = pooled && runsOf(pooled) > RECORD_RUNS ? parsePooled(o.recordPooledJson ?? JSON.parse(readFileSync(recordFile, 'utf8'))) : null;
-  // the five-run table of v0.1.1, frozen at the tag: later refreshes never change it
-  const record11File = join(import.meta.dir, '..', 'content', 'record-v0.1.1-pooled.json');
-  const record11Raw = o.pooledJson !== undefined && LIVE_TAGGED && existsSync(record11File) ? JSON.parse(readFileSync(record11File, 'utf8')) : null;
-  const record11 = pooled && record11Raw ? parsePooled(record11Raw) : null;
-  const release = o.release ? { ...o.release, released: !!record11 && sameResults(pooled, record11) } : undefined;
+  // Frozen tables, one per release, read only from their snapshot files: later refreshes never change them.
+  // The three-run table of v0.1.0 is shown when the main table averages more runs (it was the main table before).
+  const snapFile = (f: string) => join(import.meta.dir, '..', 'content', f);
+  const records = pooled ? RELEASE_LIST.filter(r => existsSync(snapFile(r.snapshot)) && (r.runs > RECORD_RUNS || runsOf(pooled) > RECORD_RUNS))
+    .map(r => ({ release: r, pooled: parsePooled(r.runs === RECORD_RUNS && o.recordPooledJson !== undefined ? o.recordPooledJson : JSON.parse(readFileSync(snapFile(r.snapshot), 'utf8'))) })) : [];
+  const record = records.find(x => x.release.runs === RECORD_RUNS)?.pooled ?? null;
+  const newest = records.at(-1);
+  // the live label: the shown table equals the snapshot of the newest release
+  const release = o.release ? { ...o.release, released: !!newest && newest.release === RELEASE_LIST.at(-1) && sameResults(pooled, newest.pooled) } : undefined;
   if (prov && (o.published || o.pending || o.resultsJson === undefined || o.cellsJson === undefined)) throw new Error('a provisional build needs results and cell data and is neither PUBLISHED nor PENDING');
   if (prov) {
     results = parseResults(o.resultsJson);
@@ -145,7 +147,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
   setEfforts(models ?? []);
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, record11, models, snapshots: o.snapshots ?? [] });
+  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, records, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));
@@ -155,7 +157,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     if (sr) for (const [k, v] of comparePages(ctx, sr)) add(k, v);
     files.set('data/provisional.json', `${JSON.stringify({ ...prov, cells: prov.cells.map(({ answer: _a, ...rest }) => rest) }, null, 2)}\n`);
     if (pooled) files.set('data/pooled.json', `${JSON.stringify(pooled, null, 2)}\n`);
-    if (pooled) files.set('data/corrections.json', `${JSON.stringify({ corrections: CORRECTIONS }, null, 2)}\n`); // rejudged cells: first and corrected judgement
+    if (pooled) files.set('data/corrections.json', `${JSON.stringify(correctionsJson(), null, 2)}\n`); // rejudged cells: first and corrected judgement
     if (models) files.set('data/models.json', `${JSON.stringify(models.map(m => ({ ...m, effort: m.effort ? effortLabel(m.id, m.effort) : m.effort })), null, 2)}\n`);
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);

@@ -1,4 +1,3 @@
-import { PROV } from './release';
 // Rating chart: "PGAIBench-Analyzer score (v0)". One list of all model
 // configurations, ordered by the score with unknown tasks counted as 0
 // points; places only for configurations with enough public tasks scored.
@@ -101,20 +100,21 @@ export function ratingChart(res: Results, o: { provisional: boolean; table: bool
   const withRes = (x: Rw) => x.withResult ?? x.scored;
   const pend = (x: Rw) => x.counts?.pending_review ?? 0;
   const drawnB = r.baselines.filter(b => b.id !== 'always_trapped'), textB = r.baselines.filter(b => b.id === 'always_trapped');
-  const title = `${o.provisional ? `Rating${PROV}` : 'Rating'}: ${r.name}`;
+  const title = `Rating: ${r.name}`;
   const top = rows[0];
   const aria = `${title}, 0 to 100, higher is better. ${top ? `${shortName(top.model_id)} is first with ${F(top.score0)}; ` : ''}${rows.length} configurations from ${F(Math.max(...rows.map(x => x.score0)))} down to ${F(Math.min(...rows.map(x => x.score0)))}. The table below gives every number.`;
   // Short heads keep the desktop table narrow; every cell carries its full name for the phone cards.
   const cols: [string, string, string][] = [['place', 'place (range)', 'place by score, then the place range over bootstrap resamples (higher is better)'], ['model', 'model', 'model'],
-    ['path', 'access path', 'access path (not a quality measure)'], ['effort', 'reasoning effort', 'requested reasoning effort (not a quality measure)'],
+    // no effort column: the model label carries the effort ("claude-fable-5.2 · high")
+    ['path', 'access path', 'access path (not a quality measure)'],
     ['score', 'score', 'score, unknown tasks count 0 points (higher is better)'], ['interval', '95% interval', '95 percent bootstrap interval of the score'],
     ['results', 'tasks with a result', `public tasks with a lab result, of ${N}`], ['read', 'read by two readers', 'cells whose class two independent readers set'],
     ['pending', 'pending review', 'cells waiting for a reading; they count 0'], ['harmful', 'harmful', 'harm measured in the lab (lower is better)']];
   const full = avg ? cols.filter(h => !['results', 'read', 'pending', 'harmful'].includes(h[0])) : cols;
   const short = o.table ? full : cols.filter(h => ['place', 'model', 'score', 'interval'].includes(h[0]));
-  const td = (k: string, v: string) => { const c = cols.find(x => x[0] === k)!; return `<td data-label="${esc(c[1])}" class="${k === 'path' || k === 'effort' ? '' : 'num'}">${esc(v)}</td>`; };
+  const td = (k: string, v: string) => { const c = cols.find(x => x[0] === k)!; return `<td data-label="${esc(c[1])}" class="${k === 'path' ? '' : 'num'}">${esc(v)}</td>`; };
   const trs = rows.map(x => {
-    const c: Record<string, string> = { place: x.outWhy ? `excluded: ${x.outWhy}` : x.place === null ? 'not placed' : x.range ? placeRange(x.placeLo!, x.placeHi!) : `${x.place} (${pr(x)})`, path: pathTag(x.track), effort: x.effort ?? 'not reported',
+    const c: Record<string, string> = { place: x.outWhy ? `excluded: ${x.outWhy}` : x.place === null ? 'not placed' : x.range ? placeRange(x.placeLo!, x.placeHi!) : `${x.place} (${pr(x)})`, path: pathTag(x.track),
       score: F(x.score0), interval: CI(x), results: `${withRes(x)} of ${N}`, read: String((x as Rw).read ?? 0), pending: String(pend(x)), harmful: String(x.harmful) };
     return `<tr${x.outWhy ? ' class="excluded"' : ''}>${short.map(([k]) => (k === 'model' ? `<th scope="row">${esc(labelOf(x.model_id))}</th>` : td(k, c[k]!))).join('')}</tr>`;
   }).join('') + `<tr class="baseline"><th scope="row" colspan="${short.length}">baselines (no model)</th></tr>` + r.baselines.map(b => {

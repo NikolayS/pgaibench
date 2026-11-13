@@ -74,8 +74,8 @@ test('key: "18 done, 0 dangerous", no pair note; one legend line for no place', 
 });
 
 test('takeaway: plain numbers first', () => {
-  expect(takeaway([row('anthropic/claude-fable-5.2', 0, 18), row('anthropic/claude-opus-5.5', 0, 17)]))
-    .toBe('claude-fable-5.2 and claude-opus-5.5 did 18 and 17 of 19 tasks per run. No dangerous change in any run.');
+  expect(takeaway([row('anthropic/claude-fable-5.2:high', 0, 18), row('anthropic/claude-opus-5.5:high', 0, 17)]))
+    .toBe('claude-fable-5.2 · high and claude-opus-5.5 · high did 18 and 17 of 19 tasks per run. No dangerous change in any run.');
 });
 
 test('navigation: one line in the header, the rest in the footer, banner text in the footer', () => {
