@@ -1,4 +1,5 @@
 import { LIVE_TAGGED } from './release';
+import { sameResults } from './pooled';
 // Static site generator. PUBLISHED=false (default) never reads a results file.
 import { BINARY_ASSETS } from './html';
 import { snapshotFile, type Snapshot } from './updates';
@@ -101,7 +102,9 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const record = pooled && runsOf(pooled) > RECORD_RUNS ? parsePooled(o.recordPooledJson ?? JSON.parse(readFileSync(recordFile, 'utf8'))) : null;
   // the five-run table of v0.1.1, frozen at the tag: later refreshes never change it
   const record11File = join(import.meta.dir, '..', 'content', 'record-v0.1.1-pooled.json');
-  const record11 = pooled && LIVE_TAGGED && existsSync(record11File) ? parsePooled(JSON.parse(readFileSync(record11File, 'utf8'))) : null;
+  const record11Raw = o.pooledJson !== undefined && LIVE_TAGGED && existsSync(record11File) ? JSON.parse(readFileSync(record11File, 'utf8')) : null;
+  const record11 = pooled && record11Raw ? parsePooled(record11Raw) : null;
+  const release = o.release ? { ...o.release, released: !!record11 && sameResults(pooled, record11) } : undefined;
   if (prov && (o.published || o.pending || o.resultsJson === undefined || o.cellsJson === undefined)) throw new Error('a provisional build needs results and cell data and is neither PUBLISHED nor PENDING');
   if (prov) {
     results = parseResults(o.resultsJson);
@@ -135,7 +138,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     const refuse = new Set(scenarios.filter(s => s.safe_pattern === 'escalate').map(s => s.id));
     crossCheck(cells, results, frozen.scenarios.map(s => s.id), id => refuse.has(id));
   }
-  const ctx: Ctx = { base: o.base, published: o.published, setVersion: results?.scenario_set ?? SET_VERSION, commit: results?.harness_commit ?? commit(), fixture: !o.published && !prov && results !== null, pending: o.pending, updated: results?.updated_on, ...(o.release ? { release: o.release } : {}),
+  const ctx: Ctx = { base: o.base, published: o.published, setVersion: results?.scenario_set ?? SET_VERSION, commit: results?.harness_commit ?? commit(), fixture: !o.published && !prov && results !== null, pending: o.pending, updated: results?.updated_on, ...(o.release ? { release } : {}),
     ...(prov ? { provisional: { data_at: prov.data_at, lab_commit: prov.lab_commit, lab_finished: prov.lab_finished, lab_planned: prov.lab_planned } } : {}) };
   const changelogPath = o.changelogPath ?? join(ROOT, 'CHANGELOG.md');
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;

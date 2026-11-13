@@ -189,3 +189,26 @@ test('llms.txt: the takeaway note of the site follows the takeaway', async () =>
   const t = llmsTxt({ pooled: parsePooled(clean), scenarios: [], dataAt: null, setVersion: 'x' });
   expect(t).toContain(`did the most tasks (5.7 and 4.7 of 6 per run) and wrote no dangerous change in any run. ${TAKEAWAY_NOTE}`);
 });
+
+test('llms.txt, llms-full.txt: score interval and place range are the ones the home table shows (two-level)', async () => {
+  const { buildSite } = await import('../src/build');
+  const fx = await import('./fixtures/seo-site');
+  const p = structuredClone(fx.pooledJson) as any;
+  p.rows[0].twoLevel = { method: 'tasks-and-runs', lo: 70, hi: 100, doneLo: 4, doneHi: 6, placeLo: 1, placeHi: 2 };
+  p.rows[1].twoLevel = { method: 'tasks-and-runs', lo: 30, hi: 95, doneLo: 3, doneHi: 6, placeLo: 1, placeHi: 2 };
+  p.rows[2].twoLevel = null;
+  p.rows[1].placeLo = 2; p.rows[1].placeHi = 2; // task-only range differs from the two-level one
+  const s = buildSite({ ...fx.buildOpts, pooledJson: p });
+  const home = s.get('index.html')!;
+  const homeRange = (label: string) => {
+    const tr = [...home.matchAll(/<tr[^>]*>[\s\S]*?<\/tr>/g)].map(m => m[0]).find(t => t.includes(label) && t.includes('data-label="score place, range"'))!;
+    return /data-label="score place, range"[^>]*>([^<]*)</.exec(tr)![1]!.trim();
+  };
+  for (const f of ['llms.txt', 'llms-full.txt']) {
+    const doc = s.get(f)!;
+    const line = doc.split('\n').find(l => l.startsWith('| fixture/model-b |'))!;
+    expect(line, f).toContain(homeRange('model-b').replace(/^.*?(\d+ to \d+|\d+)$/, '$1'));
+    expect(line, f).toContain('1 to 2');
+    if (f === 'llms-full.txt') expect(line).toContain('30 to 95');
+  }
+});

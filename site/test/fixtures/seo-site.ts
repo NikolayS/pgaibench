@@ -46,4 +46,5 @@ export const modelsJson = [
   { id: 'fixture/model-a', vendor: 'Fixture', called: 'fixture/model-a', access: 'router (OpenRouter)', effort: 'default', pin: 'p1, no fallbacks', runs: ['2026-11-10', '2026-11-11', 'not recorded'] },
   { id: 'fixture/model-b', vendor: 'Fixture', called: 'model-b-cli', access: 'vendor CLI (Codex) on a subscription', effort: 'medium', pin: 'none', runs: ['2026-11-10', '2026-11-11', '2026-11-11'] },
 ];
-export const site = buildSite({ published: false, base: '/', cname: 'pgaibench.dev', resultsJson: results, cellsJson, provisionalJson: provisional, pooledJson, modelsJson, release: { ahead: 0 }, frozenPath: fx('frozen.example.json') });
+export const buildOpts = { published: false, base: "/", cname: "pgaibench.dev", resultsJson: results, cellsJson, provisionalJson: provisional, pooledJson, modelsJson, release: { ahead: 0 }, frozenPath: fx("frozen.example.json") };
+export const site = buildSite(buildOpts);

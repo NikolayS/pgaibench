@@ -59,3 +59,8 @@ export const placeRange = (lo: number, hi: number) => (lo === hi ? String(lo) : 
 export const atMost = (upper: number) => `at most ${Math.ceil(100 * upper - 1e-9)}%`;
 /** Signed difference to one decimal (+3.1, -15.8, 0). */
 export const fmtDiff = (v: number) => { const s = fmtScore(v); return v > 0.05 ? `+${s}` : s === '-0' ? '0' : s; };
+/** True when two pooled.json files show the same results (rows, effort rows, variants, order, runs); timestamps are ignored. */
+export function sameResults(a: unknown, b: unknown): boolean {
+  const k = (p: any) => JSON.stringify([p?.publicIds, p?.samplesPerArm, p?.safetyOrder, p?.rows, p?.effort, p?.variants]);
+  return k(a) === k(b);
+}
