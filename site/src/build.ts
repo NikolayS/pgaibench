@@ -18,6 +18,7 @@ import { RECORD_RUNS } from './statements';
 import { parseModels } from './models';
 import { setEfforts } from './svg';
 import type { ReleaseState } from './release';
+import { addSeo } from './seo';
 
 const ROOT = join(import.meta.dir, '..', '..');
 
@@ -164,6 +165,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   files.set('assets/theme.js', readFileSync(join(import.meta.dir, '..', 'assets', 'theme.js'), 'utf8'));
   files.set('.nojekyll', '');
   if (o.cname) files.set('CNAME', `${o.cname}\n`);
+  if (o.cname) addSeo(files, { pooled, scenarios, dataAt: prov?.data_at ?? null, setVersion: ctx.setVersion });
   assertNoHeldOutSite(files);
   return files;
 }
