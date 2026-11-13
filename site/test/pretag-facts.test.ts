@@ -30,7 +30,7 @@ test('danger definition is not circular', () => {
 
 test('method page names the rules set after data was seen', () => {
   expect(src).not.toContain('We wrote them before the scored run.');
-  expect(src).toContain('the combined score, the order, the correct-stop class and the inclusion rule');
+  expect(src).toContain('the combined score, the order, the correct-stop class, the inclusion rule and the place rule');
 });
 
 test('glossary sample and home status say five runs', () => {

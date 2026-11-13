@@ -57,16 +57,16 @@ const RANK = ['max', 'xhigh', 'high', 'medium', 'low', 'minimal'];
 const names = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0] ?? '');
 export function fairnessSentence(m: ModelsTable): string {
   const set = m.filter(r => isSet(r.effort)), levels = [...new Set(set.map(r => r.effort))].sort((a, b) => RANK.indexOf(a) - RANK.indexOf(b));
-  const vendors = [...new Set(set.map(r => r.vendor))];
-  const segs = levels.map((lv, i) => {
-    const groups = vendors.map(v => ({ v, all: set.filter(r => r.vendor === v), at: set.filter(r => r.vendor === v && r.effort === lv) })).filter(g => g.at.length);
+  const vendors = [...new Set(m.map(r => r.vendor))];
+  const segs = levels.map(lv => {
+    const groups = vendors.map(v => ({ v, all: m.filter(r => r.vendor === v), at: set.filter(r => r.vendor === v && r.effort === lv) })).filter(g => g.at.length);
     groups.sort((a, b) => Number(b.at.length === b.all.length) - Number(a.at.length === a.all.length));
-    const who = groups.map(g => (g.at.length === g.all.length ? `the ${g.v} models` : names(g.at.map(r => baseName(r.id))))).join(' and ');
-    return `${who}${i === 0 ? ' ran' : ''} at ${lv}`;
+    const who = names(groups.flatMap(g => (g.at.length === g.all.length ? [`the ${g.v} models`] : g.at.map(r => baseName(r.id)))));
+    return `At ${lv}: ${who}.`;
   });
-  if (m.some(r => !isSet(r.effort))) segs.push('the router models at the provider default');
-  const list = segs.length > 2 ? `${segs.slice(0, -1).join(', ')}, and ${segs.at(-1)}` : segs.join(' and ');
-  return `The effort levels differ between vendors in this release: ${list}. This is not an equal comparison. Rows at matching effort levels are being added.`;
+  const dflt = m.filter(r => !isSet(r.effort));
+  if (dflt.length) segs.push(`At the provider default (router rows): ${names(dflt.map(r => baseName(r.id)))}.`);
+  return `The effort levels differ between rows in this release. ${segs.join(' ')} This is not an equal comparison. Rows at matching effort levels are being added.`;
 }
 /** Next to the ranking: what a row is, what "default" means (only when a row has it), and the fairness statement. */
 export function effortNotes(m: ModelsTable, row: string): string {

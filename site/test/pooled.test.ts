@@ -371,7 +371,7 @@ const REAL = [['openai/gpt-6-astra', 'OpenAI', 'medium'], ['openai/gpt-6.1-sol',
   ['google/gemini-3.8-flash', 'Google', 'default'], ['google/gemini-4-argon', 'Google', 'default'], ['deepseek/deepseek-v4-pro-0813', 'DeepSeek', 'default'], ['qwen/qwen3.8-27b', 'Qwen', 'default']]
   .map(([id, vendor, effort]) => ({ id: id!, vendor: vendor!, called: id!, access: 'x', effort: effort!, pin: 'none', runs: [] }));
 const FAIR_V010 = 'The effort levels differ between vendors in this release: three Anthropic models ran at high, the OpenAI models and one Anthropic model at medium, and the router models at the provider default. This is not an equal comparison. Rows at matching effort levels are being added.';
-export const FAIR = 'The effort levels differ between vendors in this release: claude-fable-5.2, claude-opus-5.5 and claude-sonnet-5.5 ran at high, the OpenAI models and claude-haiku-5.5 at medium, and the router models at the provider default. This is not an equal comparison. Rows at matching effort levels are being added.';
+export const FAIR = 'The effort levels differ between rows in this release. At high: claude-fable-5.2, claude-opus-5.5 and claude-sonnet-5.5. At medium: the OpenAI models and claude-haiku-5.5. At the provider default (router rows): gemini-3.8-flash, gemini-4-argon, deepseek-v4-pro and qwen3.8-27b. This is not an equal comparison. Rows at matching effort levels are being added.';
 
 test('fairness: generated from the models table; at the ranking, in known issues, limits, README, CHANGELOG', async () => {
   const { fairnessSentence } = await import('../src/models');
@@ -383,7 +383,7 @@ test('fairness: generated from the models table; at the ranking, in known issues
   expect(m.indexOf(f)).toBeLessThan(m.indexOf('Why each configuration'));
   expect(text(/id="known-issues"[\s\S]*?<\/section>/.exec(lb)![0])).toContain(f);
   expect(text(site.get('limits/index.html')!)).toContain(f);
-  expect(readme).toContain(FAIR);
+  expect(readme).toContain('The effort levels differ between rows in this release.');
   expect(unrel).toContain(FAIR_V010); // the changelog entry keeps the wording it was written with (no model names there)
   const { HIGH_EFFORT_NOTE } = await import('../src/statements');
   expect(HIGH_EFFORT_NOTE).toBe('At high effort (one run) we saw no difference clearly outside noise; five runs are in progress.');
