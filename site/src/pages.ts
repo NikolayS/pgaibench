@@ -236,6 +236,7 @@ export const RULES_AFTER: [string, string][] = [
 ];
 /** A link to a published run-1 cell page, or nothing when the build has no such cell. */
 /** Workload errors of the example cell (deepseek-v4-pro, D5, run 1), from its published lab values. */
+export const cellErrors = (d: SiteData | undefined | null, m: string, t: string) => { const v = (d?.provisional?.cells.find(x => x.model_id === m && x.scenario === t)?.lab as { values?: Record<string, number | null> } | undefined)?.values; return v ? { n: v.workload_errors ?? null, s: v.workload_error_span_s ?? null } : null; };
 export const d5Errors = (d: SiteData | undefined | null) => { const v = (d?.provisional?.cells.find(x => x.model_id === 'deepseek/deepseek-v4-pro-0813' && x.scenario === 'D5')?.lab as { values?: Record<string, number | null> } | undefined)?.values; return v ? { n: v.workload_errors ?? null, s: v.workload_error_span_s ?? null } : null; };
 /** Releases: one line per tagged release, newest first, each linking its frozen page. */
 const releasesPage = (c: Ctx, frozen: boolean, frozen11 = false) => page(c, { path: 'releases/', title: 'Releases', body: `<ul>${RELEASES.map(r => `<li><a href="${(r.version === '0.1.0' ? frozen : frozen11) ? link(c, r.page) : r.version === NEXT ? link(c, 'leaderboard/') : `${REPO}/releases/tag/v${r.version}`}">v${esc(r.version)}</a>, ${esc(r.date)}</li>`).join('')}</ul>` });
@@ -266,7 +267,7 @@ export const TAKEAWAY_NOTE = 'Their ranges overlap with the next rows. Effort le
 const frontBlock = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS && takeaway(rows) ? `<p class="takeaway">${esc(takeaway(rows))}</p><p class="meta">${esc(TAKEAWAY_NOTE)}</p>` : '');
 /** Under the chart, before the table: what we do, the example, the release line. */
 const afterChart = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS
-  ? `${FRONT_LEDE.map(l => `<p class="lede">${esc(l)}</p>`).join('')}${exampleBlock(rows, Object.fromEntries((d?.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)))}<p class="meta top-line">${releaseState()} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>`
+  ? `${FRONT_LEDE.map(l => `<p class="lede">${esc(l)}</p>`).join('')}${exampleBlock(rows, Object.fromEntries((d?.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)), (m, t) => cellErrors(d, m, t))}<p class="meta top-line">${releaseState()} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>`
   : '');
 
 function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: SiteData): string {
@@ -349,7 +350,7 @@ function home(c: Ctx, d: SiteData): string {
   const { moved, tail } = aboutBlocks(c, d);
   const hsr = res && d.provisional ? safetyRows(res, d.provisional, d.pooled) : null;
   if (hsr && res && RN(d) > RECORD_RUNS) {
-    const after = `${exampleBlock(hsr, Object.fromEntries((d.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)))}<p class="steps">${esc(STEPS_LINE)} <a href="${link(c, 'method/#what')}">what we test</a></p><p class="meta top-line">${releaseState()} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>`;
+    const after = `${exampleBlock(hsr, Object.fromEntries((d.scenarios ?? []).map(x => [x.id, x.task])), (m, t) => link(c, cellPath(m, t)), (m, t) => cellErrors(d, m, t))}<p class="steps">${esc(STEPS_LINE)} <a href="${link(c, 'method/#what')}">what we test</a></p><p class="meta top-line">${releaseState()} <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p>`;
     const live = `${TOP_LINES(c, false, !!d.pooled, RN(d))}${frontBlock(c, d, hsr)}${safetyTop(c, res, hsr, { ...shortOpt(c, d), after, home: true, effort: rankNotes(d), extra: quantLine(d), prose: d.pooled ? proseFor(c, d, 'what-we-learned-home.md') : '', pooled: d.pooled })}
 <p class="go">-&gt; ${a(link(c, 'leaderboard/#rating'), 'combined score, with intervals')}<br>-&gt; ${a(link(c, 'method/#about'), 'method: what we test, outcomes, one answer step by step')}<br>-&gt; ${a(link(c, 'limits/'), 'what we did not check')}</p>
 ${wordsBlock(link(c, 'method/#glossary'))}
