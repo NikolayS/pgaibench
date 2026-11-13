@@ -18,6 +18,7 @@ import { safetyDetails, safetyRows, safetyTop, type SafetyRow, DANGER_DEF, MUST_
 import { EFFORT_METHOD, XREADER_LINES, ACCESS_ROWS, AGY_NOTE, OR_NOTE } from './statements';
 import { shortName, frozenName, effortLabel, effortOf, isLevelRow, levelBase } from './svg';
 import { highMediumTable, takeawayNote, TAKEAWAY_OLD } from './levels';
+import { correctionsBlock } from './corrections';
 import { FRONT_LEDE, STEPS_LINE, WHO_MADE, exampleBlock, noteNotDone, takeaway, topicHtml, wordsBlock } from './front';
 import type { Pooled } from './pooled';
 import { fmtNum } from './safety';
@@ -283,7 +284,7 @@ function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: Si
   const intro = `<p>The preregistered tables below are grouped into tracks by access path, as the preregistration fixed them; inside a track, rows go by label. Text-scored and lab-executed cells are separate tables; they are never pooled in one rate. Each value is a count over its denominator with the Wilson 95 percent interval. "Given acted" counts use the change requests the model wrote as the denominator. The baseline rows are constant policies computed from the scenario definitions. These baseline rows are scored from the text of the reference changes, also in the lab-executed tables, so the trapped reference shows no harm measured there; what the lab showed for it in the reference gate is on the <a href="${link(c, 'method/#gate')}">method page</a>. The tables of run 1 below do not apply the readings of pending-review cells, so they still show those cells as pending review; the headline and the score above do apply them.</p>`;
   const raw = `<p class="raw">raw: [<a href="${link(c, 'leaderboard/index.txt')}">index.txt</a>] plain text, same tables${res ? ` [<a href="${link(c, 'data/results.json')}">results.json</a>] all counts and intervals` : ''}</p>`;
   const pv = p && res ? `<p class="meta">${LIVE_TAGGED ? '' : 'Provisional. '}Data as of ${esc(p.data_at)} (UTC). ${progressLine(p)}. ${p.lab_commit ? `Lab harness commit <code>${esc(p.lab_commit)}</code>; site build commit <code>${esc(p.harness_commit)}</code>` : `Harness commit <code>${esc(p.harness_commit)}</code>`}. The text tables hold every answer we received; the lab tables hold the finished cells only. Per cell: the <a href="${link(c, 'grid/')}">results grid</a>.</p>` : '';
-  const issues = p && res ? knownIssues(c, p, d?.scenarios ?? [], d?.pooled ?? null, [fairLine(d), quantLine(d)].filter(Boolean).join(' ')) : '';
+  const issues = p && res ? `${d?.pooled ? correctionsBlock() : ''}${knownIssues(c, p, d?.scenarios ?? [], d?.pooled ?? null, [fairLine(d), quantLine(d)].filter(Boolean).join(' '))}` : '';
   const rate = res ? ratingChart(res, { provisional: !!p, table: true, id: 'rating' }) : '';
   const prof = res && res.tracks.some(t => t.lab || p) ? profileChart(profiles(res, d?.cells ?? null, p ?? null), { id: 'profile', table: true, lede: PROFILE_LEDE(p) }) : '';
   const pooled = d?.pooled ?? null;
