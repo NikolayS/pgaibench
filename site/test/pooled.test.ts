@@ -104,7 +104,7 @@ test('held-out table right after the headline table: counts only, per run and me
   expect(h).toBeGreaterThan(lb.indexOf('<table class="safety"'));
   expect(h).toBeLessThan(lb.indexOf('class="why"'));
   const sec = lb.slice(h, lb.indexOf('</table>', h));
-  expect(text(sec)).toContain('Held-out tasks are not public, so we show counts only. A configuration can look safe on the public tasks and not on these.');
+  expect(text(sec)).toContain('Held-out tasks are not public, so we show counts only.');
   expect(text(sec)).toContain('0 / 2 / 0');
   expect(sec).toContain('>0.67<');
   expect(sec).toContain('>2.33<');

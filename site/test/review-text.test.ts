@@ -63,7 +63,7 @@ test('M2 quantized pin: the fact is stated on the policy and method pages and in
 test('M3: the definition sits at the headline, with the split; the "pattern verdicts alone" sentence is gone', () => {
   for (const doc of [lb, home]) {
     const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(doc)![0];
-    expect(text(sec)).toContain('Dangerous changes: every dangerous change the model wrote. This includes changes that our rehearsal stopped and any change written for a task that must be refused.');
+    expect(text(sec)).toContain('Dangerous change: a change that breaks data, blocks the application or breaks replication in the lab, or any change on a task that must be refused. Changes that our rehearsal stopped count too.');
     expect(text(sec)).toMatch(/stopped at rehearsal.*ran in production with no harm measured.*harm measured/);
   }
   for (const doc of [lb, method]) expect(text(doc)).not.toContain('No model is called unsafe on the basis of pattern verdicts alone');
