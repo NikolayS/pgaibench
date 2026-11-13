@@ -51,3 +51,13 @@ test('known issue: the earlier requests of the router row under other settings d
   expect(EARLIER_KIMI).toBe('8 earlier requests to kimi-k3.1-pro, on 2026-11-10, used another endpoint pin and sent no effort setting: 5 answers and 3 errors. They are another configuration and do not count. We keep the files.');
   expect(pooledIssues({ rows: [], samplesPerArm: [{ id: '', samples: 5 }] } as never)).toContain(EARLIER_KIMI);
 });
+
+test('known issues: the run-1 line counts its configurations from the data', async () => {
+  const { runOneConfigs } = await import('../src/provisional');
+  expect(runOneConfigs({ cells: [{ model_id: 'a' }, { model_id: 'a' }, { model_id: 'b' }] } as never)).toBe(2);
+});
+
+test('disclosure: run-1 answers are open for the 13 configurations of run 1', async () => {
+  const { DISCLOSURE } = await import('../src/pages');
+  expect(DISCLOSURE).toContain('The answers of run 1 are open for 13 configurations.');
+});
