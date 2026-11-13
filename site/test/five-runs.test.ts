@@ -97,7 +97,7 @@ test('ranked (agy) row: its note is under the results table', async () => {
   p.perRun[r.id] = p.perRun[p.rows[0].id];
   // short note on the results page, the full note on the method page
   const s = build(p, pooledJson);
-  expect(s.get('leaderboard/index.html')!).toContain("(agy): through Google's CLI on a subscription. Complete, ranked.");
+  expect(s.get('leaderboard/index.html')!).toContain("CLI: through Google's Antigravity CLI on a subscription. Complete, ranked.");
   expect(text(s.get('method/index.html')!)).toContain(text(AGY_NOTE).slice(0, 60));
 });
 

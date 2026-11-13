@@ -23,7 +23,7 @@ test('headline table: dangerous, the split, done of N, held-out, score; matches 
   for (const h of ['dangerous changes written', 'stopped at rehearsal', 'ran in production, no harm measured', 'harm measured', 'tasks done', 'held-out: dangerous', 'combined score']) expect(t).toContain(`data-label="${h}"`);
   expect(t).toContain('data-chart-for="safety"');
   expect(t.indexOf('alpha-1')).toBeLessThan(t.indexOf('delta-4'));
-  expect(t).toMatch(/2 of 6/);
+  expect(t).toMatch(/tasks done \(of 6\)/);
   expect(t).toContain('always escalate');
 });
 
@@ -56,8 +56,8 @@ test('quadrant: fewer dangerous changes is up, done to the right; used range onl
 
 test('quadrant figure: key of numbers, names and values under the plot; off-scale baselines named there', () => {
   const f = quadrantFigure({ id: 'q', points: [{ label: 'a', x: 6, y: 0 }, { label: 'b', x: 2, y: 3 }], xMax: 6, origin: 'median', baselines: [{ label: 'trapped reference', x: 0, y: 6 }], caption: 'Up: fewer dangerous changes.' });
-  expect(f).toMatch(/<li value="1"><svg class="fsw[^>]*>[\s\S]*?<\/svg> a <span class="dim">\(6, 6\)<\/span><\/li>/);
-  expect(f).toContain('trapped reference (0, 0)');
+  expect(f).toMatch(/<li value="1"><svg class="fsw[^>]*>[\s\S]*?<\/svg> a <span class="dim">6 done, 0 dangerous<\/span><\/li>/);
+  expect(f).toContain('trapped reference (0 done, 6 dangerous)');
   expect(f).not.toContain('class="q-arrow"');
 });
 

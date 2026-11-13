@@ -89,7 +89,7 @@ test('rating chart: SVG figure, phone and wide sizes, mid-tone fill from a theme
   expect(css).toMatch(/@media \(max-width: 40rem\)[^]*svg\.chart-wide \{ display: none; \}/);
   expect(css).toMatch(/svg\.chart-narrow \{ display: none; \}/);
   expect(css).toMatch(/svg\[data-chart\] \{[^}]*display: block; width: 100%; height: calc\(var\(--lh\) \* var\(--h\)\)/);
-  expect(css).toMatch(/figure\.svg-chart figcaption \{[^}]*font-style: italic/);
+  expect(css).not.toMatch(/figure\.svg-chart figcaption \{[^}]*font-style: italic/);
   expect(css).toMatch(/\.ch-bar \{ fill: var\(--chart\); \}/);
   const chart = [...css.matchAll(/--chart: (#[0-9a-f]{6})/g)].map(m => m[1]);
   expect(chart.length).toBe(3);

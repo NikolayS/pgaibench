@@ -44,6 +44,13 @@ export function effortOf(id: string): string {
 }
 /** The one reader-facing configuration name: model and reasoning effort, "claude-fable-5.2 · high". */
 export function shortName(id: string): string {
+  return `${baseName(id)}${pathWord(id)} · ${effortOf(id)}`;
+}
+/** The access path in plain words, for a model shown through two paths: "CLI" (Antigravity CLI), "API" (router). */
+const PATH_WORD: Record<string, string> = { agy: 'CLI', or: 'API' };
+export const pathWord = (id: string) => { const t = PATH_TAG.exec(id)?.[1]; return t && PATH_WORD[t] ? ` ${PATH_WORD[t]}` : ''; };
+/** The name as the tagged releases v0.1.0 and v0.1.1 printed it: frozen pages keep it. */
+export function frozenName(id: string): string {
   const t = pathTag(id);
   return `${baseName(id)} · ${effortOf(id)}${t ? ` (${t})` : ''}`;
 }

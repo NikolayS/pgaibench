@@ -2,13 +2,13 @@
 // change written" counts every dangerous change a model wrote, wherever it
 // was stopped (rehearsal, production with no harm measured, harm measured).
 // Data: provisional.json field `safety` (src/analysis/site-data.ts).
-import { CAVEATS_SUMMARY, chartRead, noteAccess, NOTE_EFFORT, NOTE_NO_TOOLS, NOTE_ORDER, noteDangerous, noteHeldout, noteQuantized, noteReference, topicHtml, type NoteTopic } from './front';
+import { CAVEATS_SUMMARY, QUAD_CAPTION_HTML, noteAccess, NOTE_EFFORT, NOTE_NO_TOOLS, NOTE_ORDER, noteDangerous, noteHeldout, noteQuantized, noteReference, topicHtml, type NoteTopic } from './front';
 import { esc, link, page, type Ctx } from './html';
 import { FAMILIES, SHAPE_HALF, SHAPE_HALF as SHAPE_HALF_WIDE, familyLegend, familyOf, shapeSvg, swatch } from './family';
 import type { Results } from './results';
 import type { Provisional } from './provisional';
 import { rating } from './rating';
-import { baseName, effortOf, shortName, urlSlug } from './svg';
+import { baseName, effortOf, pathWord, shortName, urlSlug } from './svg';
 import { AGY_NOTE, HIGH_EFFORT_NOTE, NO_TOOLS, OR_NOTE, PLANNED_RUNS, runsWord as runsInWords } from './statements';
 import { labelOf } from './results';
 import { atMost, excludedWhy, fmtDiff, fmtScore, fmtWhole, isTwoLevel, placeRange, runsOf, type Pooled } from './pooled';
@@ -48,9 +48,6 @@ const scoreCi = (r: { score: number; avg?: Avg }) => { const a = r.avg!, w = a.t
 /** Place: a range for two-level rows ("1 to 3"), else "place (lo-hi)". */
 const placeCell = (r: SafetyRow) => (r.avg?.twoLevel ? placeRange(r.avg.twoLevel.placeLo, r.avg.twoLevel.placeHi) : `${r.place} (${r.avg?.placeLo}-${r.avg?.placeHi})`);
 /** Dangerous changes; with a bound: "0 (at most 3%)". */
-const dangerCell = (r: SafetyRow, bound = false) => (r.avg?.dangerBound ? `${fmtNum(r.dangerous)} (${bound ? atMost(r.avg.dangerBound.upper) : answersOf(r.avg.dangerBound)})` : fmtNum(r.dangerous));
-/** "0 of 95 answers": the count behind the mean, plain (pre-tag check item 6). */
-const answersOf = (b: { count: number; answers: number }) => `${b.count} of ${b.answers} answers`;
 export const BOUND_NOTE = '"At most N%": a one-sided 95 percent bound on the share of answers. Answers on one task are not independent, so the true bound is higher.';
 const AVG_COLS: [string, string, string][] = [COLS[0]!, ['dangerous changes per run', 'dangerous changes per run', 'dangerous changes written, mean per run, wherever they were stopped (fewer is better)'], COLS[2]!, COLS[3]!, COLS[4]!,
   ['tasks done of N', 'tasks done per run', 'right, right with a reservation, correct refusal or correct stop, mean per run (more is better)'], ['score of 100 [95% interval]', 'combined score [95% interval]', 'combined score, mean over the runs, with its 95 percent interval (higher is better)'], ['place by score (range)', 'score place (range)', 'place by combined score (a different order from the rows), then the place range over bootstrap resamples']];
@@ -69,6 +66,10 @@ const unreadOf = (x: ProvRow) => x.unread ?? 0;
 export const unreadText = (x: ProvRow) => `${x.samples} of ${PLANNED_RUNS} runs finished, ${unreadOf(x)} answers not graded yet`;
 /** Why a shown row has no place (prereg section 13, 2026-11-12: one place per configuration with five complete runs). */
 export const noPlace = (x: ProvRow) => (x.samples >= PLANNED_RUNS ? 'no place: same model, second access path' : `${runsWord(x)}, no place yet`);
+/** One legend line under the tables. */
+export const NO_PLACE_LEGEND = 'Italic: no place (second access path of a ranked model).';
+/** Table cells: "no place" (the legend line under the table says why). */
+export const noPlaceShort = (x: ProvRow) => (x.samples >= PLANNED_RUNS ? 'no place' : `${runsWord(x)}, no place yet`);
 export const plottedRows = (xs: ProvRow[]): ProvRow[] => xs.filter(x => !unreadOf(x));
 const provScore = (x: ProvRow, whole = false) => { const f = whole ? fmtWhole : fmtScore; return `${f(x.score)} [${f(x.lo ?? 0)} to ${f(x.hi ?? 0)}]`; };
 const TWO_COLS: [string, string, string][] = [COLS[0]!, ['dangerous changes per run', 'dangerous changes per run', 'dangerous changes written, mean per run (fewer is better). In brackets: dangerous answers of all answers'],
@@ -76,17 +77,29 @@ const TWO_COLS: [string, string, string][] = [COLS[0]!, ['dangerous changes per 
   ['tasks done of N', 'tasks done per run', 'right, right with a reservation, correct refusal or correct stop, mean per run (more is better)'], ['score of 100 [95% interval]', 'combined score [95% interval]', 'combined score, mean over the runs, 95 percent interval over tasks and runs (higher is better)'],
   ['place by score (range)', 'score place, range', 'range of places by combined score over the same resamples (a different order from the rows)']];
 
+/** Model name in ink, effort in its own muted column (desktop table). */
+const nameOf = (id: string) => `${baseName(id)}${pathWord(id)}`;
+/** A breakdown count: zero dim (class none). */
+const tdz = (label: string, v: number) => `<td data-label="${esc(label)}" class="num${v === 0 ? ' none' : ''}">${fmtNum(v)}</td>`;
+/** Tasks done with one decimal when the column has decimals. */
+const doneFmt = (vs: number[]) => { const d = Math.max(0, ...vs.map(v => (fmtNum(v).split('.')[1] ?? '').length)); return (v: number) => v.toFixed(d); };
 export function headlineTable(rows: SafetyRow[], o: { id: string; /** the full table: the bound in place of the count */ bound?: boolean; provisional?: ProvRow[]; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
   const avg = rows.some(r => r.avg), whole = rows.some(r => r.avg?.whole), cols = whole ? TWO_COLS : avg ? AVG_COLS : COLS;
-  const td = (k: number, v: string) => `<td data-label="${esc(cols[k]![1])}" class="num">${esc(v)}</td>`;
   const n = rows[0]?.tasks ?? 0;
+  const prov = (o.provisional ?? []).filter(x => !unreadOf(x));
+  const df = doneFmt([...rows.map(r => r.done), ...prov.map(x => x.done)]);
+  const head = (k: number) => (cols[k]![0] === 'done' ? `tasks done (of ${n})` : cols[k]![0].replace(/ of N$/, ` (of ${n})`));
+  const td = (k: number, v: string, cls = 'num') => `<td data-label="${esc(cols[k]![1])}"${cls ? ` class="${cls}"` : ''}>${v}</td>`;
+  const lead = (place: string, id: string) => `<td data-label="place" class="num">${place}</td><th scope="row">${esc(nameOf(id))}</th><td data-label="effort" class="dim">${esc(effortOf(id))}</td>`;
+  const danger = (r: SafetyRow) => (r.avg?.dangerBound ? `${fmtNum(r.dangerous)} <span class="dim">${o.bound ? esc(atMost(r.avg.dangerBound.upper)) : `${r.avg.dangerBound.count}/${r.avg.dangerBound.answers}`}</span>` : fmtNum(r.dangerous));
+  let i = 0;
   const trs = safetyOrder(rows).map(r => {
-    const last = avg ? `${td(6, r.avg ? scoreCi(r) : sc(r))}${td(7, r.excluded ? `excluded: ${r.excluded}` : r.place === null ? '--' : placeCell(r))}`
-      : `${td(6, `${fmtNum(r.heldout.dangerous)} (${fmtNum(r.heldout.rehearsal)}/${fmtNum(r.heldout.production_no_harm)}/${fmtNum(r.heldout.harm_measured)})`)}${td(7, sc(r))}`;
-    return `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(labelOf(r.model_id))}</th>${td(1, dangerCell(r, o.bound))}${td(2, fmtNum(r.rehearsal))}${td(3, fmtNum(r.production_no_harm))}${td(4, fmtNum(r.harm_measured))}${td(5, `${fmtNum(r.done)} of ${r.tasks}`)}${last}</tr>`;
-  }).join('') + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><th scope="row">${esc(labelOf(x.id))}</th><td colspan="${cols.length - 1}" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional"><th scope="row">${esc(labelOf(x.id))}</th>${td(1, fmtNum(x.dangerous))}${td(2, fmtNum(x.split.rehearsal))}${td(3, fmtNum(x.split.production_no_harm))}${td(4, fmtNum(x.split.harm_measured))}${td(5, `${fmtNum(x.done)} of ${n}`)}${avg ? `${td(6, provScore(x, whole))}${td(7, noPlace(x))}` : `<td></td>${td(7, provScore(x))}`}</tr>`).join('');
-  const bl = o.baselines?.length ? `<tr class="baseline"><th scope="row" colspan="${cols.length}">reference rows (no model, for scale)</th></tr>${o.baselines.map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}</th>${td(1, b.note ?? fmtNum(b.dangerous))}<td></td><td></td><td></td>${td(5, `${fmtNum(b.done)} of ${n}`)}${avg ? `${td(6, fmtWhole(b.score))}<td></td>` : `<td></td>${td(7, String(Math.round(b.score)))}`}</tr>`).join('')}` : '';
-  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety, table"><table class="safety" data-chart-for="${esc(o.id)}"><thead><tr>${cols.map(([h, , t]) => `<th scope="col" title="${esc(t)}">${esc(h.replace(/ of N$/, ` of ${n}`))}</th>`).join('')}</tr></thead><tbody>${trs}${bl}</tbody></table></div>`;
+    const last = avg ? `${td(6, esc(r.avg ? scoreCi(r) : sc(r)))}${td(7, esc(r.excluded ? `excluded: ${r.excluded}` : r.place === null ? '--' : placeCell(r)))}`
+      : `${td(6, esc(`${fmtNum(r.heldout.dangerous)} (${fmtNum(r.heldout.rehearsal)}/${fmtNum(r.heldout.production_no_harm)}/${fmtNum(r.heldout.harm_measured)})`))}${td(7, esc(sc(r)))}`;
+    return `<tr${r.excluded ? ' class="excluded"' : ''}>${lead(r.excluded ? '' : String(++i), r.model_id)}${td(1, danger(r))}${tdz(cols[2]![1], r.rehearsal)}${tdz(cols[3]![1], r.production_no_harm)}${tdz(cols[4]![1], r.harm_measured)}${td(5, df(r.done))}${last}</tr>`;
+  }).join('') + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><td></td><th scope="row">${esc(nameOf(x.id))}</th><td data-label="effort" class="dim">${esc(effortOf(x.id))}</td><td colspan="${cols.length - 1}" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional">${lead('', x.id)}${td(1, fmtNum(x.dangerous))}${tdz(cols[2]![1], x.split.rehearsal)}${tdz(cols[3]![1], x.split.production_no_harm)}${tdz(cols[4]![1], x.split.harm_measured)}${td(5, df(x.done))}${avg ? `${td(6, esc(provScore(x, whole)))}${td(7, esc(noPlaceShort(x)))}` : `<td></td>${td(7, esc(provScore(x)))}`}</tr>`).join('');
+  const bl = o.baselines?.length ? `<tr class="baseline"><th scope="row" colspan="${cols.length + 2}">reference rows (no model, for scale)</th></tr>${o.baselines.map(b => `<tr class="baseline"><td></td><th scope="row">${esc(b.label)}</th><td></td>${td(1, esc(b.note ?? fmtNum(b.dangerous)))}<td></td><td></td><td></td>${td(5, df(b.done))}${avg ? `${td(6, fmtWhole(b.score))}<td></td>` : `<td></td>${td(7, String(Math.round(b.score)))}`}</tr>`).join('')}` : '';
+  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety, table"><table class="safety" data-chart-for="${esc(o.id)}"><thead><tr><th scope="col" class="num">place</th><th scope="col">model</th><th scope="col">effort</th>${cols.slice(1).map((_, k) => `<th scope="col">${esc(head(k + 1))}</th>`).join('')}</tr></thead><tbody>${trs}${bl}</tbody></table></div>`;
 }
 
 // ---------- four-quadrant plot ----------
@@ -234,10 +247,10 @@ export function quadrantFigure(o: Parameters<typeof quadrantSvg>[0] & { caption:
   const wide = quadrantSvg({ ...o, points: pts, width: 760, names: true }).replace('<svg ', '<svg class="chart-wide" ');
   const sw = pts.some(p => p.model);
   const liAttr = (p: QPoint) => (sw ? ` data-n="${p.n}"${dataAttrs(p)} data-main="${isExtra(p) ? 0 : 1}" data-onerun="${p.oneRun ? 1 : 0}"${isExtra(p) ? ' hidden' : ''}` : '');
-  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}"${liAttr(p)}>${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">(${fmtNum(p.x)}, ${fmtNum(o.xMax - p.y)})</span></li>`).join('')}</ol>`;
+  const key = `<ol class="qkey">${pts.map(p => `<li value="${p.n}"${liAttr(p)}>${swatch(p.family ?? 'other')} ${esc(p.label)} <span class="dim">${fmtNum(p.x)} done, ${fmtNum(p.y)} dangerous</span></li>`).join('')}</ol>`;
   const ctl = sw ? switcher(o.id, pts) : '';
-  const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.x)}, ${fmtNum(o.xMax - b.y)})`).join(', ');
-  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}${ctl}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}<p class="qkey-b">(tasks done, tasks without a dangerous change), of ${o.xMax}. Hollow: baselines${bl ? `: ${bl}` : ''}.${o.note ? ` ${esc(o.note)}` : ''}</p></figure>`;
+  const bl = (o.baselines ?? []).map(b => `${esc(b.label)} (${fmtNum(b.x)} done, ${fmtNum(b.y)} dangerous)`).join(', ');
+  return `<figure class="svg-chart" id="${esc(o.id)}">${narrow}${wide}${ctl}<figcaption>${o.caption}</figcaption>${familyLegend(pts.map(p => p.family ?? 'other'), !!o.baselines?.length)}${key}${bl || o.note ? `<p class="qkey-b">${bl ? `Hollow: reference rows: ${bl}.` : ''}${o.note ? ` ${esc(o.note)}` : ''}</p>` : ''}</figure>`;
 }
 
 // ---------- list of dangerous changes ----------
@@ -341,12 +354,14 @@ function baselineRows(res: Results, n: number) {
 /** Phone-size table under the plot: number and name, dangerous, done, score. */
 export function compactTable(rows: SafetyRow[], o: { id: string; provisional?: ProvRow[]; baselines?: { label: string; dangerous: number; done: number; score: number; note?: string }[] }): string {
   const n = rows[0]?.tasks ?? 0, whole = rows.some(r => r.avg?.whole);
+  const dim = (t: string) => `<br><span class="dim">${esc(t)}</span>`;
+  const place = (r: SafetyRow) => (r.avg?.twoLevel ? `, place ${placeRange(r.avg.twoLevel.placeLo, r.avg.twoLevel.placeHi)}` : '');
   const trs = safetyOrder(rows).map((r, i) => r.excluded
-    ? `<tr class="excluded"><th scope="row">${esc(short(r.model_id))}<br><span class="dim">excluded: ${esc(r.excluded)}</span></th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td><td class="num">${sc(r)}</td></tr>`
-    : `<tr><th scope="row">${i + 1} ${esc(short(r.model_id))}${r.avg?.twoLevel ? `<br><span class="dim">place ${placeRange(r.avg.twoLevel.placeLo, r.avg.twoLevel.placeHi)}</span>` : ''}</th><td class="num">${fmtNum(r.dangerous)}${r.avg?.dangerBound ? `<br><span class="dim">${answersOf(r.avg.dangerBound)}</span>` : ''}</td><td class="num">${fmtNum(r.done)}</td><td class="num">${sc(r)}</td></tr>`).join('')
-    + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><th scope="row">${esc(short(x.id))}</th><td colspan="3" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional"><th scope="row">${esc(short(x.id))}<br><span class="dim">${noPlace(x)}</span></th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)}</td><td class="num">${provScore(x, whole)}</td></tr>`).join('')
-    + (o.baselines ?? []).map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}</th><td class="num">${esc(fmtNum(b.dangerous))}</td><td class="num">${fmtNum(b.done)}</td><td class="num">${whole ? fmtWhole(b.score) : fmtScore(b.score)}</td></tr>`).join('');
-  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety"><table class="safety compact" data-chart-for="${esc(o.id)}"><thead><tr><th scope="col">model</th><th scope="col" class="num" title="${whole ? 'dangerous changes written, mean per run (fewer is better), with a one-sided 95 percent upper bound on the share of answers' : 'dangerous changes written, mean per run (fewer is better)'}">dangerous per run</th><th scope="col" class="num" title="tasks done, mean per run (more is better)">done of ${n}</th><th scope="col" class="num" title="combined score (higher is better)">score of 100</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+    ? `<tr class="excluded"><th scope="row">${esc(short(r.model_id))}${dim(`excluded: ${r.excluded}`)}</th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td></tr>`
+    : `<tr><th scope="row">${i + 1} ${esc(short(r.model_id))}${dim(`score ${sc(r)}${place(r)}`)}</th><td class="num">${fmtNum(r.dangerous)}${r.avg?.dangerBound ? dim(`${r.avg.dangerBound.count}/${r.avg.dangerBound.answers}`) : ''}</td><td class="num">${fmtNum(r.done)}</td></tr>`).join('')
+    + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><th scope="row">${esc(short(x.id))}</th><td colspan="2" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional"><th scope="row">${esc(x.samples >= PLANNED_RUNS ? nameOf(x.id) : short(x.id))}${dim(`${noPlaceShort(x)}, score ${whole ? fmtWhole(x.score) : fmtScore(x.score)}`)}</th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)}</td></tr>`).join('')
+    + (o.baselines ?? []).map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}${dim(`score ${whole ? fmtWhole(b.score) : fmtScore(b.score)}`)}</th><td class="num">${esc(fmtNum(b.dangerous))}</td><td class="num">${fmtNum(b.done)}</td></tr>`).join('');
+  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Safety"><table class="safety compact" data-chart-for="${esc(o.id)}"><thead><tr><th scope="col">model</th><th scope="col" class="num">dangerous per run</th><th scope="col" class="num">done of ${n}</th></tr></thead><tbody>${trs}</tbody></table></div>`;
 }
 
 /** The always-escalate baseline is scored by text rules only (independent review of the numbers, W1). */
@@ -392,14 +407,14 @@ export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: bo
   const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
   const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortOf(r.model_id), main: true })),
       ...otherLevelRows(o.pooled).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortOf(x.id), main: false, oneRun: x.samples === 1 })),
-      ...plottedRows(prov).map((x, i) => ({ label: `${short(x.id)}, ${noPlace(x)}`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortOf(x.id), main: true }))], xMax: n, origin: 'median',
-    baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION, ...(note ? { note } : {}) });
-  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div>`;
+      ...plottedRows(prov).map((x, i) => ({ label: `${short(x.id)}, ${noPlaceShort(x)}`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortOf(x.id), main: true }))], xMax: n, origin: 'median',
+    baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION_HTML(QUAD_CAPTION), ...(note ? { note } : {}) });
+  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div>${prov.some(x => x.samples >= PLANNED_RUNS && !unreadOf(x)) ? `<p class="note legend-line">${esc(NO_PLACE_LEGEND)}</p>` : ''}`;
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
-  const read = `<p class="chart-read">${chartRead()}</p>`, caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
-  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}${read}${o.after ?? ''}${table}${caveats}<p>-&gt; <a href="${link(c, 'leaderboard/#why')}">why each configuration is where it is</a></p></section>`;
-  return `<section class="block" id="safety" aria-label="Safety">${quad}${read}${o.after ?? ''}${table}${caveats}${heldoutAvgTable(rows)}
+  const caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
+  if (o.home) return `<section class="block" id="safety" aria-label="Safety">${quad}<h2 id="results">Results</h2>${table}${o.after ?? ''}${caveats}<p class="go">-&gt; <a href="${link(c, 'leaderboard/#why')}">why each row is where it is</a></p></section>`;
+  return `<section class="block" id="safety" aria-label="Safety">${quad}${table}${o.after ?? ''}${caveats}${heldoutAvgTable(rows)}
 <h2 id="why">Why each configuration is where it is</h2><p>Public tasks not done, with their class.</p>${whyLines(rows)}
 <p>Task by task, two configurations side by side: <a href="${link(c, 'compare/')}">compare pairs</a>.</p>
 <h3 id="dangerous">Every dangerous change</h3><p>Public tasks only${rows[0]!.avg ? `, all ${runsInWords(rows[0]!.avg.runs)} runs` : ''}. Each line shows the statement that makes the change dangerous, cut to one line.</p><p>${esc(MUST_REFUSE_NOTE)}</p><p>${esc(NOT_VALID_NOTE)}</p>${dangerList(rows)}</section>`;

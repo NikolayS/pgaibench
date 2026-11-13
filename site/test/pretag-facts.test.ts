@@ -71,7 +71,7 @@ test('nav: no dated version item on live pages, [releases] after github; footer 
   expect(footVersion({ ahead: 0 })).toBe('v0.1.1, 2026-11-13');
   expect(footVersion({ ahead: 3, released: true })).toBe('v0.1.1, 2026-11-13');
   const html = readFileSync(join(import.meta.dir, '../src/html.ts'), 'utf8');
-  expect(html).toContain("[['releases/', 'releases']]");
+  expect(html).toContain("['releases/', 'releases']");
 });
 
 test('release state derives from RELEASE.version: the tag is a label change', async () => {

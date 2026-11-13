@@ -39,13 +39,13 @@ test('quadrant: tasks done runs 0 to xMax with readable ticks incl. 0 and xMax; 
 test('fractional values: plot, key and tables print up to two decimals, whole numbers without zeros', () => {
   expect(fmtNum(3)).toBe('3'); expect(fmtNum(0.333333)).toBe('0.33'); expect(fmtNum(14.6667)).toBe('14.67'); expect(fmtNum(2.5)).toBe('2.5'); expect(fmtNum(4.0001)).toBe('4');
   const f = quadrantFigure({ id: 'q', points: pts, xMax: 19, caption: 'c' });
-  expect(f).toContain('(14.67, 18.67)'); expect(f).toContain('(9, 16.5)'); expect(f.slice(f.indexOf('<ol'))).not.toMatch(/\d\.\d{3}/);
+  expect(f).toContain('14.67 done, 0.33 dangerous'); expect(f).toContain('9 done, 2.5 dangerous'); expect(f.slice(f.indexOf('<ol'))).not.toMatch(/\d\.\d{3}/);
   const z = { dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0 };
   const r: SafetyRow = { model_id: 'v/a-1', ...z, dangerous: 0.33, rehearsal: 0.33, done: 14.666667, tasks: 19, classes: {}, cells: [], heldout: { ...z }, score: 51.2, place: 1 };
   const c = compactTable([r], { id: 'q', baselines: [{ label: 'always escalate', dangerous: 0, done: 4.5, score: 23 }] });
   expect(c).toContain('>0.33<'); expect(c).toContain('>14.67<'); expect(c).toContain('>4.5<');
   const t = headlineTable([r], { id: 'q' });
-  expect(t).toContain('14.67 of 19'); expect(t).toContain('>0.33<'); expect(t).not.toMatch(/\d\.\d{3}/);
+  expect(t).toContain('>14.67<'); expect(t).toContain('>0.33<'); expect(t).not.toMatch(/\d\.\d{3}/);
 });
 
 const frame = (s: string) => { const [x, y, w, h] = /class="q-frame" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/.exec(s)!.slice(1).map(Number); return { x0: x!, y0: y!, x1: x! + w!, y1: y! + h! }; };
@@ -67,14 +67,14 @@ test('quadrant: origin (0, 0) bottom-left; vertical = tasks without a dangerous 
     expect(p[1]!).toBeGreaterThan(b[1]![1]); // and below 19
   }
   const fig = quadrantFigure({ id: 'q', points: [{ label: 'b', x: 14.67, y: 0.33 }], xMax: 19, caption: 'c', baselines: bl });
-  expect(fig).toContain('(14.67, 18.67)'); expect(fig).toContain('(tasks done, tasks without a dangerous change), of 19.'); expect(fig).toContain('always escalate (3, 19), safe reference (19, 19)'); expect(fig).toContain('trapped reference (0, 0)'); expect(fig).not.toContain('off the scale');
+  expect(fig).toContain('14.67 done, 0.33 dangerous'); expect(fig).toContain('always escalate (3 done, 0 dangerous), safe reference (19 done, 0 dangerous)'); expect(fig).toContain('trapped reference (0 done, 19 dangerous)'); expect(fig).not.toContain('off the scale');
   expect(QUAD_CAPTION).toBe('Up: fewer dangerous changes. Right: more tasks done.');
 });
 
 test('key: each entry gives the plotted coordinates (horizontal, vertical), fractions included', () => {
   const ps = [{ label: 'a', x: 19, y: 0 }, { label: 'b', x: 17, y: 1 }, { label: 'c', x: 3, y: 8 }, { label: 'd', x: 14.67, y: 0.33 }, { label: 'e', x: 9.5, y: 2.25 }];
   const fig = quadrantFigure({ id: 'q', points: ps, xMax: 19, caption: 'c' });
-  const key = [...fig.matchAll(/<li value="\d+"><svg[\s\S]*?<\/svg>[^<]*<span class="dim">\(([\d.]+), ([\d.]+)\)<\/span>/g)].map(m => [+m[1]!, +m[2]!]);
+  const key = [...fig.matchAll(/<li value="\d+"><svg[\s\S]*?<\/svg>[^<]*<span class="dim">([\d.]+) done, ([\d.]+) dangerous<\/span>/g)].map(m => [+m[1]!, Math.round((19 - +m[2]!) * 100) / 100]);
   expect(key.length).toBe(ps.length);
   for (const cls of ['chart-narrow', 'chart-wide']) {
     const s = fig.slice(fig.indexOf(`<svg class="${cls}"`)); const svg = s.slice(0, s.indexOf('</svg>'));

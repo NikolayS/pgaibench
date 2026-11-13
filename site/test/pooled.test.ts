@@ -67,14 +67,14 @@ test('headline: averages with two decimals, score with interval and place range;
   const t = /<table class="safety"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(t).toContain('>1.33<');
   expect(t).toContain('>0.33<');
-  expect(t).toContain('5.67 of 6');
-  expect(t).toContain('4.67 of 6');
+  expect(t).toContain('>5.67<');
+  expect(t).toContain('>4.67<');
   expect(t).toContain('96.5 [91.2 to 100]');
   expect(t).toContain('1 (1-2)');
   expect(t.indexOf('model-a')).toBeLessThan(t.indexOf('model-b'));
   const c = /<table class="safety compact"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(c).toContain('>1.33<');
-  expect(c).toContain('>96.5<');
+  expect(c).toContain('score 96.5');
 });
 
 test('excluded configuration: greyed, marked, no place, not in the plot; the line under the key says so', () => {
@@ -95,8 +95,8 @@ test('excluded configuration: greyed, marked, no place, not in the plot; the lin
 
 test('plot key and points use the averages', () => {
   const key = /<ol class="qkey">([\s\S]*?)<\/ol>/.exec(lb)![1]!;
-  expect(key).toContain('model-a · default <span class="dim">(5.67, 6)</span>');
-  expect(key).toContain('model-b · medium <span class="dim">(4.67, 4.67)</span>');
+  expect(key).toContain('model-a · default <span class="dim">5.67 done, 0 dangerous</span>');
+  expect(key).toContain('model-b · medium <span class="dim">4.67 done, 1.33 dangerous</span>');
 });
 
 test('held-out table right after the headline table: counts only, per run and mean', () => {
@@ -335,7 +335,7 @@ test('no tools: one statement on results (under the plot and table), home, metho
 test('effort: every reader-facing label is model + effort; one naming function; compare URLs unchanged', async () => {
   const { shortName, urlSlug, effortOf } = await import('../src/svg');
   const ms = JSON.parse(await Bun.file(new URL('../../models.json', import.meta.url).pathname).text()) as { id: string; effort?: string }[];
-  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+ · (xhigh|high|medium|low|minimal|default)( \((agy)\))?$/);
+  for (const m of ms) expect(shortName(m.id), m.id).toMatch(/^[a-z0-9.\-]+( CLI| API)? · (xhigh|high|medium|low|minimal|default)$/);
   expect(shortName('openai/gpt-6.1-terra (effort high)')).toBe('gpt-6.1-terra · high');
   expect(effortOf('openai/gpt-6.1-terra (effort high)')).toBe('high');
   expect(urlSlug('anthropic/claude-fable-5.2')).toBe('fable-5.2');
@@ -397,7 +397,7 @@ test('header: no dated version item on live pages, [releases] at the end; no rel
   for (const s of [site, later]) for (const [f, doc] of s) if (f.endsWith('.html')) {
     const head = /<header class="top">[\s\S]*?<\/header>/.exec(doc)![0];
     if (f.startsWith('releases/v')) expect(head, f).toContain(`<a class="ver" href="${RELEASE_URL}">v${RELEASE.version} (${RELEASE.date})</a>`);
-    else { expect(head, f).not.toContain('class="ver"'); expect(text(head), f).toMatch(/github \] \[ releases \]|github\] \[releases\]/); }
+    else { expect(head, f).not.toContain('class="ver"'); expect(text(head), f).toMatch(/github v\d+\.\d+\.\d+ $/); }
     expect(text(head), f).not.toContain('unreleased');
     const body = f === 'updates/index.html' ? '' : text(main(doc));
     for (const w of ['Code, tasks and data', 'this build:', '(unreleased)', 'tagged 2026']) expect(body, `${f}: ${w}`).not.toContain(w);

@@ -35,7 +35,7 @@ test('table under the chart in full words: place, place range, path, effort, sco
 
 test('baselines under the model rows in outline; trapped reference as a text line', () => {
   expect(svg).toContain('>baselines</text>');
-  for (const b of ['always escalate', 'safe reference']) expect(svg).toContain(`>${b}</text>`);
+  for (const b of ['always ask a human', 'our known-safe change']) expect(svg).toContain(`>${b}</text>`);
   expect(svg).toMatch(/>trapped: -50<\/text>/);
   expect((svg.match(/class="ch-base"/g) ?? []).length).toBeGreaterThanOrEqual(1);
 });

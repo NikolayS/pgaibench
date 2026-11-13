@@ -31,7 +31,7 @@ test('every configuration has a point element with family, model and effort; num
     expect(fig).toMatch(new RegExp(`<li value="${p.n}"[^>]*data-family="${p.family}" data-model="${p.model}" data-effort="${p.effort}"`));
   }
   expect(fig).toMatch(/<li value="4"[^>]*hidden/);
-  expect(fig).toContain('gpt-6.1-terra · high (one run) <span class="dim">(15, 19)</span>');
+  expect(fig).toContain('gpt-6.1-terra · high (one run) <span class="dim">15 done, 0 dangerous</span>');
   expect(fig).toMatch(/<polyline class="q-line q-off" data-model="gpt-6.1-terra"/);
   // controls: hidden without JavaScript, above the plot
   expect(fig).toMatch(/<div class="qctl" data-for="q" hidden>/);

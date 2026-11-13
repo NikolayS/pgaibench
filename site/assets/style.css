@@ -79,7 +79,7 @@ p, ul, ol, dl, pre, figure, details, blockquote { margin: 0 0 var(--lh); }
 p, li, dd { max-width: 80ch; }
 .skip { position: absolute; left: -999px; } .skip:focus { position: static; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.dim, .meta, .lede, .subtitle { color: var(--muted); }
+.dim, .meta, .subtitle { color: var(--muted); }
 
 .banner { color: var(--accent); font-weight: 800; }
 .nav { margin: 0 0 var(--lh); }
@@ -260,10 +260,10 @@ ol.aaa-list { padding-left: 4ch; }
 .fb { border-left: 0; border-right: 0; }
 
 /* SVG charts (svg.ts): build-generated, colours only from theme variables. Media placed as in The Monospace Web. */
-figure.svg-chart { margin: calc(var(--lh) * 2) 3ch; }
+figure.svg-chart { margin: var(--lh) 0; }
 svg[data-chart] { display: block; width: 100%; height: calc(var(--lh) * var(--h)); color: var(--ink); font-family: inherit; overflow: visible; }
 svg.chart-wide { max-width: 47.5rem; }
-figure.svg-chart figcaption { font-style: italic; margin-top: calc(var(--lh) / 2); }
+figure.svg-chart figcaption { color: var(--muted); margin-top: calc(var(--lh) / 2); }
 .ch-bar { fill: var(--chart); }
 .ch-bg { fill: var(--bg); }
 .ch-base { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
@@ -302,7 +302,7 @@ svg[data-chart] .q-midl { fill: var(--muted); font-size: 11px; }
 table.danger code { white-space: normal; overflow-wrap: anywhere; }
 ul.why li, ul.separates li { max-width: 100ch; }
 table.compact th, table.compact td { padding-left: 0.5ch; padding-right: 0.5ch; }
-figure.aaa-fig figcaption { font-style: italic; color: var(--muted); }
+figure.aaa-fig figcaption { color: var(--muted); }
 /* HTML legend swatches for the outcome profile: the same pf-* classes, drawn as boxes. */
 ul.pf-legend { list-style: none; padding: 0; }
 .sw { display: inline-block; width: 2ch; height: 0.8em; margin: 0 0.5ch 0 0; vertical-align: baseline; border: 1px solid var(--muted); }
@@ -315,7 +315,8 @@ ol.qkey li::marker { font-weight: 800; }
 .qkey-b { color: var(--muted); }
 .q-frame { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 svg[data-chart] .q-num { fill: var(--ink); stroke: var(--bg); stroke-width: 3; paint-order: stroke; }
-h1.plain { font-size: 1.25rem; margin: 0 0 calc(var(--lh) / 2); text-transform: none; }
+h1.plain { font-size: 1.5rem; line-height: 1.3; font-weight: 800; margin: 0 0 calc(var(--lh) / 2); text-transform: none; }
+@media (max-width: 40rem) { h1.plain { font-size: 1.25rem; } }
 ol.qkey { max-width: 64ch; }
 ol.qkey li { white-space: nowrap; }
 @media (max-width: 40rem) { figure.svg-chart .qlegend { font-size: 0.85em; margin: 0; } figure.svg-chart:has(.qlegend) figcaption { margin-top: 0.25rem; } .qleg { margin-right: 1.5ch; } }
@@ -342,7 +343,7 @@ table.compact tr.excluded th[scope="row"] { white-space: normal; }
 @media (max-width: 40rem) { .qctl button, .qctl select { min-height: 40px; } }
 svg[data-chart] .q-off { display: none; }
 .q-off { display: none; }
-svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.3; }
+svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.5; }
 .q-pt.q-one { fill: none; stroke-width: 1.5; }
 .q-one.q-f-anthropic { stroke: var(--fam-anthropic); } .q-one.q-f-openai { stroke: var(--fam-openai); } .q-one.q-f-google { stroke: var(--fam-google); } .q-one.q-f-open { stroke: var(--fam-open); } .q-one.q-f-other { stroke: var(--ink); }
 .q-line { fill: none; stroke: var(--ink); stroke-width: 1; }
@@ -358,3 +359,23 @@ svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.3; }
 .nt .nt-h { font-weight: 800; margin: 0; }
 .nt ul.nb { margin: 0; padding-left: 2ch; }
 .nt .nt-more { margin: 0; }
+/* UX quick wins (2026-11-13): one-line navigation, quiet tables, tap targets. */
+header.top .nav { display: flex; flex-wrap: wrap; column-gap: 2ch; align-items: baseline; }
+header.top .nav .brand { font-weight: 800; }
+header.top .nav .nv { margin-left: auto; }
+.nav a { text-decoration-thickness: 1px; } .nav a:hover, .nav a:focus-visible { text-decoration-thickness: var(--bw); }
+.foot .status-line { color: var(--ink); }
+table.safety { max-width: 110ch; }
+table.safety tbody th[scope="row"] { font-weight: 600; }
+tr.provisional th[scope="row"] { font-style: italic; }
+.wrap .table-scroll:has(table.safety), .wrap .example, .wrap figure.svg-chart { max-width: 110ch; }
+.lede { color: var(--ink); }
+@media (max-width: 40rem) {
+  table.compact tbody th[scope="row"] { white-space: normal; }
+  table.safety.compact { width: 100%; }
+  table.safety.compact td.num, table.safety.compact th.num { width: 1%; }
+  table.safety.compact thead th.num { white-space: normal; min-width: 6ch; }
+  table.safety.compact tbody th[scope="row"] { font-weight: 600; }
+  table.safety.compact .dim { font-size: 0.9em; font-weight: 400; }
+  details > summary, .nt-more a, .more-method a, p.actions a, .go a { display: inline-flex; align-items: center; min-height: 44px; }
+}
