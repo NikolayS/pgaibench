@@ -81,9 +81,14 @@ describe('main chart', () => {
       expect(yt.length).toBe(5);
       if (W !== DESK) for (const m of svg.matchAll(/data-xtick="([\d.]+) /g)) expect(Number(m[1]) % 2).toBe(0);
     });
+    test('phone marks small enough that pairs do not merge', () => {
+      const r = [...svg.matchAll(/<circle cx="[\d.]+" cy="[\d.]+" r="([\d.]+)"/g)].map(m => Number(m[1]));
+      expect(r.length).toBeGreaterThan(0);
+      for (const x of r) expect(x).toBeCloseTo(W === DESK ? 8 : 5.5, 1);
+    });
     test('plot tall enough, no italic except the row without a place', () => {
       const h = Number(/data-plot-h="([\d.]+)"/.exec(svg)![1]);
-      if (W === DESK) { expect(h).toBeGreaterThanOrEqual(480); expect(h).toBeLessThanOrEqual(520); } else expect(h).toBeLessThanOrEqual(240);
+      if (W === DESK) { expect(h).toBeGreaterThanOrEqual(480); expect(h).toBeLessThanOrEqual(520); } else { expect(h).toBeGreaterThanOrEqual(380); expect(h).toBeLessThanOrEqual(420); }
       expect((svg.match(/mc-noplace/g) ?? []).length).toBe(1);
     });
   });
@@ -136,6 +141,16 @@ describe('main chart, earlier', () => {
       expect(t).toContain(W === DESK ? 'gemini-4-argon provider default' : 'gemini-4-argon');
       expect(t).toContain(W === DESK ? 'gemini-4-carbon API provider default' : 'gemini-4-carbon API');
     });
+    test('no leader runs through a label', () => {
+      const lab = boxes(svg, 'lbox');
+      for (const m of svg.matchAll(/class="mc-lead" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)) {
+        const [x1, y1, x2, y2] = [1, 2, 3, 4].map(k => Number(m[k])), L = Math.hypot(x2! - x1!, y2! - y1!);
+        for (let t = 0; t <= L - 3; t += 1) {
+          const x = x1! + ((x2! - x1!) * t) / (L || 1), y = y1! + ((y2! - y1!) * t) / (L || 1);
+          for (const b of lab) expect(x > b.x0 + 0.5 && x < b.x1 - 0.5 && y > b.y0 + 0.5 && y < b.y1 - 0.5, JSON.stringify([m[0], b])).toBe(false);
+        }
+      }
+    });
     test('no label crosses the vertical axis or sits on a join line', () => {
       const ax = attr(svg, 'data-axis-x'), top = attr(svg, 'data-plot-top'), y0 = attr(svg, 'data-plot-y0');
       const joins = boxes(svg, 'jbox');
@@ -149,10 +164,18 @@ describe('main chart, earlier', () => {
       const leads = [...svg.matchAll(/class="mc-lead" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)].map(m => Math.hypot(Number(m[3]) - Number(m[1]), Number(m[4]) - Number(m[2])));
       const tw = attr(svg, 'data-axis-x') - Number(/data-lbox="[-\d.]+ [-\d.]+ ([-\d.]+)[^"]*"[^>]*>[^<]*<\/text>/.exec(svg.slice(svg.indexOf('mc-mlab')))?.[1] ?? 0);
       // margin leaders also cross the tick-number column
-      for (const l of leads) expect(l).toBeLessThanOrEqual(24.5 + Math.max(0, tw) + 4);
+      if (W === DESK) for (const l of leads) expect(l).toBeLessThanOrEqual(24.5 + Math.max(0, tw) + 4);
+      else {
+        // phone: name leaders (left of the axis) at most 12 px, leaders of points inside the plot at most 24
+        const ax = attr(svg, 'data-axis-x');
+        for (const m of svg.matchAll(/class="mc-lead" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)) {
+          const l = Math.hypot(Number(m[3]) - Number(m[1]), Number(m[4]) - Number(m[2]));
+          expect(l).toBeLessThanOrEqual(Number(m[1]) < ax ? 12 : 24.5);
+        }
+      }
       const dy = [...svg.matchAll(/data-dy="([-\d.]+)"/g)].map(m => Math.abs(Number(m[1])));
       expect(dy.length).toBe(7);
-      if (W === DESK) for (const d of dy) expect(d).toBeLessThanOrEqual(8);
+      for (const d of dy) expect(d).toBeLessThanOrEqual(8);
     });
     test('axis titles in the usual places', () => {
       const y0 = attr(svg, 'data-plot-y0'), ax = attr(svg, 'data-axis-x'), top = attr(svg, 'data-plot-top');

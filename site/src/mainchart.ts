@@ -139,6 +139,17 @@ function placeOrder(items: Item[], o: Opt, order: number[]): { res: (Cand | null
   const { fs, frame } = o, lh = fs + 2, taken: Box[] = [...o.block];
   const res: (Cand | null)[] = new Array(items.length).fill(null);
   let total = 0;
+  // leaders already drawn: no later label may cover one, and no leader may run through a box
+  const leads: [number, number, number, number][] = [];
+  const leadOf = (box: Box, p: Item): [number, number, number, number] => {
+    const src = [{ cx: p.cx, cy: p.cy }, ...p.own].sort((a, b) => gap(box, a.cx, a.cy) - gap(box, b.cx, b.cy))[0]!;
+    return [src.cx, src.cy, Math.min(Math.max(src.cx, box.x0 - 1), box.x1 + 1), Math.min(Math.max(src.cy, box.y0), box.y1)];
+  };
+  const through = (l: [number, number, number, number], b: Box, skip: number) => {
+    const L = Math.hypot(l[2] - l[0], l[3] - l[1]);
+    for (let t = skip; t <= L - 3; t += 1) { const x = l[0] + ((l[2] - l[0]) * t) / L, y = l[1] + ((l[3] - l[1]) * t) / L; if (x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1) return true; }
+    return false;
+  };
   const inside = (b: Box) => b.x0 >= frame.x0 && b.x1 <= frame.x1 && b.y0 >= frame.y0 && b.y1 <= frame.y1;
   for (const i of order) {
     const p = items[i]!;
@@ -156,10 +167,11 @@ function placeOrder(items: Item[], o: Opt, order: number[]): { res: (Cand | null
         for (const [x, y, a] of cands) {
           const x0 = a === 'start' ? x : a === 'end' ? x - w : x - w / 2;
           const box = { x0, x1: x0 + w, y0: y - fs * 0.8, y1: y + h + fs * 0.25 };
-          if (!inside(box) || taken.some(t => hit(t, box))) continue;
+          if (!inside(box) || taken.some(t => hit(t, box)) || leads.some(l => through(l, box, 0))) continue;
           // distance from the nearest own mark (or the anchor) to the nearest point of the label
           const dist = Math.min(gap(box, p.cx, p.cy), ...p.own.map(m => gap(box, m.cx, m.cy)));
           if (dist > o.reach) continue;
+          if (dist > p.r + 6) { const l = leadOf(box, p); if (taken.slice(o.block.length).some(t => through(l, t, p.r + 4))) continue; }
           // a label nearer to another mark than to its own reads as that mark's label
           const near = items.some((q, k) => k !== i && q.own.some(m => gap(box, m.cx, m.cy) < dist - 2));
           const cost = dist * 10 + (near ? 500 : 0) + (lines - 1) * 45 + (a === 'start' ? 0 : a === 'end' ? 4 : 8);
@@ -168,7 +180,7 @@ function placeOrder(items: Item[], o: Opt, order: number[]): { res: (Cand | null
       }
       if (best && best.cost <= (p.r + 3 + d) * 10) break;
     }
-    if (best) { res[i] = best.c; total += best.cost; taken.push({ x0: best.c.box.x0 - fs, y0: best.c.box.y0 - 1, x1: best.c.box.x1 + fs, y1: best.c.box.y1 + 1 }); } else total += 1e6;
+    if (best) { res[i] = best.c; total += best.cost; if (best.c.lead) leads.push(leadOf(best.c.box, p)); taken.push({ x0: best.c.box.x0 - fs, y0: best.c.box.y0 - 1, x1: best.c.box.x1 + fs, y1: best.c.box.y1 + 1 }); } else total += 1e6;
   }
   return { res, cost: total };
 }
@@ -177,7 +189,7 @@ function placeOrder(items: Item[], o: Opt, order: number[]): { res: (Cand | null
 const HM = new Set(['high', 'medium']);
 export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks: number }): string {
   const W = o.width, phone = W < 500, n = o.tasks;
-  const fs = phone ? 11.5 : 13, tfs = phone ? 11 : 12, lh = fs + 2, U = phone ? 12 : 26, TOP = phone ? 26 : 16, RM = phone ? 8 : 12, r = phone ? 6 : 8;
+  const fs = phone ? 11.5 : 13, tfs = phone ? 11 : 12, lh = fs + 2, U = phone ? 21 : 26, TOP = phone ? 26 : 16, RM = phone ? 8 : 12, r = phone ? 5.5 : 8;
   const xMax = axisMax(rows.map(x => x.dangerous));
   const pts = points(rows);
   const zero = pts.filter(p => p.d === 0), off = pts.filter(p => p.d > 0);
@@ -280,7 +292,8 @@ export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks
     const box = { x0: zx - w, y0: y - fs * 0.8, x1: zx, y1: y + (t2 ? lh : 0) + fs * 0.25 };
     const mid = y + (t2 ? lh / 2 : 0) - fs * 0.35;
     // leaders only where the name moved away from its marks
-    if (Math.abs(mid - tgt[i]!) > 6) for (const p of g.pts) out.push(`<line class="mc-lead" x1="${zx + 2}" y1="${n1(mid)}" x2="${n1(LM - r - 2)}" y2="${n1(Y(p.done))}"/>`);
+    // on a phone a short stub toward the height of the marks, so it stays clear of the tick numbers
+    if (Math.abs(mid - tgt[i]!) > 6) for (const p of g.pts) out.push(`<line class="mc-lead" x1="${zx + 2}" y1="${n1(mid)}" x2="${n1(phone ? zx + 8 : LM - r - 2)}" y2="${n1(phone ? mid + Math.max(-9, Math.min(9, Y(p.done) - mid)) : Y(p.done))}"/>`);
     labels.push(`<text class="mc-mlab${g.ranked ? '' : ' mc-noplace'}" x="${zx}" y="${n1(y)}" text-anchor="end" data-dy="${n1(mid - tgt[i]!)}"${lbox(box)}>${t2 ? `${nameT(g.name)}<tspan class="mc-eff" x="${zx}" dy="${lh}">${esc(g.words)}</tspan>` : `${nameT(g.name)} ${effT(g.words)}`}</text>`);
   });
 
@@ -302,7 +315,7 @@ export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks
   // short leaders first; only when a label has no place at all, a longer reach
   const block = [...mboxes, ...joinBoxes, axisBox, ...lboxes.map(b => ({ x0: b.x0 - 3, y0: b.y0, x1: b.x1 + 3, y1: b.y1 }))];
   let placed: (Cand | null)[] = [];
-  for (const reach of phone ? [24, 40, 80, 140] : [46, 80, 140]) { placed = placeOff(L.map(l => l.item), { fs, frame, block, reach }); if (placed.every(Boolean)) break; }
+  for (const reach of phone ? [12, 24, 40, 80, 140] : [46, 80, 140]) { placed = placeOff(L.map(l => l.item), { fs, frame, block, reach }); if (placed.every(Boolean)) break; }
   L.forEach((l, i) => {
     const c = placed[i], { cx, cy } = l.item;
     if (!c) throw new Error(`main chart: no place for the label of ${l.name}`);
