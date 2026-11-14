@@ -71,6 +71,9 @@ export function frozenName(id: string): string {
   const t = pathTag(id);
   return `${baseName(id)} · ${rawEffortOf(id)}${t ? ` (${t})` : ''}`;
 }
+/** Row name on a frozen release page: releases up to v0.1.2 keep the name they printed, later ones use the live label. */
+const PRINTED = new Set(['0.1.0', '0.1.1', '0.1.2']);
+export const recordName = (version: string, id: string) => (PRINTED.has(version) ? frozenName(id) : shortName(id));
 export const modelLabel = shortName;
 /** Chart text: the label with the effort group only ("provider default"), short enough for a chart row. */
 export const chartName = (id: string) => `${baseName(id)}${pathWord(id)} · ${effortGroup(effortOf(id))}`;

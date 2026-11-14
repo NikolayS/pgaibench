@@ -138,7 +138,7 @@ test('M13: README status is current', () => {
 test('M14: the limiting sentence sits next to the plot on home and results', () => {
   for (const doc of [lb, home]) {
     const sec = /<section class="block" id="safety"[\s\S]*?<\/section>/.exec(doc)![0];
-    expect(text(sec)).toMatch(/No tools.*one written answer per task.*19 tasks that we wrote.*three runs/i);
+    expect(text(sec)).toMatch(/No tool calls.*writes one change request.*19 tasks that we wrote.*three runs/i);
   }
 });
 

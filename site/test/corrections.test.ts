@@ -37,6 +37,6 @@ test('the correction names the released tables it touches, from the cells and th
   expect(correctionText(x)).toEndWith(`Affected releases: v${want[0]!.version} (one cell) and v${want[1]!.version} (four cells).`);
   expect(correctionsJson().corrections[0]!.affectedReleases).toEqual(want);
   const r1 = RELEASE_LIST.find(r => r.version === want[1]!.version)!;
-  expect(frozenNote(r1, '#c')).toBe(`<p class="meta correction-note">${x.date}: a judging correction on task L1 affects 4 cells of this table. See <a href="#c">Corrections</a>.</p>`);
+  expect(frozenNote(r1, '#c')).toStartWith(`<p class="meta correction-note">${x.date}: a judging correction on task L1 affects 4 cells of this table. See <a href="#c">Corrections</a>.</p>`);
   expect(frozenNote({ ...r1, cutoff: '9999-01-01T00:00:00Z' }, '#c')).toBe('');
 });

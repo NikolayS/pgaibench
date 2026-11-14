@@ -95,7 +95,7 @@ test('short notes: budget on the five-run home and results pages, full text on t
       expect(lis.length).toBeLessThanOrEqual(3);
       for (const l of lis) expect(l.split(' ').length, l).toBeLessThanOrEqual(15);
     }
-    expect(plainT(top)).toContain('One written answer per task. No web search, no queries, no experiments.');
+    expect(plainT(top)).toContain('No tool calls: one change request per task, from the task and fixed context queries.');
   }
   const method = site.get('method/index.html')!;
   for (const id of ['no-tools', 'effort', 'dangerous', 'order', 'reference', 'heldout']) expect(method).toContain(`id="n-${id}"`);

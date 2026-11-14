@@ -76,7 +76,7 @@ describe('bar chart', () => {
 
   test('figure: one caption line, a link to the full table', () => {
     const f = barChartFigure(TODAY, { id: 'bars', tasks: 19, full: 'leaderboard/#safety' });
-    expect(BAR_CAPTION).toBe('19 public tasks, mean of 5 runs, no tools. Neighbouring rows can differ by one answer in one run.');
+    expect(BAR_CAPTION).toBe('19 public tasks, mean of 5 runs. No tool calls, no feedback from the database. One written change request per task. Neighbouring rows can differ by one answer in one run.');
     expect(f).toContain(`<figcaption>${BAR_CAPTION}`);
     expect(f).toContain('<a href="leaderboard/#safety">full table</a>');
     expect(f).toContain('svg class="bc bc-wide"');

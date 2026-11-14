@@ -320,15 +320,15 @@ const unrel = changelogMd.slice(changelogMd.indexOf('## [Unreleased]'), changelo
 
 test('no tools: one statement on results (under the plot and table), home, method ("No tools" section), limits and README', async () => {
   const { NO_TOOLS } = await import('../src/statements');
-  expect(NO_TOOLS).toBe('No tools: each model gives one written answer per task. It cannot search the web, query the database or run experiments. Agents in real use usually have such tools, so we expect better results with tools. We plan to measure this.');
+  expect(NO_TOOLS).toMatch(/^No tool calls\. /); // exact text: no-tool-calls.test.ts
   for (const doc of [lb, home, site.get('method/index.html')!, site.get('limits/index.html')!]) expect(vis(doc)).toContain(NO_TOOLS);
   const m = main(lb), at = m.indexOf(NO_TOOLS);
   expect(at).toBeGreaterThan(m.indexOf('data-chart-for="safety-quadrant"'));
   expect(at).toBeLessThan(m.indexOf('id="why"'));
   expect((plain(m).match(/no tools and no access to the database/g) ?? []).length).toBe(0);
   const meth = site.get('method/index.html')!;
-  expect(meth).toMatch(/<h2 id="no-tools">No tools<\/h2>/);
-  expect(text(meth)).toMatch(/the task, the database description and one answer/);
+  expect(meth).toMatch(/<h2 id="no-tools">No tool calls<\/h2>/);
+  expect(text(meth)).toMatch(/a description of the database: schema, table sizes, settings and a workload summary/);
   expect(readme).toContain(NO_TOOLS);
 });
 

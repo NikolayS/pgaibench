@@ -481,7 +481,7 @@ export class RealLab implements LabPort {
       return expression === undefined ? [] : evaluateExpectations(w.before, w.after, { [metric]: expression }, { context: "end_of_window" }).map(r => ({ step, ...r }));
     });
     const notes = [...w.notes, "relative thresholds (x) are evaluated against the production W_prod baseline latency and TPS"];
-    if (target === "clone") notes.push("the clone has no WAL archive and no standby by design");
+    if (target === "clone") notes.push("the clone archives WAL into its own directory, deleted with the clone, and has no standby by design");
     const actor = w.act ? { steps: w.act.steps.map(({ metrics: _metrics, ...s }) => Object.fromEntries(Object.entries(s).filter(([k, v]) => v !== undefined && (k !== 'error' || v))) as ActorStepRecord), aborted: w.act.aborted, rolledBack: w.act.rolledBack, rollbackErrors: w.act.rollbackErrors, logPath: w.act.logPath } : null;
     return { target, workload: menu, seconds, before: w.before, after: w.after, diff, workload_summary: w.summary, actor, aborted: !actor || actor.aborted, notes, ...(deferred_expectations.length ? { deferred_expectations } : {}) };
   }
