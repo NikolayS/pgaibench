@@ -189,7 +189,7 @@ function placeOrder(items: Item[], o: Opt, order: number[]): { res: (Cand | null
 const HM = new Set(['high', 'medium']);
 export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks: number }): string {
   const W = o.width, phone = W < 500, n = o.tasks;
-  const fs = phone ? 11.5 : 13, tfs = phone ? 11 : 12, lh = fs + 2, U = phone ? 21 : 26, TOP = phone ? 26 : 16, RM = phone ? 8 : 12, r = phone ? 5.5 : 8;
+  const fs = phone ? 11.5 : 13, tfs = phone ? 11 : 12, lh = fs + 2, U = phone ? 21 : 38, TOP = phone ? 26 : 16, RM = phone ? 8 : 12, r = phone ? 5.5 : 8;
   const xMax = axisMax(rows.map(x => x.dangerous));
   const pts = points(rows);
   const zero = pts.filter(p => p.d === 0), off = pts.filter(p => p.d > 0);

@@ -88,7 +88,7 @@ describe('main chart', () => {
     });
     test('plot tall enough, no italic except the row without a place', () => {
       const h = Number(/data-plot-h="([\d.]+)"/.exec(svg)![1]);
-      if (W === DESK) { expect(h).toBeGreaterThanOrEqual(480); expect(h).toBeLessThanOrEqual(520); } else { expect(h).toBeGreaterThanOrEqual(380); expect(h).toBeLessThanOrEqual(420); }
+      if (W === DESK) { expect(h).toBeGreaterThanOrEqual(700); expect(h).toBeLessThanOrEqual(740); } else { expect(h).toBeGreaterThanOrEqual(380); expect(h).toBeLessThanOrEqual(420); }
       expect((svg.match(/mc-noplace/g) ?? []).length).toBe(1);
     });
   });
