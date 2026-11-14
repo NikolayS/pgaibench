@@ -390,11 +390,11 @@ test('fairness: generated from the models table; at the ranking, in known issues
 });
 
 test('header: no dated version item on live pages, [releases] at the end; no release line in page bodies', async () => {
-  const { RELEASE_URL, RELEASE } = await import("../src/release");
+  const { RELEASE_URL, RELEASE, RELEASE_LIST } = await import("../src/release");
   const later = buildSite({ published: false, base: '/', cname: 'pgaibench.dev', resultsJson: results, cellsJson, provisionalJson: provisional, pooledJson, modelsJson, release: { ahead: 3 }, frozenPath: fx('frozen.example.json') });
   for (const s of [site, later]) for (const [f, doc] of s) if (f.endsWith('.html')) {
     const head = /<header class="top">[\s\S]*?<\/header>/.exec(doc)![0];
-    if (f.startsWith('releases/v')) expect(head, f).toContain(`<a class="ver" href="${RELEASE_URL}">v${RELEASE.version} (${RELEASE.date})</a>`);
+    if (f.startsWith('releases/v')) { const v = f.split('/')[1]!.slice(1); const r = RELEASE_LIST.find(x => x.version === v)!; expect(head, f).toContain(`<a class="ver" href="${RELEASE_URL.replace(RELEASE.version, v)}">v${v} (${r.date})</a>`); }
     else { expect(head, f).not.toContain('class="ver"'); expect(text(head), f).toMatch(/github v\d+\.\d+\.\d+ $/); }
     expect(text(head), f).not.toContain('unreleased');
     const body = f === 'updates/index.html' ? '' : text(main(doc));

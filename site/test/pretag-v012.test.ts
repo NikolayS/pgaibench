@@ -18,7 +18,8 @@ test('RELEASING.md: steps that work in the public repository', () => {
 test('task-set label: the frozen list and the newest changelog section say the same version', () => {
   const set = JSON.parse(readFileSync(join(import.meta.dir, '../data/frozen-v01.json'), 'utf8')).scenario_set;
   const cl = readFileSync(ov('CHANGELOG.md'), 'utf8');
-  const newest = cl.slice(cl.indexOf('## ['), cl.indexOf('## [', cl.indexOf('## [') + 4));
+  // the newest section with content: an empty "Unreleased" right after a release is skipped
+  const secs = cl.split(/^(?=## \[)/m).slice(1); const newest = secs.find(s => s.replace(/^## .*\n/, '').trim()) ?? '';
   expect(newest).toContain(`Task set \`${set}\``);
   expect(cl).toContain('blob/main/RELEASING.md');
 });
