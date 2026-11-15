@@ -486,11 +486,13 @@ export class RealLab implements LabPort {
     return { target, workload: menu, seconds, before: w.before, after: w.after, diff, workload_summary: w.summary, actor, aborted: !actor || actor.aborted, notes, ...(deferred_expectations.length ? { deferred_expectations } : {}) };
   }
 
-  async rehearse(cr: CR, clone: Target, baseline: Snapshot, seconds: number, logPath: string, opts: { stepTimeoutS?: number } = {}): Promise<TelemetryRecord> {
+  /** opts.workload / opts.injectorTable: gate follow-up only (src/run/gate-rerun.ts); the benchmark never sets them. */
+  async rehearse(cr: CR, clone: Target, baseline: Snapshot, seconds: number, logPath: string, opts: { stepTimeoutS?: number; workload?: Workload; injectorTable?: string } = {}): Promise<TelemetryRecord> {
     const ct = await this.d.tunnel(this.host.ip, [clone.port]);
+    const { workload, ...rest } = opts, menu = workload ?? cr.rehearsal.workload;
     try {
-      const w = await this.window({ conn: this.conn(clone.port, ct), standby: null, kind: "clone", menu: cr.rehearsal.workload, port: clone.port, seconds, cr, logPath, clone: clone.n, ...opts });
-      return this.lost(this.record("clone", cr.rehearsal.workload, seconds, cr, baseline, w), ct);
+      const w = await this.window({ conn: this.conn(clone.port, ct), standby: null, kind: "clone", menu, port: clone.port, seconds, cr, logPath, clone: clone.n, ...rest });
+      return this.lost(this.record("clone", menu, seconds, cr, baseline, w), ct);
     } finally { this.keep(ct, "clone tunnel"); await ct.close(); }
   }
 

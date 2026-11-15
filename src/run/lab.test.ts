@@ -321,6 +321,31 @@ describe("RealLab", () => {
     expect(polls).toBe(61);
   });
 
+  test('gate follow-up: rehearse with a harness workload ignores the menu the CR picked', async () => {
+    const log: string[] = [];
+    const lab = new RealLab(host, deps(log));
+    await lab.open();
+    const cr = { ...structuredClone(goodCR), rehearsal: { ...goodCR.rehearsal, workload: "synthetic-light" as const } };
+    const r = await lab.rehearse(cr, { kind: "clone", port: 5501, n: 1, name: "x" }, snapshot(), 120, "/tmp/r.jsonl", { workload: "W_prod" });
+    expect(log).toContain("host /opt/pgaibench/env/workload/w_prod.sh 120 W_prod 5501");
+    expect(log.some(l => l.includes("synthetic-light"))).toBe(false);
+    expect(r.workload).toBe("W_prod");
+    expect(log.some(l => l.includes('pgaibench-injector'))).toBe(false);
+  });
+
+  test('gate follow-up: rehearse with injectorTable waits for a granted injector lock on the clone', async () => {
+    const log: string[] = [];
+    const base = deps(log);
+    let polls = 0;
+    const lab = new RealLab(host, { ...base,
+      client: (c) => ({ unsafe: async (q: string) => { if (q.includes('pgaibench-injector')) { polls++; log.push(`poll ${polls} port=${c.port}`); return [{ held: polls >= 2 }]; } return []; }, end: async () => {} }) });
+    await lab.open();
+    await lab.rehearse(structuredClone(goodCR), { kind: "clone", port: 5501, n: 1, name: "x" }, snapshot(), 120, "/tmp/r.jsonl", { workload: "W_prod", injectorTable: "pgbench_accounts" });
+    const apply = log.findIndex(l => l.startsWith('apply clone'));
+    expect(log.indexOf('poll 2 port=35501')).toBeGreaterThan(-1);
+    expect(log.indexOf('poll 2 port=35501')).toBeLessThan(apply);
+  });
+
   test('without injectorTable the Actor does not wait for the injector', async () => {
     const log: string[] = [];
     const lab = new RealLab(host, deps(log));
