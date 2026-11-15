@@ -326,7 +326,7 @@ ol.qkey li { white-space: nowrap; }
 svg[data-chart] .q-name { fill: var(--ink); stroke: var(--bg); stroke-width: 3; paint-order: stroke; }
 
 /* A configuration that fails the inclusion rule: shown, greyed, no place. */
-tr.excluded th, tr.excluded td { color: var(--muted); }
+tr.excluded th[scope="row"] { font-style: italic; }
 table.compact tr.excluded th[scope="row"] { white-space: normal; }
 /* 320 px phones: the compact tables shrink a little and row names may wrap, so they fit with decimals. */
 @media (max-width: 21rem) { .wrap table.compact { font-size: 0.8em; } .wrap table.compact th, .wrap table.compact td { padding-left: 0.25ch; padding-right: 0.25ch; } .wrap table.compact tbody th[scope="row"] { white-space: normal; } }
