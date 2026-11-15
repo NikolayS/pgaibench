@@ -19,6 +19,7 @@ import { RECORD_RUNS } from './statements';
 import { parseModels } from './models';
 import { effortLabel, setEfforts } from './svg';
 import { correctionsJson } from './corrections';
+import { ADDENDUM_DATA_PATH } from './addendum';
 import type { ReleaseState } from './release';
 import { addSeo } from './seo';
 
@@ -162,6 +163,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
+  if (o.published || prov) files.set(ADDENDUM_DATA_PATH, readFileSync(join(import.meta.dir, '..', 'data', 'gate-rerun-v0.1.3.json'), 'utf8')); // addendum to v0.1.3, byte for byte
   for (const c of cells ?? []) files.set(`data/cells/${cellSlug(idName(c.model_id))}/${c.scenario}/${c.sample}-${c.scored_by}.json`, `${JSON.stringify(c, null, 2)}\n`);
   files.set('assets/style.css', readFileSync(join(import.meta.dir, '..', 'assets', 'style.css'), 'utf8'));
   files.set('assets/sort.js', readFileSync(join(import.meta.dir, '..', 'assets', 'sort.js'), 'utf8'));
