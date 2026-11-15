@@ -29,3 +29,10 @@ test('README carries the same two sentences as the site, from the same table', (
   expect(readme).toContain(effortSentence(rows));
   expect(readme).toContain('290 of 2185 public cells');
 });
+
+test('a model with a row at high and a row with no effort sent counts apart, not as "both levels" and not as "one level"', () => {
+  const ds = rows.find(r => r.id === 'deepseek/deepseek-v4-pro-0813')!;
+  const more = [...rows, { ...ds, id: 'deepseek/deepseek-v4-pro-0813:high', effort: 'high' }];
+  expect(fairnessSentence(more)).toContain('Nine models have a row at high and a row at medium. One model has a row at high and a row with no effort sent. Four models have one level only.');
+  expect(levelsSentence(more)).toBe('Reasoning-effort settings other than high and medium. Nine models have rows at both levels. One model has a row at high and a row with no effort sent. Four models have one level only.');
+});

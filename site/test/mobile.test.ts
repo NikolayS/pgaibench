@@ -56,7 +56,7 @@ test('key: value blocks are definition lists with a key width, aligned in the .t
   expect(home).not.toContain('<pre class="head"');
   for (const k of ['data as of', 'scenarios', 'models', 'tracks', 'license']) expect(home).toContain(`<dt>${k}</dt>`);
   const txt = toText(home);
-  expect(txt).toMatch(/^role under test: +Analyzer \(the author of the change\)\. The model writes the/m);
+  expect(txt).toMatch(/^role under test: +Analyst \(the author of the change\)\. The model writes the/m);
   expect(txt).toMatch(/^ {10,}production change itself, or refuses and escalates\.$/m);
   for (const l of txt.slice(txt.indexOf('WHAT WE TEST'), txt.indexOf('HOW TO READ')).split('\n')) expect(l.length, l).toBeLessThanOrEqual(78);
   const lb = published.get('leaderboard/index.html')!;

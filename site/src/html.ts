@@ -66,7 +66,7 @@ const NAV: [string, string][] = [
 const FOOT_LIVE: [string, string][] = [['compare/', 'compare models'], ['limits/', 'limits'], ['releases/', 'releases']];
 const THEME = '<span class="theme" hidden>theme: <button type="button" data-theme-set="system" aria-pressed="true">system</button> <button type="button" data-theme-set="light" aria-pressed="false">light</button> <button type="button" data-theme-set="dark" aria-pressed="false">dark</button></span>';
 const NAV_FROZEN: [string, string][] = [
-  ['', 'home'], ['leaderboard/', 'analyzer'], ['auditor/', 'auditor'], ['grid/', 'grid'], ['method/', 'method'], ['scenarios/', 'scenarios'], ['limits/', 'limits'], ['data/', 'data'],
+  ['', 'home'], ['leaderboard/', 'analyst'], ['auditor/', 'auditor'], ['grid/', 'grid'], ['method/', 'method'], ['scenarios/', 'scenarios'], ['limits/', 'limits'], ['data/', 'data'],
 ];
 const FOOT: [string, string][] = [
   ['testing-policy/', 'testing policy'], ['related-work/', 'related work'], ['versioning/', 'versioning'],

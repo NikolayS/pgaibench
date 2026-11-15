@@ -86,3 +86,10 @@ describe('the addendum page', () => {
     expect(addendumPage({ base: '/', published: true, setVersion: 'x', commit: 'y' } as never)).toContain('<table');
   });
 });
+
+describe('registration order line', () => {
+  test('names the private plan commit, the test repetition, the first run and the public history limit', () => {
+    const t = text(site().get(`${ADDENDUM.path}index.html`)!);
+    expect(t).toContain('Order: the plan was committed in the private development repository on 2026-11-15 at 05:15 UTC (commit cc3115bf7672d88b5bc269cdc108642f3b73e8db). The test repetition ran at about 06:18 UTC. The first registered run started at 06:31 UTC. The public commit came with the results, so public history cannot show this order.');
+  });
+});

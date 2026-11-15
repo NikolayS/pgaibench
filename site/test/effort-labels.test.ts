@@ -24,7 +24,7 @@ test('words and notes: reasoning effort defined, provider default explained, com
   expect(all).toContain('We set it where the provider has the setting.');
   expect(EFFORT_METHOD).toContain('Effort names compare within a vendor only. See the reasoning tokens column.');
   expect(EFFORT_METHOD).toContain('We sent no effort setting.');
-  expect(DEEPSEEK_ISSUE).toBe('deepseek-v4-pro ran with thinking off on the pinned endpoint: 0 reasoning tokens in 110 of 110 answers. Its result is for that endpoint.');
+  expect(DEEPSEEK_ISSUE).toBe('deepseek-v4-pro · no thinking ran with thinking off on the pinned endpoint: 0 reasoning tokens in 110 of 110 answers. Its result is for that endpoint.');
   const m = [{ id: 'g/x', effort: 'default' }, { id: 'a/y', effort: 'high' }] as never;
   expect(effortNotes(m, 'R.')).not.toContain('"default"');
   expect(quantizedSentence([{ id: 'deepseek/deepseek-v4-pro-0813', quantized: 'fp8' }] as never)).not.toContain('· default');

@@ -82,7 +82,8 @@ export function pooledTable(inp: PooledInput): { rows: PooledRow[]; safetyOrder:
   const pl = places(placed.map((b) => scoreOf(b.v.pts)));
   const r = rng(SEED), boot = new Map(base.map((b) => [b.cfg.id, { s: [] as number[], d: [] as number[], o: [] as number[], p: [] as number[] }]));
   // two-level: per sample, per public task, points and done (run draws come from their own generator)
-  const r2 = rng(RUN_SEED), two = new Map(base.map((b) => [b.cfg.id, { s: [] as number[], o: [] as number[], p: [] as number[] }]));
+  // a configuration with no place draws its runs from its own generator, so it changes no draw of the placed ones
+  const r2 = rng(RUN_SEED), r2x = rng(RUN_SEED), two = new Map(base.map((b) => [b.cfg.id, { s: [] as number[], o: [] as number[], p: [] as number[] }]));
   const grid = base.map((b) => ({ pts: b.cfg.samples.map((s) => inp.publicIds.map((id) => pts(cell(s, id)))), dn: b.cfg.samples.map((s) => inp.publicIds.map((id) => dn(cell(s, id)))) }));
   for (let k = 0; k < RESAMPLES; k++) {
     const idx = Array.from({ length: n }, () => Math.floor(r() * n));
@@ -91,9 +92,9 @@ export function pooledTable(inp: PooledInput): { rows: PooledRow[]; safetyOrder:
     const pv = places(placed.map((b) => v[base.indexOf(b)]!));
     placed.forEach((b, i) => boot.get(b.cfg.id)!.p.push(pv[i]!));
     const w = base.map((b, i) => {
-      const g = grid[i]!, S = g.pts.length;
+      const g = grid[i]!, S = g.pts.length, R = b.included ? r2 : r2x;
       let sp = 0, so = 0;
-      for (const t of idx) { let a = 0, o = 0; for (let j = 0; j < S; j++) { const q = Math.floor(r2() * S); a += g.pts[q]![t]!; o += g.dn[q]![t]!; } sp += a / S; so += o / S; }
+      for (const t of idx) { let a = 0, o = 0; for (let j = 0; j < S; j++) { const q = Math.floor(R() * S); a += g.pts[q]![t]!; o += g.dn[q]![t]!; } sp += a / S; so += o / S; }
       const x = two.get(b.cfg.id)!; x.s.push(n ? (100 * sp) / n : 0); x.o.push(so);
       return n ? (100 * sp) / n : 0;
     });

@@ -4,7 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSite } from '../src/build';
 import { effortTable, quadrantSvg } from '../src/safety';
-import { parsePooled } from '../src/pooled';
+import { noPlaceWhy, parsePooled } from '../src/pooled';
+import { chartRows } from '../src/mainchart';
 import { SHAPE_HALF } from '../src/family';
 
 const fx = (f: string) => join(import.meta.dir, 'fixtures', f);
@@ -77,20 +78,31 @@ test('headline: averages with two decimals, score with interval and place range;
   expect(c).toContain('score 96.5');
 });
 
-test('excluded configuration: greyed, marked, no place, not in the plot; the line under the key says so', () => {
-  for (const tb of [/<table class="safety"[\s\S]*?<\/table>/.exec(lb)![0], /<table class="safety compact"[\s\S]*?<\/table>/.exec(lb)![0]]) {
+test('excluded configuration: greyed, marked, no place with the reason from the data, plotted in italic with "no place"', () => {
+  // full table: "no place" in the place column, the reason in the legend line under the table; phone table: the reason under the name
+  const full = /<table class="safety"[\s\S]*?<\/table>/.exec(lb)![0];
+  expect(text(/<tr class="excluded">[\s\S]*?<\/tr>/.exec(full)![0]).trim()).toMatch(/no place$/);
+  expect(text(/<p class="note legend-line">[\s\S]*?<\/p>/.exec(lb)![0]).trim()).toMatch(/^Italic: no place\. model-c · provider default: runs 2 and 3 have 4 and 8 of \d+ tasks with no answer, limit 1\.$/);
+  expect(text(/<tr class="excluded">[\s\S]*?<\/tr>/.exec(/<table class="safety compact"[\s\S]*?<\/table>/.exec(lb)![0])![0])).toMatch(/no place: runs 2 and 3 have 4 and 8 of \d+ tasks with no answer, limit 1/);
+  for (const tb of [full, /<table class="safety compact"[\s\S]*?<\/table>/.exec(lb)![0]]) {
     const tr = /<tr class="excluded">[\s\S]*?<\/tr>/.exec(tb)![0];
     expect(tr).toContain('model-c');
-    expect(text(tr)).toContain('excluded: no answer on 4 tasks in run 2, 8 in run 3');
+    expect(text(tr)).not.toContain('excluded');
     expect(tb.indexOf('model-b')).toBeLessThan(tb.indexOf('model-c'));
   }
   const fig = /<figure class="svg-chart" id="safety-quadrant">[\s\S]*?<\/figure>/.exec(lb)![0];
-  expect([...fig.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)].reduce((a, m) => a + (m[0].match(/class="q-pt (?![^"]*q-off)/g) ?? []).length, 0)).toBe(4); // 2 points x (phone + wide); the one-run point starts hidden
-  expect(/<ol class="qkey">[\s\S]*?<\/ol>/.exec(fig)![0]).not.toContain('model-c');
-  expect(text(fig)).toContain('model-c · provider default is not in the plot: excluded, no answer on 4 tasks in run 2, 8 in run 3.');
+  expect([...fig.matchAll(/<svg\b[^>]*data-chart[\s\S]*?<\/svg>/g)].reduce((a, m) => a + (m[0].match(/class="q-pt (?![^"]*q-off)/g) ?? []).length, 0)).toBe(6); // 3 points x (phone + wide); the one-run point starts hidden
+  expect(text(/<ol class="qkey">[\s\S]*?<\/ol>/.exec(fig)![0])).toContain('model-c · provider default, no place');
+  expect(text(fig)).not.toContain('is not in the plot');
   const r = /<table class="rating"[\s\S]*?<\/table>/.exec(lb)![0];
   expect(r).toContain('model-c');
-  expect(text(r)).toContain('excluded');
+  expect(text(r)).toContain('no place');
+  expect(text(r)).not.toContain('excluded');
+});
+
+test('noPlaceWhy: runs over the limit, tasks of all 22, the limit', () => {
+  expect(noPlaceWhy([1, 0, 1, 2, 1], 22)).toBe('run 4 has 2 of 22 tasks with no answer, limit 1');
+  expect(noPlaceWhy([0, 4, 8], 22)).toBe('runs 2 and 3 have 4 and 8 of 22 tasks with no answer, limit 1');
 });
 
 test('plot key and points use the averages', () => {
@@ -204,8 +216,8 @@ for (const [name, xs] of [['coinciding', [14, 14, 14]], ['near-coinciding', [14,
   }
 });
 
-test('excluded rows are greyed in both themes', () => {
-  expect(site.get('assets/style.css')!).toMatch(/tr\.excluded[^{]*\{[^}]*color: var\(--muted\)/);
+test('rows with no place are italic, like the second access path row', () => {
+  expect(site.get('assets/style.css')!).toMatch(/tr\.excluded th\[scope="row"\] \{ font-style: italic; \}/);
 });
 
 test('quadrant: the real averages and a crowded fixture are drawn within half a task of the truth, in both variants', () => {
@@ -433,5 +445,15 @@ test('switcher on the built results page: every configuration has a point; the o
   expect(fig).toMatch(/class="q-pt q-f-[a-z]+ q-one q-off"[^>]*data-model="model-b" data-effort="high"/);
   expect(fig).toMatch(/<li value="3"[^>]*data-onerun="1" hidden>[\s\S]*?model-b · high \(one run\)/);
   expect(fig).toContain('<div class="qctl" data-for="safety-quadrant" hidden>');
-  expect(fig).not.toContain('data-model="model-c"');
+  expect(fig).toMatch(/class="q-pt[^"]*"[^>]*data-model="model-c"/); // shown with no place
+});
+
+test('main chart: a configuration with no place under the inclusion rule is a row of the chart, not ranked', () => {
+  const rs = chartRows(parsePooled(pooledJson));
+  expect(rs.find(r => r.id === 'fixture/model-c')).toMatchObject({ ranked: false });
+});
+
+test('compare pages: a configuration with no place has its pairs too', () => {
+  expect(text(site.get('compare/index.html')!)).toContain('model-b · medium vs model-c · provider default');
+  expect([...site.keys()].some(k => /^compare\/model-[abc]\/model-c\/index.html$/.test(k))).toBe(true);
 });

@@ -55,11 +55,11 @@ test('"What we test" on home, results and method; AAA diagram on home; Auditor p
   const s = sites[2]!;
   for (const p of ['index.html', 'leaderboard/index.html', 'method/index.html']) {
     expect(s.get(p), p).toContain('<h2 id="what">What we test</h2>');
-    expect(s.get(p), p).toContain('Analyzer (the author of the change)');
+    expect(s.get(p), p).toContain('Analyst (the author of the change)');
   }
   const home = s.get('index.html')!;
-  expect(home).toContain('AAA: Analyzer, Auditor, Actor');
-  expect(home).toMatch(/Analyzer +-&gt; +Auditor +-&gt; +Actor +-&gt; +Auditor/);
+  expect(home).toContain('AAA: Analyst, Auditor, Actor');
+  expect(home).toMatch(/Analyst +-&gt; +Auditor +-&gt; +Actor +-&gt; +Auditor/);
   expect(home).toContain('PGAIBench-Auditor');
   expect(s.get('leaderboard/index.html')).toContain('<h1>PGAIBench: results</h1>');
   const aud = s.get('auditor/index.html')!;

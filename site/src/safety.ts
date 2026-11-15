@@ -13,7 +13,7 @@ import { barChartFigure } from './barchart';
 import { baseName, effortGroup, effortOf, pathWord, shortName, urlSlug } from './svg';
 import { AGY_NOTE, HIGH_EFFORT_NOTE, NO_TOOLS, OR_NOTE, PLANNED_RUNS, runsWord as runsInWords } from './statements';
 import { labelOf } from './results';
-import { atMost, excludedWhy, fmtDiff, fmtScore, fmtWhole, isTwoLevel, placeRange, runsOf, type Pooled } from './pooled';
+import { atMost, noPlaceWhy, fmtDiff, fmtScore, fmtWhole, isTwoLevel, placeRange, runsOf, type Pooled } from './pooled';
 
 type Split = { dangerous: number; rehearsal: number; production_no_harm: number; harm_measured: number };
 export type SafetyCell = { scenario: string; stopped_where: 'rehearsal' | 'production_no_harm' | 'production_harm_measured' | 'not_run'; harm_checks: string[]; decisive: string; run?: number };
@@ -70,6 +70,11 @@ export const unreadText = (x: ProvRow) => `${x.samples} of ${PLANNED_RUNS} runs 
 export const noPlace = (x: ProvRow) => (x.samples >= PLANNED_RUNS ? 'no place: same model, second access path' : `${runsWord(x)}, no place yet`);
 /** One legend line under the tables. */
 export const NO_PLACE_LEGEND = 'Italic: no place (second access path of a ranked model).';
+/** The legend line under the tables: italic means no place, then the reason per row, from the data. */
+export const noPlaceLegend = (rows: SafetyRow[], prov: ProvRow[]) => {
+  const why = [...prov.filter(x => x.samples >= PLANNED_RUNS && !unreadOf(x)).map(x => `${short(x.id)}: second access path of a ranked model.`), ...rows.filter(r => r.excluded).map(r => `${short(r.model_id)}: ${r.excluded}.`)];
+  return why.length ? ['Italic: no place.', ...why].join(' ') : '';
+};
 /** Table cells: "no place" (the legend line under the table says why). */
 export const noPlaceShort = (x: ProvRow) => (x.samples >= PLANNED_RUNS ? 'no place' : `${runsWord(x)}, no place yet`);
 export const plottedRows = (xs: ProvRow[]): ProvRow[] => xs.filter(x => !unreadOf(x));
@@ -97,7 +102,7 @@ export function headlineTable(rows: SafetyRow[], o: { id: string; /** the full t
   const danger = (r: SafetyRow) => (r.avg?.dangerBound ? `${fmtNum(r.dangerous)} <span class="dim">${o.bound ? esc(atMost(r.avg.dangerBound.upper)) : `${r.avg.dangerBound.count}/${r.avg.dangerBound.answers}`}</span>` : fmtNum(r.dangerous));
   let i = 0;
   const trs = safetyOrder(rows).map(r => {
-    const last = avg ? `${td(6, esc(r.avg ? scoreCi(r) : sc(r)))}${td(7, esc(r.excluded ? `excluded: ${r.excluded}` : r.place === null ? '--' : placeCell(r)))}`
+    const last = avg ? `${td(6, esc(r.avg ? scoreCi(r) : sc(r)))}${td(7, esc(r.excluded ? 'no place' : r.place === null ? '--' : placeCell(r)))}`
       : `${td(6, esc(`${fmtNum(r.heldout.dangerous)} (${fmtNum(r.heldout.rehearsal)}/${fmtNum(r.heldout.production_no_harm)}/${fmtNum(r.heldout.harm_measured)})`))}${td(7, esc(sc(r)))}`;
     return `<tr${r.excluded ? ' class="excluded"' : ''}>${lead(r.excluded ? '' : String(++i), r.model_id)}${td(1, danger(r))}${tdz(cols[2]![1], r.rehearsal)}${tdz(cols[3]![1], r.production_no_harm)}${tdz(cols[4]![1], r.harm_measured)}${td(5, df(r.done))}${rs(r.model_id)}${last}</tr>`;
   }).join('') + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><td></td><th scope="row">${esc(nameOf(x.id))}</th><td data-label="effort" class="dim">${esc(effortOf(x.id))}</td><td colspan="${cols.length - 1 + (o.reasoning ? 1 : 0)}" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional">${lead('', x.id)}${td(1, fmtNum(x.dangerous))}${tdz(cols[2]![1], x.split.rehearsal)}${tdz(cols[3]![1], x.split.production_no_harm)}${tdz(cols[4]![1], x.split.harm_measured)}${td(5, df(x.done))}${rs(x.id)}${avg ? `${td(6, esc(provScore(x, whole)))}${td(7, esc(noPlaceShort(x)))}` : `<td></td>${td(7, esc(provScore(x)))}`}</tr>`).join('');
@@ -274,7 +279,7 @@ export function whyLines(rows: SafetyRow[]): string {
     const cs = runsCls(r), tasks = [...new Set(cs.flatMap(c => Object.keys(c)))].sort(byTask);
     const lost = tasks.filter(t => cs.some(c => !DONE_CLASSES.includes(c[t] ?? 'not_run')));
     const what = (t: string) => `${t} (${cs.map(c => word(c[t] ?? 'not_run')).join(', ')})`;
-    return `<li><b>${esc(short(r.model_id))}</b>${r.excluded ? ' (excluded)' : ''}: ${lost.length ? `lost points on ${esc(lost.map(what).join(', '))}` : 'no points lost'}.</li>`;
+    return `<li><b>${esc(short(r.model_id))}</b>${r.excluded ? ' (no place)' : ''}: ${lost.length ? `lost points on ${esc(lost.map(what).join(', '))}` : 'no points lost'}.</li>`;
   }).join('')}</ul>`;
 }
 
@@ -300,7 +305,7 @@ export function separates(all: SafetyRow[]): string {
 // Pair path a/b: a hyphenated pair name can read like a model-named arm to the public scanner.
 export const pairSlug = (a: SafetyRow, b: SafetyRow) => `${urlSlug(a.model_id)}/${urlSlug(b.model_id)}`;
 export function comparePairs(rows: SafetyRow[]): [SafetyRow, SafetyRow][] {
-  const s = safetyOrder(rows.filter(r => !r.excluded)), out: [SafetyRow, SafetyRow][] = [];
+  const s = safetyOrder(rows), out: [SafetyRow, SafetyRow][] = [];
   for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) out.push([s[i]!, s[j]!]);
   return out;
 }
@@ -333,7 +338,7 @@ export function safetyRows(res: Results | null, p: Provisional | null | undefine
       const noAns = (c: Record<string, string>) => Object.fromEntries(Object.entries(c).map(([t, v]) => [t, v === 'unscorable' ? 'no_answer' : v]));
       const pr = { ...pr0, classes: pr0.classes.map((c, k) => noAns(k === 0 ? Object.fromEntries(Object.entries(c).map(([t, v]) => [t, v === 'not_run' && nr.has(t) ? 'not_requested' : v])) : c)) };
       return { model_id: x.id, dangerous: x.dangerous, ...x.split, done: x.done, tasks: n, classes: pr.classes[0] ?? {}, cells: pr.dangerous, heldout: { dangerous: x.heldout.dangerous, rehearsal: 0, production_no_harm: 0, harm_measured: 0 },
-        score: x.score, place: x.place, ...(x.included ? {} : { excluded: excludedWhy(x.missing) }),
+        score: x.score, place: x.place, ...(x.included ? {} : { excluded: noPlaceWhy(x.missing, n + x.heldout.tasks) }),
         avg: { runs, lo: x.lo, hi: x.hi, placeLo: x.placeLo, placeHi: x.placeHi, ...(two ? { whole: true, twoLevel: x.twoLevel ?? null, dangerBound: x.dangerBound ?? null } : {}), perRun: x.perSample.map(q => ({ score: q.score, dangerous: q.dangerous, done: q.done, held: { dangerous: q.heldout.dangerous, done: q.heldout.done } })),
           classes: pr.classes, unstable: x.unstable, held: x.heldout } };
     });
@@ -360,7 +365,7 @@ export function compactTable(rows: SafetyRow[], o: { id: string; provisional?: P
   const dim = (t: string) => `<br><span class="dim">${esc(t)}</span>`;
   const place = (r: SafetyRow) => (r.avg?.twoLevel ? `, place ${placeRange(r.avg.twoLevel.placeLo, r.avg.twoLevel.placeHi)}` : '');
   const trs = safetyOrder(rows).map((r, i) => r.excluded
-    ? `<tr class="excluded"><th scope="row">${esc(short(r.model_id))}${dim(`excluded: ${r.excluded}`)}</th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td></tr>`
+    ? `<tr class="excluded"><th scope="row">${esc(short(r.model_id))}${dim(`no place: ${r.excluded}`)}</th><td class="num">${fmtNum(r.dangerous)}</td><td class="num">${fmtNum(r.done)}</td></tr>`
     : `<tr><th scope="row">${i + 1} ${esc(short(r.model_id))}${dim(`score ${sc(r)}${place(r)}`)}</th><td class="num">${fmtNum(r.dangerous)}${r.avg?.dangerBound ? dim(`${r.avg.dangerBound.count}/${r.avg.dangerBound.answers}`) : ''}</td><td class="num">${fmtNum(r.done)}</td></tr>`).join('')
     + (o.provisional ?? []).map(x => unreadOf(x) ? `<tr class="provisional unread"><th scope="row">${esc(short(x.id))}</th><td colspan="2" data-label="not graded yet">${esc(unreadText(x))}</td></tr>` : `<tr class="provisional"><th scope="row">${esc(x.samples >= PLANNED_RUNS ? nameOf(x.id) : short(x.id))}${dim(`${noPlaceShort(x)}, score ${whole ? fmtWhole(x.score) : fmtScore(x.score)}`)}</th><td class="num">${fmtNum(x.dangerous)}</td><td class="num">${fmtNum(x.done)}</td></tr>`).join('')
     + (o.baselines ?? []).map(b => `<tr class="baseline"><th scope="row">${esc(b.label)}${dim(`score ${whole ? fmtWhole(b.score) : fmtScore(b.score)}`)}</th><td class="num">${esc(fmtNum(b.dangerous))}</td><td class="num">${fmtNum(b.done)}</td></tr>`).join('');
@@ -407,15 +412,15 @@ export const QUAD_CAPTION = 'Up: fewer dangerous changes. Right: more tasks done
 /** Top of the page: the plot, the compact table and (results page) the findings. */
 export function safetyTop(c: Ctx, res: Results, rows: SafetyRow[], o: { home: boolean; /** under the chart, before the table */ after?: string; extra?: string; /** effort notes next to the ranking */ effort?: string; /** prose under the plot and table */ prose?: string; /** one-run and other-level rows for the switcher */ pooled?: Pooled | null; /** short notes (five-run pages): method link and quantized endpoints */ short?: { more: (id: string) => string; method: string; quant: { name: string; kind: string; noReasoning: boolean }[] } }): string {
   const n = rows[0]!.tasks, bl = baselineRows(res, n), ord = safetyOrder(rows).filter(r => !r.excluded), out = rows.filter(r => r.excluded), prov = provisionalRows(o.pooled);
-  const note = out.map(r => `${short(r.model_id)} is not in the plot: excluded, ${r.excluded}.`).join(' ');
   const quad = quadrantFigure({ id: quadId(o.home), points: [...ord.map((r, i) => ({ label: short(r.model_id), x: r.done, y: r.dangerous, n: i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortGroup(effortOf(r.model_id)), main: true })),
       ...otherLevelRows(o.pooled).filter(x => ord.some(r => r.model_id === x.base)).sort((a, b) => a.id.localeCompare(b.id)).map((x, i) => ({ label: `${short(x.id)}${x.samples === 1 ? ' (one run)' : ''}`, x: x.done, y: x.dangerous, n: ord.length + i + 1, family: familyOf(x.base), model: baseName(x.base), effort: effortGroup(effortOf(x.id)), main: false, oneRun: x.samples === 1 })),
-      ...plottedRows(prov).map((x, i) => ({ label: `${short(x.id)}, ${noPlaceShort(x)}`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortGroup(effortOf(x.id)), main: true }))], xMax: n, origin: 'median',
-    baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION_HTML(QUAD_CAPTION), ...(note ? { note } : {}) });
+      ...plottedRows(prov).map((x, i) => ({ label: `${short(x.id)}, ${noPlaceShort(x)}`, x: x.done, y: x.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(r => r.model_id === y.base)).length + i + 1, family: familyOf(x.id), model: baseName(x.id), effort: effortGroup(effortOf(x.id)), main: true })),
+      ...out.map((r, i) => ({ label: `${short(r.model_id)}, no place`, x: r.done, y: r.dangerous, n: ord.length + otherLevelRows(o.pooled).filter(y => ord.some(q => q.model_id === y.base)).length + plottedRows(prov).length + i + 1, family: familyOf(r.model_id), model: baseName(r.model_id), effort: effortGroup(effortOf(r.model_id)), main: true }))], xMax: n, origin: 'median',
+    baselines: bl.map(b => ({ label: b.label, x: b.done, y: b.dangerous })), caption: QUAD_CAPTION_HTML(QUAD_CAPTION) });
   // the main chart (tasks done against dangerous changes) first; the numbered plot with filters stays, collapsed
   const main = o.pooled ? mainChartFigure(chartRows(o.pooled), { id: `main-${quadId(o.home)}`, tasks: n, words: `#${WORDS_ID}` }) : '';
   const plot = main ? `${main}<details class="all-points"><summary>All points, with filters</summary>${quad}</details>` : quad;
-  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl, ...(o.home ? {} : { reasoning: o.pooled?.reasoning?.rows }) })}</div>${prov.some(x => x.samples >= PLANNED_RUNS && !unreadOf(x)) ? `<p class="note legend-line">${esc(NO_PLACE_LEGEND)}</p>` : ''}`;
+  const table = `<div class="phone-only">${compactTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl })}</div><div class="desk-only">${headlineTable(rows, { id: quadId(o.home), provisional: prov, baselines: bl, ...(o.home ? {} : { reasoning: o.pooled?.reasoning?.rows }) })}</div>${noPlaceLegend(rows, prov) ? `<p class="note legend-line">${esc(noPlaceLegend(rows, prov))}</p>` : ''}`;
   const under = [[...prov.map(x => x.id), ...rows.map(r => r.model_id)].some(id => id.endsWith('@agy')) ? AGY_NOTE : '', prov.some(x => x.id === 'google/gemini-4-carbon@or') ? OR_NOTE : '', o.effort ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const lines = [DANGER_DEF, splitLine(rows), ORDER_LINE, BASELINE_ESC_NOTE, heldLine(rows), o.extra ?? ''].filter(Boolean).map(x => `<p class="note">${esc(x)}</p>`).join('');
   const caveats = o.short ? shortNotes(rows, prov, bl, o.short, o.prose ?? '') : `<p class="note">${esc(limitLine(rows[0]!.avg?.runs ?? 3))}</p><details class="caveats"><summary>${esc(CAVEATS_SUMMARY)}</summary>${under}${lines}</details>${o.prose ?? ''}`;
@@ -434,14 +439,14 @@ export const HELDOUT_SENTENCE = 'Held-out tasks are not public, so we show count
 export function heldoutAvgTable(rows: SafetyRow[]): string {
   if (!rows.some(r => r.avg)) return '';
   const k = rows[0]!.avg!.held.tasks;
-  const trs = safetyOrder(rows).map(r => `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(short(r.model_id))}${r.excluded ? ' <span class="dim">excluded</span>' : ''}</th><td data-label="dangerous, runs 1 / 2 / 3" class="num">${slash(r.avg!.perRun.map(q => q.held.dangerous))}</td><td data-label="dangerous, mean" class="num">${fmtNum(r.avg!.held.dangerous)}</td><td data-label="done, runs 1 / 2 / 3" class="num">${slash(r.avg!.perRun.map(q => q.held.done))}</td><td data-label="done, mean" class="num">${fmtNum(r.avg!.held.done)}</td></tr>`).join('');
+  const trs = safetyOrder(rows).map(r => `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(short(r.model_id))}${r.excluded ? ' <span class="dim">no place</span>' : ''}</th><td data-label="dangerous, runs 1 / 2 / 3" class="num">${slash(r.avg!.perRun.map(q => q.held.dangerous))}</td><td data-label="dangerous, mean" class="num">${fmtNum(r.avg!.held.dangerous)}</td><td data-label="done, runs 1 / 2 / 3" class="num">${slash(r.avg!.perRun.map(q => q.held.done))}</td><td data-label="done, mean" class="num">${fmtNum(r.avg!.held.done)}</td></tr>`).join('');
   return `<h3 id="heldout-avg">Held-out tasks (${k})</h3><p>${esc(HELDOUT_SENTENCE)}</p><div class="table-scroll" tabindex="0" role="region" aria-label="Held-out tasks"><table class="heldout-avg"><thead><tr><th scope="col">configuration</th><th scope="col" class="num" title="dangerous changes written in runs 1, 2 and 3 (fewer is better)">dangerous by run</th><th scope="col" class="num" title="mean per run">mean</th><th scope="col" class="num" title="tasks done in runs 1, 2 and 3, of ${k} (more is better)">done by run</th><th scope="col" class="num" title="mean per run">mean</th></tr></thead><tbody>${trs}</tbody></table></div>`;
 }
 
 /** Runs side by side: dangerous, done, score, and the tasks whose class was not the same in every run. */
 export function perRunTable(rows: SafetyRow[]): string {
   if (!rows.some(r => r.avg)) return '';
-  const trs = safetyOrder(rows).map(r => { const a = r.avg!; return `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(short(r.model_id))}${r.excluded ? ' <span class="dim">excluded</span>' : ''}</th><td data-label="dangerous, runs 1 / 2 / 3" class="num">${slash(a.perRun.map(q => q.dangerous))}</td><td data-label="done, runs 1 / 2 / 3" class="num">${slash(a.perRun.map(q => q.done))}</td><td data-label="score, runs 1 / 2 / 3" class="num">${a.perRun.map(q => (a.whole ? fmtWhole : fmtScore)(q.score)).join(' / ')}</td><td data-label="tasks with a different class in some run">${a.unstable.length}${a.unstable.length ? ` (${esc(a.unstable.join(' '))})` : ''}</td></tr>`; }).join('');
+  const trs = safetyOrder(rows).map(r => { const a = r.avg!; return `<tr${r.excluded ? ' class="excluded"' : ''}><th scope="row">${esc(short(r.model_id))}${r.excluded ? ' <span class="dim">no place</span>' : ''}</th><td data-label="dangerous, runs 1 / 2 / 3" class="num">${slash(a.perRun.map(q => q.dangerous))}</td><td data-label="done, runs 1 / 2 / 3" class="num">${slash(a.perRun.map(q => q.done))}</td><td data-label="score, runs 1 / 2 / 3" class="num">${a.perRun.map(q => (a.whole ? fmtWhole : fmtScore)(q.score)).join(' / ')}</td><td data-label="tasks with a different class in some run">${a.unstable.length}${a.unstable.length ? ` (${esc(a.unstable.join(' '))})` : ''}</td></tr>`; }).join('');
   return `<h3 id="per-run">Per run</h3><p>Each run side by side, public tasks. The last column counts the tasks where the ${rows[0]!.avg!.runs} runs gave different classes.</p><div class="table-scroll" tabindex="0" role="region" aria-label="Per run"><table class="per-run"><thead><tr><th scope="col">configuration</th><th scope="col" class="num" title="dangerous changes in runs 1, 2 and 3">dangerous</th><th scope="col" class="num" title="tasks done in runs 1, 2 and 3">done</th><th scope="col" class="num" title="combined score in runs 1, 2 and 3">score</th><th scope="col" title="tasks with a different class in some run">tasks that changed class</th></tr></thead><tbody>${trs}</tbody></table></div>`;
 }
 

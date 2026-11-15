@@ -95,6 +95,7 @@ export function addendumPage(c: Ctx, d = gateJson as unknown as { repetitions: R
 <li>Each clone is a single node. Replication and backup checks are not used.</li>
 <li>Small samples: ${h.run} harmful and ${n.run} no-harm cells with 3 repetitions each, ${ct.run} controls and ${sm.run} sampled controls with 1 repetition each.</li>
 <li>Exploratory. Registered on 2026-11-15 (UTC), after the v0.1.3 results were known and before the first rerun. It changes no class, score or published cell.</li>
+<li>Order: the plan was committed in the private development repository on 2026-11-15 at 05:15 UTC (commit cc3115bf7672d88b5bc269cdc108642f3b73e8db). The test repetition ran at about 06:18 UTC. The first registered run started at 06:31 UTC. The public commit came with the results, so public history cannot show this order.</li>
 <li>Departures: ${sm.run} of ${sm.cells} sampled controls ran, task by task, so the sample covers C7, D1, D15, D21, L14 and L2 in full, L7 in part, and L8, L9, R2, R8 and R9 not at all. Arm B also ran as a separate run on the 4 sampled L2 cells, because L2 has the lock injector. The plan named only L1, L5 and L6. One test repetition ran before the registered runs. It is not counted.</li>
 </ul>
 <h2 id="sources">Data and code</h2>

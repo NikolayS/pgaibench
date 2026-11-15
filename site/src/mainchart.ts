@@ -26,7 +26,7 @@ export function chartRows(p: Pooled): CRow[] {
   const row = (id: string, done: number, dangerous: number, iv: { doneLo: number; doneHi: number } | null, ranked: boolean): CRow =>
     ({ id, name: `${baseName(id)}${pathWord(id)}`, effort: effortGroup(effortOf(id)), family: familyOf(id), done, dangerous, lo: iv?.doneLo ?? null, hi: iv?.doneHi ?? null, ranked });
   const seen = new Set(p.rows.map(r => r.id));
-  return [...p.rows.filter(r => r.included).map(r => row(r.id, r.done, r.dangerous, ci(r), r.place != null)),
+  return [...p.rows.map(r => row(r.id, r.done, r.dangerous, ci(r), r.place != null)),
     ...plottedRows(provisionalRows(p)).filter(x => !seen.has(x.id)).map(x => row(x.id, x.done, x.dangerous, ci(x as never), false))];
 }
 
@@ -244,15 +244,18 @@ export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks
   for (const p of [...zero, ...off]) at.set(p, { cx: X(p.d), cy: Y(p.done) });
   // joins between the levels of one model
   const joinBoxes: Box[] = [];
-  const pairs: { name: string; pts: Pt[] }[] = [];
+  const pairs: { name: string; pts: Pt[] }[] = [], mixed = new Set<Pt>();
   for (const [name, ps] of byName) if (ps.length > 1) {
     const s = [...ps].sort((a, b) => EFFORT_RANK.indexOf(a.rows[0]!.effort) - EFFORT_RANK.indexOf(b.rows[0]!.effort));
     for (let j = 1; j < s.length; j++) {
-      const a = at.get(s[j - 1]!)!, b = at.get(s[j]!)!, jb = { x0: Math.min(a.cx, b.cx) - 1.5, y0: Math.min(a.cy, b.cy) - 1.5, x1: Math.max(a.cx, b.cx) + 1.5, y1: Math.max(a.cy, b.cy) + 1.5 };
-      joinBoxes.push(jb); out.push(`<g data-jbox="${bx(jb)}"/>`);
+      const a = at.get(s[j - 1]!)!, b = at.get(s[j]!)!;
+      // labels keep off the join line itself: small boxes along the segment (a box around a long diagonal join would block its whole rectangle)
+      const L = Math.hypot(b.cx - a.cx, b.cy - a.cy), k = Math.max(1, Math.ceil(L / 4));
+      for (let t = 0; t <= k; t++) { const x = a.cx + ((b.cx - a.cx) * t) / k, y = a.cy + ((b.cy - a.cy) * t) / k; const q = { x0: x - 2, y0: y - 2, x1: x + 2, y1: y + 2 }; joinBoxes.push(q); out.push(`<g data-jbox="${bx(q)}"/>`); }
     }
     out.push(`<polyline class="mc-join mc-v-${SHAPE[s[0]!.family] ? s[0]!.family : 'other'}" points="${s.map(p => { const c = at.get(p)!; return `${n1(c.cx)},${n1(c.cy)}`; }).join(' ')}"/>`);
-    if (s.every(p => off.includes(p))) pairs.push({ name, pts: s });
+    // a pair with a placed and a no-place row: each row gets its own label with its effort word (italic marks the no-place one)
+    if (s.every(p => off.includes(p)) && s.every(p => p.ranked === s[0]!.ranked)) pairs.push({ name, pts: s }); else if (s.some(p => p.ranked !== s[0]!.ranked)) for (const p of s) mixed.add(p);
   }
   const iv = (x: CRow) => (x.lo != null && x.hi != null ? `${num(x.lo)} to ${num(x.hi)}` : '');
   const per = (d: number) => `${num(d)} dangerous ${num(d) === '1' ? 'change' : 'changes'} per run`;
@@ -306,7 +309,7 @@ export function mainChartSvg(rows: CRow[], o: { id: string; width: number; tasks
     L.push({ cls: `mc-lab${pr.pts.some(p => p.ranked) ? '' : ' mc-noplace'}`, name: pr.name, word: '', item: { cx: a.cx, cy: a.cy, r: r + 1, own: pr.pts.map(p => at.get(p)!), w1: tw(pr.name, fs), w2: null } });
   }
   for (const p of off.filter(q => !inPair.has(q))) {
-    const word = split(p) ? p.eff : phone ? '' : !(p.fill === 'half' || HM.has(p.eff)) ? p.eff : '';
+    const word = split(p) || mixed.has(p) ? p.eff : phone ? '' : !(p.fill === 'half' || HM.has(p.eff)) ? p.eff : '';
     const c = at.get(p)!;
     L.push({ cls: `mc-lab${p.ranked ? '' : ' mc-noplace'}`, name: p.name, word, item: { cx: c.cx, cy: c.cy, r: r + 1, own: [c], w1: tw(word ? `${p.name} ${word}` : p.name, fs), w2: word ? [tw(p.name, fs), tw(word, fs)] : null } });
   }

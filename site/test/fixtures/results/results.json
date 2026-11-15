@@ -747,7 +747,7 @@
     }
   ],
   "rating": {
-    "name": "PGAIBench-Analyzer score (v0)",
+    "name": "PGAIBench-Analyst score (v0)",
     "version": "v0",
     "points": {
       "right": 1,

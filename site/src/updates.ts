@@ -11,7 +11,7 @@ export const snapshotFile = (at: string) => `data/snapshots/${at.replace(/:/g, '
 /** Changes to the method or the score, by UTC date; shown with the first refresh on or after it. */
 export const METHOD_CHANGES: { at: string; text: string }[] = [
   { at: '2026-11-11T03:30:00Z', text: 'outcome profile chart added' },
-  { at: '2026-11-11T04:00:00Z', text: 'rating, PGAIBench-Analyzer score (v0), added after the freeze' },
+  { at: '2026-11-11T04:00:00Z', text: 'rating, PGAIBench-Analyst score (v0), added after the freeze' },
   { at: '2026-11-11T04:30:00Z', text: 'rating: one list with places, two scores, public tasks only, escalation +0.25; the gemini-4-argon B5 cell is not requested, not unscorable' },
   { at: '2026-11-11T05:30:00Z', text: 'recorded cells on the rerun list count with a flag; pending review counts 0 points' },
   { at: '2026-11-11T09:00:00Z', text: 'pending-review cells read by two readers; classes right with a reservation and correct stop added' },
@@ -46,5 +46,5 @@ export function updatesPage(c: Ctx, snaps: Snapshot[], p: Provisional): string {
   const body = `<p><a href="${RELEASE_URL}">${RELEASE_TAG} tagged</a> on ${RELEASE.date}; the full list of changes is in the changelog.</p>
 <p>Each refresh of the results, newest first, with a dated copy of its data (<code>data/provisional.json</code> at that time). A change to the method or the score is named on the first refresh that includes it.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Refreshes"><table><thead><tr><th scope="col">data as of (UTC)</th><th scope="col" class="num" title="lab cells finished (not a quality measure)">lab cells finished</th><th scope="col" class="num" title="lab cells counted (not a quality measure)">lab cells counted</th><th scope="col">what changed</th><th scope="col">release</th><th scope="col">data</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  return page(c, { path: 'updates/', title: 'Results updates', lede: `Every refresh of the PGAIBench-Analyzer results.`, body });
+  return page(c, { path: 'updates/', title: 'Results updates', lede: `Every refresh of the PGAIBench-Analyst results.`, body });
 }

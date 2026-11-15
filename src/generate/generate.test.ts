@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFile
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadScenarios } from "../scenarios/schema";
-import { acquireLock, generationArm, parseGenerateArgs, resumeAll, runGenerate, worstCellUsd } from "./generate";
+import { acquireLock, generationArm, parseGenerateArgs, resumeAll, runGenerate, worstCellUsd, withMaxTokens } from "./generate";
 import { OPENROUTER_MAX_RETRIES } from "../llm/openrouter";
 import type { LLMCall } from "../llm/analyst";
 
@@ -768,4 +768,39 @@ test("generation.json records codex_catalog_base for a Codex cell", async () => 
     llmFor: (m, sink) => llmForModel(findRepoModel(m)!, sink, { env: cx.env, ...quick }) });
   const g = JSON.parse(readFileSync(join(out, "generate", "L1-cx_openai_gpt-6-luna-v2-s1", "generation.json"), "utf8"));
   expect(g).toHaveProperty("codex_catalog_base", cfg.codex_catalog_base ?? null);
+});
+
+test("args: --request-timeout-min sets the OpenRouter request limit; absent means the default", () => {
+  const base = ["--models", "all", "--scenarios", "all", "--samples", "1", "--out", "r"];
+  expect(parseGenerateArgs(base).requestTimeoutMs).toBeUndefined();
+  expect(parseGenerateArgs([...base, "--request-timeout-min", "25"]).requestTimeoutMs).toBe(1_500_000);
+  expect(() => parseGenerateArgs([...base, "--request-timeout-min", "0"])).toThrow(/request-timeout-min/);
+});
+
+test("a raised request limit is written into generation.json; the default writes nothing new", async () => {
+  const { out, ctx } = setup();
+  await runGenerate({ models: ["x/m"], scenarios: scenarios.slice(0, 1), samples: 1, out, contextDir: ctx, concurrency: 1, prompt: "v2", requestTimeoutMs: 1_500_000, llmFor: () => llmReturning((t) => fence(goodCR(t)), 0.01) });
+  const g = JSON.parse(readFileSync(join(out, "generate", "L1-or_x_m-v2-s1", "generation.json"), "utf8"));
+  expect(g.request_timeout_ms).toBe(1_500_000);
+  const b = setup();
+  await runGenerate({ models: ["x/m"], scenarios: scenarios.slice(0, 1), samples: 1, out: b.out, contextDir: b.ctx, concurrency: 1, prompt: "v2", llmFor: () => llmReturning((t) => fence(goodCR(t)), 0.01) });
+  expect("request_timeout_ms" in JSON.parse(readFileSync(join(b.out, "generate", "L1-or_x_m-v2-s1", "generation.json"), "utf8"))).toBe(false);
+});
+
+test("args: --max-tokens sets the OpenRouter output cap; absent means the models.json value", () => {
+  const base = ["--models", "all", "--scenarios", "all", "--samples", "1", "--out", "r"];
+  expect(parseGenerateArgs(base).maxTokens).toBeUndefined();
+  expect(parseGenerateArgs([...base, "--max-tokens", "96000"]).maxTokens).toBe(96000);
+  expect(() => parseGenerateArgs([...base, "--max-tokens", "0"])).toThrow(/max-tokens/);
+  expect(() => parseGenerateArgs([...base, "--max-tokens", "1.5"])).toThrow(/max-tokens/);
+});
+
+test("withMaxTokens overrides only OpenRouter configs and leaves the input unchanged", () => {
+  const cfg = { id: "m", vendor: "V", tier: "mid" as const, open_weights: false, provider: null, reasoning: null, price_in: 0, price_out: 1 };
+  expect(withMaxTokens(cfg as never, undefined)).toBe(cfg as never);
+  expect(withMaxTokens(cfg as never, 96000)!.max_tokens).toBe(96000);
+  expect("max_tokens" in cfg).toBe(false);
+  const cli = { ...cfg, access: "codex-cli" };
+  expect(withMaxTokens(cli as never, 96000)).toBe(cli as never);
+  expect(withMaxTokens(undefined, 96000)).toBeUndefined();
 });

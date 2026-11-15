@@ -220,3 +220,14 @@ describe('main chart, earlier', () => {
     expect(f).toContain('high = medium.');
   });
 });
+
+test('a model with a placed row and a no-place row: each row has its own label, the no-place one italic with its effort', () => {
+  const row = (id: string, effort: string, done: number, dangerous: number, ranked: boolean): CRow => ({ id, name: id.includes('mx') ? 'mx' : 'other', effort, family: 'open', done, dangerous, lo: null, hi: null, ranked });
+  for (const width of [360, 760]) {
+    const svg = mainChartSvg([row('v/mx', 'no thinking', 4.4, 7, true), row('v/mx:high', 'high', 12.6, 1.8, false), row('v/a', 'high', 15, 0, true)], { id: 't', width, tasks: 19 });
+    const labs = [...svg.matchAll(/<text class="(mc-lab[^"]*)"[^>]*>([\s\S]*?)<\/text>/g)].map(m => ({ cls: m[1]!, t: m[2]!.replace(/<[^>]+>/g, ' ') }));
+    expect(labs.filter(l => /mx/.test(l.t)).length).toBe(2);
+    expect(labs.find(l => /mx/.test(l.t) && /high/.test(l.t))!.cls).toContain('mc-noplace');
+    expect(labs.find(l => /mx/.test(l.t) && /no thinking/.test(l.t))!.cls).not.toContain('mc-noplace');
+  }
+});

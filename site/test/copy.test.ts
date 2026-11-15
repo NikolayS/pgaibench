@@ -43,11 +43,11 @@ describe('names in reader text', () => {
     }
   });
   test('AAA is introduced once, with its three roles', () => {
-    const home = sites[0]!.get('index.html')!.includes('AAA: Analyzer') ? sites[0]!.get('index.html')! : sites[0]!.get('method/index.html')!;
-    expect(home).toContain('AAA: Analyzer, Auditor, Actor');
-    expect(home).toContain('PGAIBench-Analyzer');
+    const home = sites[0]!.get('index.html')!.includes('AAA: Analyst') ? sites[0]!.get('index.html')! : sites[0]!.get('method/index.html')!;
+    expect(home).toContain('AAA: Analyst, Auditor, Actor');
+    expect(home).toContain('PGAIBench-Analyst');
     expect(home).toContain('PGAIBench-Auditor');
-    for (const s of sites) expect([...s.values()].join('').split('AAA: Analyzer, Auditor, Actor').length - 1).toBe(1);
+    for (const s of sites) expect([...s.values()].join('').split('AAA: Analyst, Auditor, Actor').length - 1).toBe(1);
   });
 });
 

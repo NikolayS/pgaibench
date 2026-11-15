@@ -1,4 +1,4 @@
-// Rating chart: "PGAIBench-Analyzer score (v0)". One list of all model
+// Rating chart: "PGAIBench-Analyst score (v0)". One list of all model
 // configurations, ordered by the score with unknown tasks counted as 0
 // points; places only for configurations with enough public tasks scored.
 // Exploratory, added after the freeze. The numbers come from results.json
@@ -6,7 +6,7 @@
 import { esc, kvList } from './html';
 import { chartFigure, chartName, shortName } from './svg';
 import { labelOf, type Results } from './results';
-import { excludedWhy, fmtScore, isTwoLevel, placeRange, runsOf, type Pooled } from './pooled';
+import { noPlaceWhy, fmtScore, isTwoLevel, placeRange, runsOf, type Pooled } from './pooled';
 import { runsWord } from './statements';
 const RW = (p?: { runs: number } | null) => { const w = runsWord(p?.runs ?? 3); return w[0]!.toUpperCase() + w.slice(1); };
 
@@ -22,7 +22,7 @@ export function withPooledRating(res: Results, p: Pooled): Results {
   const r = rating(res);
   if (!r) return res;
   const by = new Map(r.rows.map(x => [x.model_id, x]));
-  const rows: RatingRow[] = p.rows.map(x => { const lv = /:([a-z]+)$/.exec(x.id)?.[1], b = by.get(x.id) ?? by.get(x.id.replace(/:[a-z]+$/, '')), o = b ? { ...b, ...(lv ? { effort: lv } : {}) } : x.id.endsWith('@agy') ? { track: 'agy', effort: 'medium', scored: 0, tasks: 0, harmful: 0, few: false, sensitivity: [], score: null, lo: null, hi: null } : undefined; return { ...(o ?? { track: '', effort: null, scored: 0, tasks: 0, harmful: 0, few: false, sensitivity: [], score: null, lo: null, hi: null }), model_id: x.id, score0: x.score, lo0: x.twoLevel?.lo ?? x.lo ?? x.score, hi0: x.twoLevel?.hi ?? x.hi ?? x.score, place: x.place, placeLo: x.twoLevel?.placeLo ?? x.placeLo, placeHi: x.twoLevel?.placeHi ?? x.placeHi, ...(x.twoLevel ? { range: true } : {}), heldout: undefined, ...(x.included ? {} : { outWhy: excludedWhy(x.missing) }) } as RatingRow; });
+  const rows: RatingRow[] = p.rows.map(x => { const lv = /:([a-z]+)$/.exec(x.id)?.[1], b = by.get(x.id) ?? by.get(x.id.replace(/:[a-z]+$/, '')), o = b ? { ...b, ...(lv ? { effort: lv } : {}) } : x.id.endsWith('@agy') ? { track: 'agy', effort: 'medium', scored: 0, tasks: 0, harmful: 0, few: false, sensitivity: [], score: null, lo: null, hi: null } : undefined; return { ...(o ?? { track: '', effort: null, scored: 0, tasks: 0, harmful: 0, few: false, sensitivity: [], score: null, lo: null, hi: null }), model_id: x.id, score0: x.score, lo0: x.twoLevel?.lo ?? x.lo ?? x.score, hi0: x.twoLevel?.hi ?? x.hi ?? x.score, place: x.place, placeLo: x.twoLevel?.placeLo ?? x.placeLo, placeHi: x.twoLevel?.placeHi ?? x.placeHi, ...(x.twoLevel ? { range: true } : {}), heldout: undefined, ...(x.included ? {} : { outWhy: noPlaceWhy(x.missing, p.publicIds.length + x.heldout.tasks) }) } as RatingRow; });
   // Weight sensitivity on the three-run averages: per task the mean points over the runs under each weight, places among included rows.
   const inc = p.rows.filter(x => x.included);
   const sens = r.sensitivity.map(w => {
@@ -116,7 +116,7 @@ export function ratingChart(res: Results, o: { provisional: boolean; table: bool
   const short = o.table ? full : cols.filter(h => ['place', 'model', 'score', 'interval'].includes(h[0]));
   const td = (k: string, v: string) => { const c = cols.find(x => x[0] === k)!; return `<td data-label="${esc(c[1])}" class="${k === 'path' ? '' : 'num'}">${esc(v)}</td>`; };
   const trs = rows.map(x => {
-    const c: Record<string, string> = { place: x.outWhy ? `excluded: ${x.outWhy}` : x.place === null ? 'not placed' : x.range ? placeRange(x.placeLo!, x.placeHi!) : `${x.place} (${pr(x)})`, path: pathTag(x.track),
+    const c: Record<string, string> = { place: x.outWhy ? `no place: ${x.outWhy}` : x.place === null ? 'not placed' : x.range ? placeRange(x.placeLo!, x.placeHi!) : `${x.place} (${pr(x)})`, path: pathTag(x.track),
       score: F(x.score0), interval: CI(x), results: `${withRes(x)} of ${N}`, read: String((x as Rw).read ?? 0), pending: String(pend(x)), harmful: String(x.harmful) };
     return `<tr${x.outWhy ? ' class="excluded"' : ''}>${short.map(([k]) => (k === 'model' ? `<th scope="row">${esc(labelOf(x.model_id))}</th>` : td(k, c[k]!))).join('')}</tr>`;
   }).join('') + `<tr class="baseline"><th scope="row" colspan="${short.length}">baselines (no model)</th></tr>` + r.baselines.map(b => {
@@ -127,7 +127,7 @@ export function ratingChart(res: Results, o: { provisional: boolean; table: bool
   const fig = chartFigure({
     id: o.id, title, aria,
     desc: `Horizontal bars, one per configuration ordered by place: the score from 0 (linear, 0 to 100), a thin line with caps for the 95 percent interval, the score in bold at the bar end. Values below 0 are clipped at 0 with a small mark. Baselines with no model are outlined below.`,
-    rows: rows.map(x => ({ label: x.outWhy ? `${chartName(x.model_id)} (excl.)` : chartName(x.model_id), value: x.score0, lo: x.lo0, hi: x.hi0 })),
+    rows: rows.map(x => ({ label: x.outWhy ? `${chartName(x.model_id)} (no place)` : chartName(x.model_id), value: x.score0, lo: x.lo0, hi: x.hi0 })),
     baselines: drawnB.map(b => ({ label: BASE_SHORT[b.id] ?? b.label, value: b.score0, lo: b.lo0, hi: b.hi0 })),
     notes: textB.map(b => `trapped: ${F(b.score0)}`),
     ...(avg && !r.pooled?.whole ? { decimals: 1 as const } : {}),
@@ -146,7 +146,7 @@ ${kvList(kv.map(([k, v]) => [esc(k), esc(v)]))}
   const notes = `<p>${esc(avg ? NOISE_NOTE_AVG : NOISE_NOTE)} The trapped reference scores ${F(textB[0]?.score0 ?? -50)}, below the drawn range.</p>${legend}
 <p>${esc(CONFIG_NOTE)} ${esc(PATHS_NOTE)}</p><p>${r.pooled?.whole ? `Place range: the 2.5 and 97.5 percentiles of a configuration's place over ${r.resamples} resamples of the public tasks and of the runs within each task. A wide range means the place is not firm.` : `Place range: the 2.5 and 97.5 percentiles of a configuration's place over ${r.resamples} resamples of the public tasks, drawn the same for all configurations; a wide range means the place is not firm.`}</p><p>${esc(OVERLAP_NOTE)}</p><p>${esc(BASELINE_NOTE)}</p>`;
   if (o.split) {
-    const compact = `<div class="table-scroll" tabindex="0" role="region" aria-label="Combined score"><table class="rating compact" data-chart-for="${o.id}"><thead><tr><th scope="col" class="num" title="place by score (higher is better)">place</th><th scope="col">configuration</th><th scope="col" class="num" title="score (higher is better)">score</th><th scope="col" class="num" title="95 percent bootstrap interval">interval</th></tr></thead><tbody>${rows.map(x => `<tr${x.outWhy ? ' class="excluded"' : ''}><td class="num">${x.outWhy ? 'excl.' : x.range ? placeRange(x.placeLo!, x.placeHi!) : x.place ?? '--'}</td><th scope="row">${esc(shortName(x.model_id))}</th><td class="num">${F(x.score0)}</td><td class="num">${esc(`${fmt(x.lo0)} to ${fmt(x.hi0)}`)}</td></tr>`).join('')}</tbody></table></div>`;
+    const compact = `<div class="table-scroll" tabindex="0" role="region" aria-label="Combined score"><table class="rating compact" data-chart-for="${o.id}"><thead><tr><th scope="col" class="num" title="place by score (higher is better)">place</th><th scope="col">configuration</th><th scope="col" class="num" title="score (higher is better)">score</th><th scope="col" class="num" title="95 percent bootstrap interval">interval</th></tr></thead><tbody>${rows.map(x => `<tr${x.outWhy ? ' class="excluded"' : ''}><td class="num">${x.outWhy ? 'no place' : x.range ? placeRange(x.placeLo!, x.placeHi!) : x.place ?? '--'}</td><th scope="row">${esc(shortName(x.model_id))}</th><td class="num">${F(x.score0)}</td><td class="num">${esc(`${fmt(x.lo0)} to ${fmt(x.hi0)}`)}</td></tr>`).join('')}</tbody></table></div>`;
     const top = `<section class="rating" id="${o.id}-block" aria-labelledby="${o.id}-h"><h2 id="${o.id}-h">Combined score (secondary view)</h2>${fig}${compact}<p class="meta">${esc(NEGATIVE_NOTE)}</p><p>${esc(EXPLORATORY_NOTE)}</p></section>`;
     const details = `<section class="rating-details" aria-labelledby="${o.id}-d"><h2 id="${o.id}-d">Combined score: details and notes</h2>${table}${notes}${def}${sens}${held}</section>`;
     return { top, details };

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { callOpenRouter, loadModels, modelConfigSchema, modelSlug, pinMatches, requiredAccess, vendorOf, type ModelConfig } from "./openrouter";
+import { callOpenRouter, loadModels, modelConfigSchema, modelSlug, pinMatches, requiredAccess, routerModelId, vendorOf, type ModelConfig } from "./openrouter";
 import { analystCall, parseAnalystBackend } from "./analyst";
 
 // Local fake OpenRouter; tests never call the network.
@@ -188,6 +188,17 @@ describe("callOpenRouter", () => {
     expect(e.usd).toBeCloseTo(0.02);
   });
 
+  test("effort-level row through the router: the base id goes on the wire, the reasoning setting is sent", async () => {
+    handler = () => ok("x");
+    const n = seen.length;
+    const cfg: ModelConfig = { ...pinned, id: "deepseek/deepseek-v4-pro-0813:high", reasoning: { effort: "high" }, access: "openrouter" } as ModelConfig;
+    await callOpenRouter({ ...req, model: cfg.id }, { ...base, config: cfg });
+    expect(seen[n]!.body.model).toBe("deepseek/deepseek-v4-pro-0813");
+    expect(seen[n]!.body.reasoning).toEqual({ effort: "high" });
+    expect(routerModelId("a/b:high")).toBe("a/b");
+    expect(routerModelId("a/b:free")).toBe("a/b:free");
+    expect(routerModelId("a/b")).toBe("a/b");
+  });
   test("missing key throws before any request", async () => {
     await expect(callOpenRouter(req, { baseUrl, apiKey: "" })).rejects.toThrow(/OPENROUTER_API_KEY/);
   });
@@ -260,11 +271,28 @@ describe("access paths (subscription rule)", () => {
     expect(() => loadModels(write([{ ...cc, effort: undefined }]))).toThrow(/effort/);
     expect(() => loadModels(write([{ ...cc, effort: "high" }]))).toThrow(/default_effort/);
   });
+  test("a router effort-level id needs reasoning.effort equal to its level", () => {
+    const lv = { ...or, id: "x-ai/grok-4.7:high" };
+    expect(() => loadModels(write([lv]))).toThrow(/reasoning\.effort/);
+    expect(() => loadModels(write([{ ...lv, reasoning: { effort: "low" } }]))).toThrow(/reasoning\.effort/);
+    expect(loadModels(write([{ ...lv, reasoning: { effort: "high" } }]))[0]!.reasoning).toEqual({ effort: "high" });
+  });
+  test("repo models.json: the router row of deepseek-v4-pro with thinking on sits next to the row without", () => {
+    const ms = loadModels(), t = ms.find((m) => m.id === "deepseek/deepseek-v4-pro-0813:high")!;
+    expect(t).toMatchObject({ access: "openrouter", reasoning: { effort: "high" }, provider: { order: ["deepinfra/fp8"], allow_fallbacks: false }, quantization: "fp8" });
+    expect(ms.find((m) => m.id === "deepseek/deepseek-v4-pro-0813")!.reasoning).toBeNull();
+  });
   test("repo models.json: effort-level rows (as run in the lab) copy their base row except id, effort and default_effort", () => {
     const ms = loadModels(), lv = ms.filter((m) => m.id.includes(":"));
     for (const m of lv) {
       const [b, e] = m.id.split(":") as [string, string], base = ms.find((x) => x.id === b)!;
       expect(base, m.id).toBeDefined();
+      if (m.access === "openrouter") { // router rows carry the level in reasoning.effort (effort is CLI-only)
+        expect(m.reasoning).toEqual({ effort: e as any });
+        const { id: _i, reasoning: _r, ...rest } = m as any, { id: _bi, reasoning: _br, ...brest } = base as any;
+        expect(rest, m.id).toEqual(brest);
+        continue;
+      }
       expect(m.effort).toBe(e);
       const { id: _i, effort: _e, default_effort: _d, ...rest } = m as any, { id: _bi, effort: _be, default_effort: _bd, ...brest } = base as any;
       expect(rest, m.id).toEqual(brest);

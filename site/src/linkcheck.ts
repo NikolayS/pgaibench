@@ -20,6 +20,8 @@ export function resolveRel(dir: string, path: string): string {
   return out.join('/');
 }
 
+/** Pages that another build publishes into the same site (gate rerun addendum): a link to them is allowed before they exist here. */
+export const LATER_PAGES: string[] = [];
 export function checkLinks(files: Map<string, string>, base: string): string[] {
   const errors: string[] = [];
   for (const [file, doc] of files) {
@@ -40,7 +42,9 @@ export function checkLinks(files: Map<string, string>, base: string): string[] {
       const [path, anchor] = url.split('#') as [string, string | undefined];
       let dest = file;
       if (path !== '') {
-        const t = target(files, resolveRel(dir, path));
+        const rp = resolveRel(dir, path);
+        if (LATER_PAGES.some(x => rp === x || rp === `${x}index.html`)) continue;
+        const t = target(files, rp);
         if (!t) { errors.push(`${where}: missing target`); continue; }
         dest = t;
       }

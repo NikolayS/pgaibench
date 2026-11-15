@@ -25,3 +25,18 @@ test("reasoning tokens: median per row over its answers, zero count, repair turn
     expect(r.repairs).toEqual({ answers: 7, repaired: 1 });
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
+
+test("output limit: answers that hit the first output limit (requested again at a higher limit, or recorded with no answer) and cells with no answer, per row", () => {
+  const d = mkdtempSync(join(tmpdir(), "rsn-"));
+  try {
+    const a = join(d, "a");
+    mk(a, "T1-m1", { scenario: "T1", model_requested: "v/m1", reasoning_tokens: 100, max_tokens: 32000, status: "cr" });
+    mk(a, "T2-m1", { scenario: "T2", model_requested: "v/m1", reasoning_tokens: 300, max_tokens: 96000, status: "cr" });
+    mk(a, "T3-m1", { scenario: "T3", model_requested: "v/m1", reasoning_tokens: 900, max_tokens: 96000, status: "truncated" });
+    mk(a, "T4-m1", { scenario: "T4", model_requested: "v/m1", reasoning_tokens: 32000, max_tokens: 32000, status: "truncated" });
+    mk(a, "T1-m2", { scenario: "T1", model_requested: "v/m2", reasoning_tokens: 1, max_tokens: 32000, status: "cr" });
+    const r = reasoningSummary([{ arm: "", generation: [[a]] }], new Set(["v/m1", "v/m2"]), new Set(["T1", "T2", "T3", "T4"]));
+    expect(r.limits).toEqual({ "v/m1": { answers: 4, firstLimit: 3, noAnswer: 2 } });
+    expect(r.rows["v/m1"]).toEqual({ median: 600, answers: 4, zero: 0 });
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});

@@ -40,6 +40,11 @@ export function forbiddenOnOpenRouter(id: string, vendorField?: string): string 
   return undefined;
 }
 
+/** Effort-level rows through the router carry the level as an id suffix
+ *  (a/b:high); the router gets the base id, the level goes in reasoning. */
+const LEVEL_SUFFIX = /:(minimal|low|medium|high|xhigh|max)$/;
+export const routerModelId = (id: string) => id.replace(LEVEL_SUFFIX, "");
+
 export const modelConfigSchema = z.object({
   id: z.string().min(1),
   vendor: z.string().min(1),
@@ -77,6 +82,8 @@ export const modelConfigSchema = z.object({
     else if (m.default_effort && m.effort !== m.default_effort) ctx.addIssue({ code: "custom", message: `${m.id}: effort ${m.effort} differs from default_effort ${m.default_effort}` });
   }
   if (m.codex_catalog_base && m.access !== "codex-cli") ctx.addIssue({ code: "custom", message: `${m.id}: codex_catalog_base is for codex-cli only` });
+  const lvl = m.access === "openrouter" ? LEVEL_SUFFIX.exec(m.id)?.[1] : undefined;
+  if (lvl && m.reasoning?.effort !== lvl) ctx.addIssue({ code: "custom", message: `${m.id}: a router effort-level id needs reasoning.effort ${lvl}` });
   if (m.access === "openrouter" && (m.cli_model || m.effort)) ctx.addIssue({ code: "custom", message: `${m.id}: cli_model and effort are for CLI access only` });
 });
 export type ModelConfig = z.infer<typeof modelConfigSchema>;
@@ -159,7 +166,7 @@ export async function callOpenRouter(req: { model: string; instructions?: string
     ...req.input.map((m) => ({ role: m.role === "developer" ? "system" : m.role, content: m.content })),
   ];
   const maxTokens = opts.config?.max_tokens ?? MAX_TOKENS;
-  const body: Record<string, unknown> = { model: req.model, messages, max_tokens: maxTokens, usage: { include: true } };
+  const body: Record<string, unknown> = { model: routerModelId(req.model), messages, max_tokens: maxTokens, usage: { include: true } };
   if (opts.config?.provider) body.provider = { ...opts.config.provider, ...(opts.config.quantization ? { quantizations: [opts.config.quantization] } : {}) };
   if (opts.config?.reasoning) body.reasoning = opts.config.reasoning;
   const promptTok = estimateTokens(JSON.stringify(messages).length);

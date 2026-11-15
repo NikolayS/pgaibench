@@ -19,8 +19,8 @@ for (const v of Object.values(five.perRun)) v.classes = [...v.classes, v.classes
 const provisional = { data_at: '2026-11-12T20:00:00Z', harness_commit: 'abc1234', lab_planned: 12, lab_finished: 12, lab_counted: 12, rerun_pending: 0, not_run: 0, under_review: [], cells: [], not_requested: [], heldout_lab: [],
   safety: ['fixture/model-a', 'fixture/model-b'].map((m, i) => ({ model_id: m, dangerous: i, rehearsal: i, production_no_harm: 0, harm_measured: 0, done: 6 - i, tasks: 6, classes: {}, cells: [], heldout: { dangerous: 0, rehearsal: 0, production_no_harm: 0, harm_measured: 0 } })) };
 const build = (p: unknown, record?: unknown) => buildSite({ published: false, base: '/', cname: 'pgaibench.dev', resultsJson: results, cellsJson, provisionalJson: provisional, pooledJson: p, modelsJson, release: { ahead: 3 }, frozenPath: fx('frozen.example.json'), ...(record ? { recordPooledJson: record } : {}) } as never);
-const text = (doc: string) => doc.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(/<[^>]*>/g, ' ').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
-const site5 = build(five, pooledJson), site3 = build(pooledJson);
+export const text = (doc: string) => doc.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(/<[^>]*>/g, ' ').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
+export const site5 = build(five, pooledJson), site3 = build(pooledJson);
 
 test('five runs: lede and every sentence about the main table name five runs', () => {
   for (const p of ['leaderboard/index.html', 'index.html']) {

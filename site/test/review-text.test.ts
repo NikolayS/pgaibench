@@ -148,8 +148,8 @@ test('footer and links: site build commit labelled truthfully; release links pin
   expect(method).toContain(`/blob/${RELEASE_TAG}/docs/prereg-v0.1.md`);
 });
 
-test('known issues: the excluded configuration timed out, it did not refuse', () => {
-  expect(text(lb)).toMatch(/timeouts at our 10-minute request limit, not refusals/);
+test('known issues: the row with no place hit our request limits, it did not refuse', () => {
+  expect(text(lb)).toMatch(/its missing answers hit our output limit on both requests .* not refusals/);
 });
 
 test('disclosure of who built the benchmark is on the home and method pages too', () => {
