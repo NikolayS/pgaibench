@@ -1,3 +1,4 @@
+import { STOPS_DATA_PATH } from './stops';
 import { RELEASE_LIST } from './release';
 import { sameResults } from './pooled';
 // Static site generator. PUBLISHED=false (default) never reads a results file.
@@ -163,6 +164,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
     // The current refresh as a dated snapshot; earlier snapshots are copied in by the publish step.
     files.set(snapshotFile(prov.data_at), files.get('data/provisional.json')!);
   }
+  if (o.published || prov) files.set(STOPS_DATA_PATH, readFileSync(join(import.meta.dir, '..', 'data', 'rehearsal-stops-v0.1.3.json'), 'utf8')); // rehearsal-stop causes, byte for byte
   if (o.published || prov) files.set(ADDENDUM_DATA_PATH, readFileSync(join(import.meta.dir, '..', 'data', 'gate-rerun-v0.1.3.json'), 'utf8')); // addendum to v0.1.3, byte for byte
   for (const c of cells ?? []) files.set(`data/cells/${cellSlug(idName(c.model_id))}/${c.scenario}/${c.sample}-${c.scored_by}.json`, `${JSON.stringify(c, null, 2)}\n`);
   files.set('assets/style.css', readFileSync(join(import.meta.dir, '..', 'assets', 'style.css'), 'utf8'));

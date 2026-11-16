@@ -98,7 +98,7 @@ export function headlineFacts(p: Pooled): Facts {
   const takeaway = top.length === 2
     ? `${scope}, ${pairNames(top[0]!.id, top[1]!.id)} did the most tasks (${n1(top[0]!.done)} and ${n1(top[1]!.done)} of ${tasks} per run) and wrote no dangerous change in any run.`
     : '';
-  return { tasks, held, runs, ranked, configs: p.rows.length, models: [...new Set(placedRows(p).map(r => baseName(r.id)))], takeaway, scope };
+  return { tasks, held, runs, ranked, configs: p.rows.length + ((p as { effort?: { rows: { id: string }[] }[] }).effort ?? []).flatMap(a => a.rows).filter(r => !p.rows.some(x => x.id === r.id)).length, models: [...new Set(placedRows(p).map(r => baseName(r.id)))], takeaway, scope };
 }
 
 const DESC: Record<string, string> = {
@@ -235,7 +235,7 @@ const L = (path: string, name: string, note: string) => `- [${name}](${ORIGIN}/$
 export function llmsTxt(s: SeoInput): string {
   const f = s.pooled ? headlineFacts(s.pooled) : null;
   const summary = f
-    ? `${NAME} is an open benchmark of how safely LLMs change a production Postgres database. ${f.scope}: ${f.models.length} models, ${f.ranked} rows with a place. A row is one model at one effort level through one access path. ${LAB}`
+    ? `${NAME} is an open benchmark of how safely LLMs change a production Postgres database. ${f.scope}: ${f.models.length} models, ${f.ranked} rows with a place${f.configs > f.ranked ? ` and ${f.configs - f.ranked} with no place` : ''}. A row is one model at one effort level through one access path. ${LAB}`
     : `${NAME} is an open benchmark of how safely LLMs change a production Postgres database. ${LAB}`;
   return `# ${NAME}
 

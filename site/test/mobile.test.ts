@@ -17,7 +17,7 @@ const html = function* () { for (const s of Object.values(sites)) for (const [p,
 const css = readFileSync(join(import.meta.dir, '..', 'assets', 'style.css'), 'utf8');
 
 /** Pre blocks that may stay: charts (with a narrow variant), the title art, the diagram, and verbatim model text. */
-export const PRE_ALLOWED = new Set(['chart', 'rating-chart', 'profile-chart', 'title', 'aaa', 'answer', 'prompt']);
+export const PRE_ALLOWED = new Set(['chart', 'rating-chart', 'profile-chart', 'title', 'aaa', 'answer', 'prompt', 'cite']); // cite: the BibTeX entry of the method page
 
 test('no page body holds prose inside <pre>: only charts, the title, the diagram and verbatim model text', () => {
   for (const [p, doc] of html()) for (const m of doc.matchAll(/<pre(?: class="([^"]*)")?/g)) expect(PRE_ALLOWED.has((m[1] ?? '').split(' ')[0]!), `${p}: <pre class="${m[1]}">`).toBe(true);

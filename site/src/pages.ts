@@ -17,6 +17,9 @@ import { fiveRunObservation, goalCounts, goalLines, notDoneBlock } from './notdo
 import { ratingChart, withPooledRating, BASELINE_NOTE } from './rating';
 import { safetyDetails, safetyRows, safetyTop, type SafetyRow, DANGER_DEF, MUST_REFUSE_NOTE, NOT_VALID_NOTE, ORDER_LINE, BASELINE_ESC_NOTE, HELDOUT_SENTENCE, limitLine } from './safety';
 import { limitLines } from './limits';
+import { STOPS, STOPS_DATA_PATH, noteRehearsalStops, noteHarms, zeroLine, robustnessLines, stopsMatch, countsLine, CITE } from './stops';
+import { gateTotals, ADDENDUM } from './addendum';
+import gateJson from '../data/gate-rerun-v0.1.3.json';
 import { EFFORT_METHOD, stopCausesLine, ACCESS_ROWS, AGY_NOTE, OR_NOTE } from './statements';
 import { panelLines, PANEL_LIMIT, placeTies, panelBase } from './panel';
 import { shortName, frozenName, recordName, effortLabel, effortOf, isLevelRow, levelBase } from './svg';
@@ -64,9 +67,15 @@ export function learned(file: string): string {
   const ps = readFileSync(join(import.meta.dir, '..', 'content', file), 'utf8').trim().split(/\n\s*\n/).map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
   return `<div class="learned" role="region" aria-labelledby="what-we-learned"><h2 id="what-we-learned">What we learned</h2>${ps.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
 }
+/** Gate rerun addendum, harmful cells: run, and stopped by arm A under the registered majority rule. */
+const gateHarm = () => { const h = gateTotals(gateJson as never).harm!; return { stopped: h.A.stopped, run: h.run }; };
+/** Results page: counts without the quantized rows and without D21 (only next to the table they were counted from). */
+const robustness = (d?: SiteData) => (d?.pooled && stopsMatch(d.pooled as never) ? `<section aria-labelledby="robustness"><h2 id="robustness">Robustness</h2><p class="meta">Dangerous changes on the 19 public tasks, rows with a place, runs 1 to 5 added up.</p><ul>${robustnessLines(STOPS).map(l => `<li>${esc(l)}</li>`).join('')}</ul></section>` : '');
+/** Method page: how to cite the current release, and where to ask. */
+const citeBlock = () => { const k = CITE(RELEASE_TAG.replace(/^v/, '')); return `<h2 id="cite">How to cite</h2>\n<p>${esc(k.text)}. Release: ${a(k.release, k.release)}.</p>\n<pre class="cite"><code>${esc(k.bibtex)}</code></pre>\n<p>Questions and corrections: ${a(k.contact, k.contact)}.</p>`; };
 /** The findings text describes the three-run table of v0.1.0: next to a table with more runs it moves to that table's page. */
 const proseFor = (c: Ctx, d: SiteData | undefined, file: string) => (RN(d) > RECORD_RUNS
-  ? `<div class="learned" role="region" aria-labelledby="what-we-learned" id="five-run-summary"><h2 id="what-we-learned">What we learned</h2>${goalCounts(d!.pooled as never) ? topicHtml(noteNotDone(goalCounts(d!.pooled as never)!), link(c, 'method/#n-not-done')) : ''}<p>Findings of the three-run table: <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p></div>`
+  ? `<div class="learned" role="region" aria-labelledby="what-we-learned" id="five-run-summary"><h2 id="what-we-learned">What we learned</h2>${goalCounts(d!.pooled as never) ? topicHtml(noteNotDone(goalCounts(d!.pooled as never)!), link(c, 'method/#n-not-done')) : ''}${stopsMatch(d!.pooled as never) ? `${topicHtml(noteRehearsalStops(STOPS), link(c, STOPS_DATA_PATH))}${topicHtml(noteHarms(STOPS, gateHarm()), link(c, ADDENDUM.path))}` : ''}<p>Findings of the three-run table: <a href="${link(c, 'releases/v0.1.0/')}">v0.1.0 (three runs)</a>.</p></div>`
   : learned(file));
 /** The ranking of record of v0.1.0 (three runs), one click from the main table when that averages more runs. */
 /** The table of record of a five-run release, from the snapshot taken at its tag (site/content). */
@@ -284,7 +293,7 @@ const shortOpt = (c: Ctx, d: SiteData | undefined) => (RN(d) > RECORD_RUNS ? { s
 /** One line above the chart (owner, 2026-11-12: little text above the chart). */
 export const TOP_ONE = (n: number) => `19 tasks. ${n} runs per model. ${NO_TOOLS_SHORT} Each answer runs in a lab under load.`;
 export const TAKEAWAY_NOTE = TAKEAWAY_OLD;
-const frontBlock = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS && takeaway(rows) ? `<p class="takeaway">${esc(takeaway(rows))}</p><p class="meta">${esc(takeawayNote(d?.pooled?.pairs ?? []))}</p>` : '');
+const frontBlock = (c: Ctx, d: SiteData | undefined, rows: SafetyRow[]) => (RN(d) > RECORD_RUNS && takeaway(rows) ? `${zeroLine(rows) ? `<p class="takeaway" id="zero-line">${esc(zeroLine(rows))}</p>` : ''}<p class="takeaway">${esc(takeaway(rows))}</p><p class="meta">${esc(takeawayNote(d?.pooled?.pairs ?? []))}</p>` : '');
 /** The release line under the chart: the state of the shown table, then each release with its frozen table. */
 const releaseLinks = (c: Ctx) => `${releaseState(c.release)} Releases: ${RELEASES.map(r => `<a href="${link(c, r.page)}">v${r.version} (${runsWord(r.runs)} runs)</a>`).join(', ')}.`;
 /** Under the chart, before the table: what we do, the example, the release line. */
@@ -298,7 +307,7 @@ function leaderboard(c: Ctx, res: Results | null, p?: Provisional | null, d?: Si
   const intro = `<p>The preregistered tables below are grouped into tracks by access path, as the preregistration fixed them; inside a track, rows go by label. Text-scored and lab-executed cells are separate tables; they are never pooled in one rate. Each value is a count over its denominator with the Wilson 95 percent interval. "Given acted" counts use the change requests the model wrote as the denominator. The baseline rows are constant policies computed from the scenario definitions. These baseline rows are scored from the text of the reference changes, also in the lab-executed tables, so the trapped reference shows no harm measured there; what the lab showed for it in the reference gate is on the <a href="${link(c, 'method/#gate')}">method page</a>. The tables of run 1 below do not apply the readings of pending-review cells, so they still show those cells as pending review; the headline and the score above do apply them.</p>`;
   const raw = `<p class="raw">raw: [<a href="${link(c, 'leaderboard/index.txt')}">index.txt</a>] plain text, same tables${res ? ` [<a href="${link(c, 'data/results.json')}">results.json</a>] all counts and intervals` : ''}</p>`;
   const pv = p && res ? `<p class="meta">Data as of ${esc(p.data_at)} (UTC). ${progressLine(p)}. ${p.lab_commit ? `Lab harness commit <code>${esc(p.lab_commit)}</code>, site build commit <code>${esc(p.harness_commit)}</code>` : `Harness commit <code>${esc(p.harness_commit)}</code>`}. The text tables hold every answer we received; the lab tables hold the finished cells only. Per cell: the <a href="${link(c, 'grid/')}">results grid</a>.</p>` : '';
-  const issues = p && res ? `${d?.pooled ? correctionsBlock() : ''}${knownIssues(c, p, d?.scenarios ?? [], d?.pooled ?? null, [fairLine(d), quantLine(d)].filter(Boolean).join(' '))}` : '';
+  const issues = p && res ? `${robustness(d)}${d?.pooled ? correctionsBlock() : ''}${knownIssues(c, p, d?.scenarios ?? [], d?.pooled ?? null, [fairLine(d), quantLine(d)].filter(Boolean).join(' '))}` : '';
   const rate = res ? ratingChart(res, { provisional: !!p, table: true, id: 'rating' }) : '';
   const prof = res && res.tracks.some(t => t.lab || p) ? profileChart(profiles(res, d?.cells ?? null, p ?? null), { id: 'profile', table: true, lede: PROFILE_LEDE(p) }) : '';
   const pooled = d?.pooled ?? null;
@@ -333,7 +342,7 @@ const kv = (xs: [string, string][], label?: string) => kvList(xs.map(([k, v]) =>
 function aboutBlocks(c: Ctx, d: SiteData): { moved: string; tail: string } {
   const res = d.results;
   const scen = d.frozen ? `${d.frozen.scenarios.length} in the set (${d.scenarios.length} public candidates)` : `${d.scenarios.length} public candidates, set not frozen`;
-  const head = kv([['data as of', res ? `${esc(res.updated_on)} (UTC)` : 'no run published'], ['scenarios', scen], ['models', res ? (d.pooled ? `${modelCounts(d.pooled).models} (${modelCounts(d.pooled).rows} rows)` : String(modelIds(res).length)) : c.pending ? `${modelCount()} listed, results pending` : '0 shown in the preview'],
+  const head = kv([['data as of', res ? `${esc(res.updated_on)} (UTC)` : 'no run published'], ['scenarios', scen], ['models', res ? (d.pooled ? countsLine(modelCounts(d.pooled)) : String(modelIds(res).length)) : c.pending ? `${modelCount()} listed, results pending` : '0 shown in the preview'],
     [res && d.models ? 'access paths' : 'tracks', res && d.models ? String(accessPaths(d)) : res ? `${res.tracks.length} by access path` : c.pending ? `${trackCount()} by access path` : 'none yet'], ['scorers', 'text and lab, never pooled'], ['license', 'Apache-2.0']]);
   const read = kv([['cell', d.pooled ? `one model, one scenario, one run; exactly one outcome; the headline averages ${RW(d)} runs` : 'one model, one scenario, one sample; exactly one outcome'], ['[ok]', 'right change, or correct refusal on a must-refuse task'],
     ['[harm]', 'harmful (measured in the lab)'], ['[stop]', 'stopped at rehearsal; never reached the lab primary'], ['[risk]', 'risky pattern, no harm measured'],
@@ -490,7 +499,7 @@ ${liveHome(d) ? `<section class="block" id="about" aria-label="About this benchm
 </ul>
 <h2 id="no-tools">No tool calls</h2>
 <p>${esc(NO_TOOLS)}</p>
-${d.pooled && stopCausesLine(d.pooled as never) ? `<p>${esc(stopCausesLine(d.pooled as never))}</p>` : ''}
+${d.pooled && stopCausesLine(d.pooled as never) ? `<p>${esc(stopCausesLine(d.pooled as never))}${stopsMatch(d.pooled as never) ? ` Every cell, with the rule: ${a(link(c, STOPS_DATA_PATH), STOPS_DATA_PATH)}.` : ''}</p>` : ''}
 <p>The context pack holds the output of these queries and a description of the database: schema, table sizes, settings and a workload summary. The model answers once. The correction after a validator error is the only second turn.</p>
 <h3 id="access-limits">Limits per access path</h3>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Limits per access path"><table class="compact"><thead><tr>${['access path', 'output cap', 'timeout', 'retries', 'repair turns'].map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${ACCESS_ROWS.map(r => `<tr><th scope="row">${esc(r[0]!)}</th>${r.slice(1).map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -531,7 +540,8 @@ ${d.pooled ? `<h3 id="reader-panel">Reader panel</h3>
 <ul>${[...panelLines(d.pooled), ...panelTieLines(d.pooled)].map(l => `<li>${esc(l)}</li>`).join('')}</ul>
 <p>${a(blob('readings/panel/reader-records-public.tsv'), 'Reader records of the public cells')}. ${a(blob('readings/two-readers/reader-records-public.tsv'), 'Reader records of the row read after the panel')} (two readers). ${a(`${blob('docs/prereg-v0.1.md')}#13-changes-after-the-freeze`, 'Registered rule')} (section 13, panel of three readers).</p>` : ''}
 ${d.models && d.pooled ? modelsTable(d.models, confIds(d), RN(d)) : ''}
-<p>The full design is in ${a(blob('docs/benchmark.md'), blob('docs/benchmark.md'))}.</p>`;
+<p>The full design is in ${a(blob('docs/benchmark.md'), blob('docs/benchmark.md'))}.</p>
+${citeBlock()}`;
   return page(c, { path: 'method/', title: 'Method', lede: 'How one model answer becomes one outcome, and how we count outcomes.', body });
 }
 
