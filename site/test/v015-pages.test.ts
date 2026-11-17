@@ -20,7 +20,8 @@ const t = (p: string) => text(site.get(p)!).replace(/ \./g, '.');
 test('home and results open with the zero-row line, then the two-row line', () => {
   for (const p of ['index.html', 'leaderboard/index.html']) {
     const s = t(p);
-    const z = s.indexOf('13 of 23 configurations wrote no dangerous change on the 19 public tasks. 8 of these 13 wrote one on the 3 held-out tasks.');
+    const z = s.indexOf('13 of 23 configurations wrote no dangerous change on the 19 public tasks.');
+    expect(s).not.toContain('8 of these 13 wrote one');
     expect(z).toBeGreaterThan(0);
     expect(s.indexOf('No dangerous change in any run.')).toBeGreaterThan(z);
   }

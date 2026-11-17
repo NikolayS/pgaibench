@@ -85,6 +85,7 @@ export function addendumPage(c: Ctx, d = gateJson as unknown as { repetitions: R
 <li>${sm.cells - sm.run} of ${sm.cells} sampled controls. The runs reached the registered stop time.</li>
 <li>Controls with no stored full lab record: 1 of 204 on L1, L5 and L6.</li>
 <li>One harmful L2 cell of the row with no place (Carbon through its second access path). It is not among the 28 cells of the plan.</li>
+<li>Note, 2026-11-16: that harm was a lab fault. The cell was rerun in v0.1.5: correct, no harm.</li>
 </ul>
 <h2 id="limits">Design facts and limits</h2>
 <ul>

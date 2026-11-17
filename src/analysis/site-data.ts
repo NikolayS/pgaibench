@@ -33,6 +33,7 @@ import type { Cell } from "../../site/src/cells";
 import { isHeldOut as siteHeldOut } from "../../site/src/heldout";
 import { pooledArms, MISSING_CLASSES, type SampleCell, type SampleRecord } from "./pooled";
 import { reasoningSummary } from "./reasoning";
+import { checkCellDir } from "./replaced-cells";
 
 /** Workload query errors on the lab primary after the change: count, and seconds from the first to the last error. */
 export function workloadErrors(dir: string): { workload_errors: number | null; workload_error_span_s: number | null } {
@@ -233,6 +234,7 @@ export function buildSiteData(o: BuildInput): { results: Results; cells: { cells
     let oc: any, fail: any;
     try { oc = maybe(join(dir, "outcome.json")); fail = maybe(join(dir, FAILED_MARKER)); } catch (e) { if (live) continue; throw e; }
     if (live && sample !== S1) continue;
+    if (oc) checkCellDir(model, s, sample, dir); // a replaced cell must carry its rerun record
     if (!fromRerun && rerunDone.has(lk(model, s))) { recordedOutcome.set(lk(model, s), oc?.outcome ?? null); continue; }
     if (fromRerun && !existsSync(join(dir, "outcome.json"))) continue;
     if (fromRerun) { rerunCount.done++; if (recordedOutcome.get(lk(model, s)) !== oc?.outcome) rerunCount.changed++; }

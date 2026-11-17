@@ -352,6 +352,8 @@ svg[data-chart] .q-dim, ol.qkey li.q-dim { opacity: 0.5; }
 .example .ex-h { font-weight: 600; margin: 0; }
 .example dl.ex { margin: 0; }
 .example code { white-space: pre-wrap; overflow-wrap: anywhere; }
+details.example > summary { display: block; }
+.example hr.ex-rule { border: 0; border-top: var(--bw) solid var(--line); margin: calc(var(--lh) / 2) 0; }
 .takeaway { font-weight: 600; max-width: 80ch; }
 .chart-read { max-width: 80ch; }
 /* short notes: topic title, bullets, one "more" link */
