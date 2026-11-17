@@ -144,7 +144,12 @@ test('supervisor relaunches a failed pgbench with the remaining window', async (
   const supervisor = source.slice(source.indexOf('supervise_pgbench() {'), source.indexOf('\nmain() {'));
   const dir = await mkdtemp(join(tmpdir(), 'pgaibench-wprod-supervisor-'));
   try {
-    const script = `set -euo pipefail\ntmp="$1"\nrun_pgbench() { echo "$6" >> "$tmp/times"; if [[ ! -e "$tmp/failed" ]]; then touch "$tmp/failed"; echo 'FATAL:  sorry, too many clients already' >&2; return 1; fi; sleep "$6"; }\n${supervisor}\nsupervise_pgbench p 5432 4 1 "$((SECONDS + 3))"`;
+    // The clock is a plain counter (SECONDS without its special meaning), and the supervisor's
+    // "sleep 1" moves it by one second only after every launched pgbench has settled: the failed
+    // one has exited, the running one has started its window. So the relaunch always sees exactly
+    // 2 seconds left, whatever the load on the machine. The fake pgbench sleeps for real.
+    const clock = `unset SECONDS; SECONDS=0\nsleep() { local k; for k in "\${!pids[@]}"; do until [[ -e "$tmp/settled.$k" ]]; do command sleep 0.01; done; if [[ "$(cat "$tmp/settled.$k")" == failed ]]; then wait "\${pids[k]}" 2>/dev/null || true; fi; done; SECONDS=$((SECONDS + $1)); }`;
+    const script = `set -euo pipefail\ntmp="$1"\n${clock}\nrun_pgbench() { echo "$6" >> "$tmp/times"; if [[ ! -e "$tmp/failed" ]]; then touch "$tmp/failed"; echo 'FATAL:  sorry, too many clients already' >&2; echo failed > "$tmp/settled.$2"; return 1; fi; echo running > "$tmp/settled.$2"; command sleep "$6"; }\n${supervisor}\nsupervise_pgbench p 5432 4 1 "$((SECONDS + 3))"`;
     const proc = Bun.spawn(['bash', '-c', script, 'bash', dir], { stdout: 'pipe', stderr: 'pipe' });
     expect(await proc.exited).toBe(0);
     expect((await Bun.file(join(dir, 'times')).text()).trim().split('\n')).toEqual(['3', '2']);
