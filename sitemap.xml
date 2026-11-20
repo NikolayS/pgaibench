@@ -574,4 +574,6 @@
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/kimi-k3.1-pro/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/qwen3.8-27b/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/sonnet-5.5-medium/</loc><lastmod>2026-11-17</lastmod></url>
+  <url><loc>https://pgaibench.dev/control/</loc></url>
+  <url><loc>https://pgaibench.dev/replay/</loc></url>
 </urlset>
