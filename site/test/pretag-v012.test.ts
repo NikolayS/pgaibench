@@ -50,7 +50,7 @@ test('llms.txt, Cite as and the header box follow the live release state', async
   const rel = buildSite({ ...fx.buildOpts, pooledJson: snap, release: { ahead: 2 } });
   expect(rel.get('llms.txt')).toContain(`Results (release ${RELEASE_TAG}, data of`);
   expect(rel.get('llms.txt')).toContain(`Cite as: PGAIBench ${RELEASE_TAG},`);
-});
+}, 60_000); // Builds two complete sites.
 
 test('no semicolons in limits per access path, the correction text or the held-out note', async () => {
   const { ACCESS_ROWS } = await import('../src/statements');

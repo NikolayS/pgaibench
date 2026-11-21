@@ -27,6 +27,7 @@ container_for_port() {
     5432) echo pgaibench-primary ;;
     5433) echo pgaibench-standby ;;
     5599) echo pgaibench-verify ;;
+    560[1-9]|56[1-8][0-9]|569[0-8]) echo "pgaibench-clone-$((port - 5600))-standby" ;;
     *) echo "pgaibench-clone-$((port - 5500))" ;;
   esac
 }
@@ -179,9 +180,17 @@ wait_ready() {
 
 # Wait until the standby streams from the primary.
 wait_streaming() {
-  local timeout="${1:-300}"
+  wait_streaming_on 5432 "${1:-300}"
+}
+
+wait_clone_streaming() {
+  wait_streaming_on "$((5500 + $1))" "${2:-60}"
+}
+
+wait_streaming_on() {
+  local primary="$1" timeout="$2"
   local deadline=$((SECONDS + timeout))
-  until [[ "$(pg_val 5432 "select count(*) from pg_stat_replication
+  until [[ "$(pg_val "${primary}" "select count(*) from pg_stat_replication
     where state = 'streaming'" 2>/dev/null)" == "1" ]]; do
     if ((SECONDS > deadline)); then
       err "standby is not streaming after ${timeout}s"
@@ -193,21 +202,29 @@ wait_streaming() {
 
 # Require the standby to replay through a primary LSN captured after restart.
 wait_standby_replay() {
-  local timeout="${1:-60}"
+  wait_replay_on 5432 5433 "${1:-60}"
+}
+
+wait_clone_standby_replay() {
+  wait_replay_on "$((5500 + $1))" "$((5600 + $1))" "${2:-60}"
+}
+
+wait_replay_on() {
+  local primary="$1" standby="$2" timeout="$3"
   local target_lsn deadline replayed paused
   deadline=$((SECONDS + timeout))
   while true; do
     if [[ -z "${target_lsn:-}" ]]; then
-      target_lsn="$(pg_val 5432 'select pg_current_wal_lsn()' 2>/dev/null || true)"
+      target_lsn="$(pg_val "${primary}" 'select pg_current_wal_lsn()' 2>/dev/null || true)"
     fi
     local streaming
-    streaming="$(pg_val 5432 "select count(*) from pg_stat_replication
+    streaming="$(pg_val "${primary}" "select count(*) from pg_stat_replication
       where state = 'streaming'" 2>/dev/null || true)"
     replayed=""
     if [[ -n "${target_lsn}" && "${streaming}" == 1 ]]; then
-      replayed="$(pg_val 5433 "select pg_wal_lsn_diff(pg_last_wal_replay_lsn(), '${target_lsn}') >= 0" 2>/dev/null || true)"
+      replayed="$(pg_val "${standby}" "select pg_wal_lsn_diff(pg_last_wal_replay_lsn(), '${target_lsn}') >= 0" 2>/dev/null || true)"
     fi
-    paused="$(pg_val 5433 'select pg_is_wal_replay_paused()' 2>/dev/null || true)"
+    paused="$(pg_val "${standby}" 'select pg_is_wal_replay_paused()' 2>/dev/null || true)"
     if [[ "${streaming}" == 1 && "${replayed}" == t && "${paused}" == f ]]; then
       return 0
     fi
@@ -284,6 +301,22 @@ run_clone_container() {
     --volume "${ENV_DIR}/pg/pgaibench.conf:/etc/pgaibench/pgaibench.conf:ro" \
     "pgaibench-pg:${tag}" \
     postgres -c "port=$((5500 + n))" >/dev/null
+}
+
+run_clone_standby_container() {
+  local n="$1" tag="$2"
+  docker run --detach \
+    --name "pgaibench-clone-${n}-standby" \
+    --network host \
+    --shm-size 1g \
+    --log-opt max-size=50m \
+    --label "pgaibench.tag=${tag}" \
+    --env PGDATA=/var/lib/postgresql/data --env PGPASSWORD \
+    --volume "${DATA}/clone/${n}-standby:/var/lib/postgresql/data" \
+    --volume "${DATA}/clone/${n}.archive:/archive:ro" \
+    --volume "${ENV_DIR}/pg/pgaibench.conf:/etc/pgaibench/pgaibench.conf:ro" \
+    "pgaibench-pg:${tag}" \
+    postgres -c "port=$((5600 + n))" >/dev/null
 }
 
 # Image tag a clone runs with.

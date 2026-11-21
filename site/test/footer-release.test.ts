@@ -39,4 +39,4 @@ test('build: live data equal to the snapshot keeps the release mark in the foote
   const moved = structuredClone(snap); moved.rows[0].score -= 1;
   const diff = buildSite({ ...fx.buildOpts, pooledJson: moved, release: { ahead: 2 } }).get('index.html')!;
   expect(/ver-foot"><small>([^<]*)/.exec(diff)![1]).toBe(`unreleased, after ${RELEASE_TAG}`);
-});
+}, 60_000); // Builds two complete sites.

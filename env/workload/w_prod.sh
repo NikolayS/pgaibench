@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Run a workload menu with pgbench and print a JSON summary.
-# Usage: env/workload/w_prod.sh <seconds> [menu] [port]
+# Usage: env/workload/w_prod.sh <seconds> [menu] [port] [standby_port]
 #   menu: W_prod (default), W_prod-subset-A, W_prod-subset-B,
 #         synthetic-light (pgbench -S, 4 clients)
 #   port: 5432 (default; primary shapes on 5432 with 32 clients,
 #         standby shapes on 5433 with 8 clients) or a clone port
-#         5500+n (all shapes on the clone, same client counts).
+#         5500+n (all shapes on the clone unless standby_port is given,
+#         in which case standby shapes target standby_port 5600+n).
 # Output (stdout, one JSON object):
 #   {"menu","seconds","port","tps","standby_tps","transactions",
 #    "failed","aborted_clients","relaunches","nodes":{primary,standby:{relaunches,aborted_clients}},"error_lines", "statement_errors":{statements,classes},"overall":{count,mean_ms,p50_ms,p99_ms},
@@ -86,7 +87,7 @@ run_injector() {
 # PGAIBENCH_INJECTOR_STANDBY (default off) enables the standby one, which
 # caused standby conflicts in the 2026-11-09 s3 calibration.
 injector_targets() {
-  local menu="$1" port="$2" targets=""
+  local menu="$1" port="$2" standby_port="${3:-}" targets=""
   case "${PGAIBENCH_INJECTOR:-on}" in
     on | off) ;;
     *) err 'PGAIBENCH_INJECTOR must be on or off'; return 2 ;;
@@ -97,7 +98,7 @@ injector_targets() {
   esac
   if [[ "${PGAIBENCH_INJECTOR:-on}" == on && "${menu}" != synthetic-light ]]; then
     targets=p
-    if [[ "${PGAIBENCH_INJECTOR_STANDBY:-off}" == on && "${port}" == 5432 ]]; then
+    if [[ "${PGAIBENCH_INJECTOR_STANDBY:-off}" == on && ( "${port}" == 5432 || ( -n "${standby_port}" && "${standby_port}" != "${port}" ) ) ]]; then
       targets="p s"
     fi
   fi
@@ -293,8 +294,13 @@ main() {
   local seconds="${1:-}"
   local menu="${2:-W_prod}"
   local port="${3:-5432}"
+  local standby_port="${4:-}"
   if [[ ! "${seconds}" =~ ^[0-9]+$ ]] || ((seconds < 1)); then
-    err "usage: w_prod.sh <seconds> [menu] [port]"
+    err "usage: w_prod.sh <seconds> [menu] [port] [standby_port]"
+    exit 2
+  fi
+  if [[ -n "${standby_port}" ]] && { [[ ! "${standby_port}" =~ ^[0-9]+$ ]] || ((10#${standby_port} < 1 || 10#${standby_port} > 65535)); }; then
+    err "invalid standby_port: ${standby_port}"
     exit 2
   fi
   load_tags
@@ -303,9 +309,11 @@ main() {
 
   # names.<target> lists shape names in pgbench script order.
   local p_args=() s_args=()
-  local standby_port=5433
-  if [[ "${port}" != 5432 ]]; then
-    standby_port="${port}"
+  if [[ -z "${standby_port}" ]]; then
+    standby_port=5433
+    if [[ "${port}" != 5432 ]]; then
+      standby_port="${port}"
+    fi
   fi
   if [[ "${menu}" == synthetic-light ]]; then
     p_args=(--builtin=select-only)
@@ -340,7 +348,7 @@ main() {
   date +%s > "${tmp}/start_epoch"
   local injector_p_pid="" injector_s_pid=""
   local targets
-  targets="$(injector_targets "${menu}" "${port}")" || exit 2
+  targets="$(injector_targets "${menu}" "${port}" "${standby_port}")" || exit 2
   if [[ " ${targets} " == *" p "* ]]; then
     run_injector p "${port}" "${window_deadline}" & injector_p_pid=$!
     injector_pids+=("${injector_p_pid}")

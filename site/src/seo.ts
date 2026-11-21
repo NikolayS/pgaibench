@@ -16,7 +16,46 @@ import type { PublicScenario } from './build';
 export const ORIGIN = 'https://pgaibench.dev';
 const NAME = 'PGAIBench';
 const LICENSE_URL = 'https://www.apache.org/licenses/LICENSE-2.0';
-const OG_IMAGE = `${ORIGIN}/assets/og.png`;
+
+export type OgCard = { file: string; alt: string };
+
+const OG_CARDS: Record<'home' | 'control' | 'replay' | 'results' | 'method', OgCard> = {
+  home: {
+    file: 'og-home-v4.png',
+    alt: 'PGAIBench: Can an AI change your production Postgres safely?',
+  },
+  control: {
+    file: 'og-control-v4.png',
+    alt: 'PGAIBench AI Control: Safety vs. Usefulness on live two-node Postgres 18 clones across 4 control protocols.',
+  },
+  replay: {
+    file: 'og-replay-v4.png',
+    alt: 'PGAIBench 1 Hz Lab Replays: recorded TPS, p99, lock waits, and standby lag under live Postgres load.',
+  },
+  results: {
+    file: 'og-results-v4.png',
+    alt: 'PGAIBench Results: model safety leaderboard and lab answer grid for production Postgres changes.',
+  },
+  method: {
+    file: 'og-method-v4.png',
+    alt: 'PGAIBench Method and Data: Postgres traps, live lab harness, harm oracles, and open Apache 2.0 data.',
+  },
+};
+
+/** Page-specific 1200x630 PNG social card with cache-busting -v4 filenames. */
+export function ogCardFor(path: string): OgCard {
+  if (path === 'index.html' || path === '') return OG_CARDS.home;
+  if (path === 'control/index.html' || path.startsWith('control/')) return OG_CARDS.control;
+  if (path === 'replay/index.html' || path.startsWith('replay/')) return OG_CARDS.replay;
+  if (
+    path === 'leaderboard/index.html' ||
+    path === 'grid/index.html' ||
+    path.startsWith('compare/') ||
+    path.startsWith('cells/') ||
+    path.startsWith('releases/')
+  ) return OG_CARDS.results;
+  return OG_CARDS.method;
+}
 
 /** AI crawlers and agents welcomed by name. Tokens checked against the vendors' own pages on 2026-11-12. */
 export const AI_AGENTS = [
@@ -104,6 +143,8 @@ export function headlineFacts(p: Pooled): Facts {
 
 const DESC: Record<string, string> = {
   'index.html': 'Can an LLM change a production Postgres database safely? We run each model answer in a lab under load and measure what breaks. Open data and method.',
+  'control/index.html': 'AI Control for Postgres: compare P0, P1, P2 two-node clone gate, and P3 Full AAA on Safety vs. Usefulness at real human review budgets.',
+  'replay/index.html': 'Recorded 1 Hz Postgres lab replays: inspect tickets, proposed SQL, Auditor verdicts, TPS, lock waits, and standby lag under load.',
   'leaderboard/index.html': 'Results: dangerous changes, tasks done and score for each LLM configuration on routine Postgres changes, tested in a lab under load.',
   'method/index.html': 'How PGAIBench turns one LLM answer into one outcome: rehearsal on a clone, a lab primary and standby under load, harm checks, scoring rules.',
   'limits/index.html': 'What PGAIBench can and cannot tell you: no tool calls, one change request per task, a small task set, one Postgres version. Read before you pick a model.',
@@ -164,6 +205,8 @@ export function withHead(doc: string, path: string, s: SeoInput): string {
   const sc = /^scenarios\/([^/]+)\/index\.html$/.exec(path)?.[1];
   const desc = describePage(path, title, s.pooled, sc ? s.scenarios.find(x => x.id === sc) : undefined);
   const url = urlOf(path);
+  const card = ogCardFor(path);
+  const ogImage = `${ORIGIN}/assets/${card.file}`;
   const tags = [
     `<meta name="description" content="${esc(desc)}">`,
     `<link rel="canonical" href="${url}">`,
@@ -174,14 +217,16 @@ export function withHead(doc: string, path: string, s: SeoInput): string {
     `<meta property="og:title" content="${title}">`,
     `<meta property="og:description" content="${esc(desc)}">`,
     `<meta property="og:url" content="${url}">`,
-    `<meta property="og:image" content="${OG_IMAGE}">`,
+    `<meta property="og:image" content="${ogImage}">`,
+    `<meta property="og:image:type" content="image/png">`,
     `<meta property="og:image:width" content="1200">`,
     `<meta property="og:image:height" content="630">`,
-    `<meta property="og:image:alt" content="PGAIBench: can an AI change your production Postgres safely?">`,
+    `<meta property="og:image:alt" content="${esc(card.alt)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${title}">`,
     `<meta name="twitter:description" content="${esc(desc)}">`,
-    `<meta name="twitter:image" content="${OG_IMAGE}">`,
+    `<meta name="twitter:image" content="${ogImage}">`,
+    `<meta name="twitter:image:alt" content="${esc(card.alt)}">`,
     ...(path === 'index.html' || path === 'data/index.html' ? [jsonLd(s)] : []),
   ].join('\n');
   return doc.replace(/<meta name="description" content="[^"]*">/, tags);

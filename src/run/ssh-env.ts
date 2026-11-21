@@ -19,11 +19,16 @@ export class SshEnv implements EnvPort {
 
   async reset() { await this.script("reset.sh"); }
 
-  async createClone(name: string): Promise<Target> {
-    const out = await this.script(`clone.sh start ${CLONE_N}`);
-    const port = Number(/port=(\d+)/.exec(out)?.[1]);
+  async createClone(name: string, opts?: { withStandby?: boolean }): Promise<Target> {
+    const out = await this.script(`clone.sh start ${CLONE_N}${opts?.withStandby ? " --with-standby" : ""}`);
+    const port = Number(/\bport=(\d+)/.exec(out)?.[1]);
     if (!Number.isInteger(port) || port < 5500) throw new Error(`clone.sh did not report a port: ${out.slice(-200)}`);
-    return { kind: "clone", port, n: CLONE_N, name };
+    const standby = /\bstandby_port=(\d+)\b/.exec(out);
+    if (opts?.withStandby && !standby) throw new Error(`clone.sh did not report a standby port: ${out.slice(-200)}`);
+    if (standby && (port !== 5500 + CLONE_N || Number(standby[1]) !== 5600 + CLONE_N)) {
+      throw new Error(`clone.sh reported an unexpected clone port pair: ${out.slice(-200)}`);
+    }
+    return { kind: "clone", port, n: CLONE_N, name, ...(standby ? { standbyPort: Number(standby[1]) } : {}) };
   }
 
   async dropClone(t: Target) { await this.script(`clone.sh stop ${t.n}`); }

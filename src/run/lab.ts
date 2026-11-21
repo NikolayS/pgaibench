@@ -11,9 +11,9 @@
 // production W_prod baseline window (reference()), because a clone has no baseline window.
 
 import { applyCR as harnessApplyCR } from "../actor/actor";
-import { collectSnapshot, createClient, diffSnapshots, evaluateExpectations, withWorkloadSummary } from "../telemetry/collect";
+import { collectSnapshot, createClient, diffSnapshots, evaluateExpectations, metricValue, withWorkloadSummary } from "../telemetry/collect";
 import type { ActorOptions, ActorResult, ActorTarget, ClientFactory, CollectOptions, Connection, CR, HostRunner, Snapshot, Task, WorkloadSummary } from "../schema/types";
-import type { Host, LabPort, Target } from "./ports";
+import type { Host, LabProfile, LabPort, RehearsalOptions, Target } from "./ports";
 import { runOnHost } from "../actor/host";
 import { isUndefinedObject, scenarioKeyQuery } from "../telemetry/scenario-keys";
 
@@ -22,6 +22,7 @@ const CONNECTION = /^(08\w{3}|57P0[123])\b|terminating connection|starting up|sh
 const KEY_RETRY_WAIT_MS = 5000;
 import { stallSeries } from "../oracle/v2";
 import { REMOTE_ENV } from "./ssh-env";
+import type { SidecarSummary } from "../oracle/hot-query";
 import { openTunnel, type Tunnel } from "./tunnel";
 import { connectivityLoss } from "./connectivity";
 import { collectFacts, crFunctions, crGucs, crIdentifiers, type GuardrailFacts } from "./guardrail-context";
@@ -162,8 +163,8 @@ export function postWindowPlan(metrics: string[]): { seconds: number; shapes: st
   return { seconds: tps ? 300 : 60, shapes, tps };
 }
 
-type WindowOpts = { conn: Connection; standby: Connection | null; kind: "clone" | "production"; menu: Workload; port: number; seconds: number;
-  cr?: CR; logPath?: string; clone?: number; skipBackup?: boolean; success?: string[]; injectorTable?: string; stepTimeoutS?: number };
+type WindowOpts = { conn: Connection; standby: Connection | null; kind: "clone" | "production"; menu: Workload; port: number; standbyPort?: number; seconds: number;
+  cr?: CR; logPath?: string; clone?: number; clonePostWindow?: boolean; skipBackup?: boolean; success?: string[]; injectorTable?: string; stepTimeoutS?: number };
 
 export class RealLab implements LabPort {
   private t: Tunnel | null = null;
@@ -174,6 +175,24 @@ export class RealLab implements LabPort {
   private keys: readonly string[] | undefined;
   /** Scenario mode: the full key pass reads only these scenario keys (the episode scenario success keys). */
   scope(keys: readonly string[]) { this.keys = [...keys]; }
+  private prof: LabProfile | null = null;
+  /** Scenario lab_profile (C18): setup and sidecar. null (default): neither runs. */
+  profile(p: LabProfile | null) { this.prof = p ? structuredClone(p) : null; }
+  /** Apply the profile's setup file to the primary (waits for the standby) or to a clone. */
+  async setup(clone?: Target) {
+    if (!this.prof) return;
+    const where = clone ? `clone ${clone.n}` : "primary";
+    const r = await this.d.run(this.host.ip, `${REMOTE_ENV}/scenario-setup.sh ${where} ${this.prof.setup}`);
+    if (r.exitCode !== 0) throw new HarnessError("harness:scenario_setup_failed", `scenario-setup.sh ${where} ${this.prof.setup} exited ${r.exitCode}: ${(r.stderr || r.stdout).slice(-300)}`);
+  }
+  /** Sidecar run for `seconds` (profile only); null with a note when it fails. */
+  private async sidecar(seconds: number, notes: string[]): Promise<SidecarSummary | null> {
+    const s = this.prof!.sidecar!;
+    const r = await this.d.run(this.host.ip, `${REMOTE_ENV}/workload/sidecar.sh ${seconds} ${s.shape} 5432 ${s.clients} ${s.session_s} ${s.role}`);
+    try { if (r.exitCode === 0) return JSON.parse(r.stdout.trim().split("\n").at(-1)!) as SidecarSummary; } catch { /* below */ }
+    notes.push(`sidecar failed (exit ${r.exitCode}): ${(r.stderr || r.stdout).slice(-200)}`);
+    return null;
+  }
   private collect(c: Connection, o: CollectOptions = {}) { return this.d.collect(c, { ...o, ...(this.keys ? { scenarioKeys: this.keys } : {}) }); }
 
   private conn(remotePort: number, t = this.t): Connection {
@@ -202,12 +221,12 @@ export class RealLab implements LabPort {
     if (!result) throw new Error(`warmup failed: ${notes.join('; ')}`);
   }
 
-  private async workload(menu: Workload, seconds: number, port: number, notes: string[]): Promise<WorkloadSummary | null> {
-    const cmd = `${REMOTE_ENV}/workload/w_prod.sh ${seconds} ${menu} ${port}`;
+  private async workload(menu: Workload, seconds: number, port: number, notes: string[], standbyPort?: number): Promise<WorkloadSummary | null> {
+    const cmd = `${REMOTE_ENV}/workload/w_prod.sh ${seconds} ${menu} ${port}${standbyPort === undefined ? "" : ` ${standbyPort}`}`;
     const limit = this.d.workloadTimeoutMs?.(seconds) ?? (seconds + WORKLOAD_OUTER_GRACE_S) * 1000;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const r = await Promise.race([this.d.run(this.host.ip, cmd), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new HarnessError("harness:workload_timeout", `w_prod.sh ${seconds} ${menu} ${port} did not end within ${limit / 1000} s (its own watchdog ends it at planned time + 30 s)`)), limit);
+      timer = setTimeout(() => reject(new HarnessError("harness:workload_timeout", `w_prod.sh ${seconds} ${menu} ${port}${standbyPort === undefined ? "" : ` ${standbyPort}`} did not end within ${limit / 1000} s (its own watchdog ends it at planned time + 30 s)`)), limit);
     })]).finally(() => clearTimeout(timer));
     if (r.exitCode !== 0) notes.push(`workload failed (exit ${r.exitCode}): ${(r.stderr || r.stdout).slice(-300)}`);
     let out: WorkloadSummary;
@@ -258,7 +277,9 @@ export class RealLab implements LabPort {
     const before = await this.collect(o.conn, { ...quick, seconds: 1, ...counts });
     // N7: the change window ends o.seconds after the workload starts (TS clock).
     const windowEndMs = Date.now() + o.seconds * 1000;
-    const wl = track(this.workload(o.menu, o.seconds, o.port, notes));
+    const wl = track(this.workload(o.menu, o.seconds, o.port, notes, o.standbyPort));
+    // Scenario sidecar (lab_profile.sidecar): production-kind windows only (baseline, production), never the clone.
+    const side = o.kind === "production" && this.prof?.sidecar ? track(this.sidecar(o.seconds, notes)) : null;
     const sampler = track(this.collect(o.conn, { ...quick, baseline: before, seconds: o.seconds }));
     let injectorMissing = false, crStartMs: number | null = null;
     const actor = o.cr ? (async () => {
@@ -285,13 +306,13 @@ export class RealLab implements LabPort {
     // as soon as the change window ends (TS clock) and the Actor is done;
     // the change window's summary, the after-change collect and the post
     // window's sampler setup run concurrently with it, never before it.
-    const plan = o.kind === "production" && !PILOT_POST_TASKS.has(o.cr?.task ?? "") ? postWindowPlan(o.success ?? []) : null;
+    const plan = (o.clonePostWindow || (o.kind === "production" && !PILOT_POST_TASKS.has(o.cr?.task ?? ""))) ? postWindowPlan(o.success ?? []) : null;
     let postRun: Promise<[WorkloadSummary | null, Snapshot]> | null = null;
     if (plan) {
       const wait = windowEndMs - Date.now();
       if (wait > 0) await this.d.sleep(wait);
       notes.push(`post window ${plan.seconds} s for ${[...(plan.tps ? ["tps_post"] : []), ...plan.shapes.map(q => `shape_post_p50_ms:${q}`)].join(", ")}`);
-      postRun = track(Promise.all([this.workload(o.menu, plan.seconds, o.port, notes), this.collect(o.conn, { ...quick, baseline: before, seconds: plan.seconds })]));
+      postRun = track(Promise.all([this.workload(o.menu, plan.seconds, o.port, notes, o.standbyPort), this.collect(o.conn, { ...quick, baseline: before, seconds: plan.seconds })]));
       postRun.catch(() => {}); // awaited below; no unhandled rejection meanwhile
     }
     const [summary, window] = await Promise.all([wl, sampler]);
@@ -302,6 +323,7 @@ export class RealLab implements LabPort {
     const skip0 = !plan && o.kind === "production" && !o.skipBackup && standbyDown(window);
     const after0 = await this.collect(o.conn, { ...base, kind: o.kind, baseline: before, seconds: 1, ...counts, integrity: !plan, backupVerify: !plan && o.kind === "production" && !o.skipBackup && !skip0, ...(act?.downtime_s !== undefined ? { downtime_s: act.downtime_s } : {}) });
     let after = mergeWindow(after0, window, summary);
+    if (side) after.sidecar = await side;
     if (skip0) after.backup_verify_skipped = SKIP_WHY;
     if (act?.standby_downtime_s !== undefined) after.metrics.standby_downtime_s = act.standby_downtime_s;
     if (act?.restarts) after.restarts = structuredClone(act.restarts);
@@ -389,7 +411,7 @@ export class RealLab implements LabPort {
       if (!post) after.errors.push('post window workload failed');
       const skip = !o.skipBackup && standbyDown(after);
       if (skip) after.backup_verify_skipped = SKIP_WHY;
-      const checks = await this.collect(o.conn, { ...base, kind: o.kind, baseline: after0, seconds: 1, integrity: true, backupVerify: !o.skipBackup && !skip });
+      const checks = await this.collect(o.conn, { ...base, kind: o.kind, baseline: after0, seconds: 1, integrity: true, backupVerify: o.kind === "production" && !o.skipBackup && !skip });
       after.integrity = checks.integrity; after.sentinel_ids = checks.sentinel_ids; after.backup_verify = checks.backup_verify;
       after.errors.push(...checks.errors.filter(e => /^(integrity|backup|sentinel|checksum)/.test(e)).map(e => `after post window ${e}`));
     }
@@ -401,7 +423,7 @@ export class RealLab implements LabPort {
       after.replication.recovered_after_s = r;
     }
     if (o.kind === "production" && o.cr) await this.retryTimedOutKeys(o.conn, after, notes);
-    return { before, after, summary, act, notes };
+    return { before, after, summary, act, notes, postPlan: plan };
   }
 
   /** a scenario key whose read failed on a lock or statement
@@ -469,9 +491,21 @@ export class RealLab implements LabPort {
     return w.after;
   }
 
-  private record(target: TelemetryRecord["target"], menu: Workload, seconds: number, cr: CR, baseline: Snapshot, w: Awaited<ReturnType<RealLab["window"]>>): TelemetryRecord {
+  private record(target: TelemetryRecord["target"], menu: Workload, seconds: number, cr: CR, baseline: Snapshot, w: Awaited<ReturnType<RealLab["window"]>>, clone?: Target): TelemetryRecord {
     const { raw: _raw, ...diff } = diffSnapshots(w.before, w.after, {});
-    diff.thresholds = evaluateExpectations(reference(w.before, baseline), w.after, cr.rehearsal.thresholds, { context: target === "clone" ? "rehearsal_threshold" : "production_threshold" });
+    const ref = reference(w.before, baseline);
+    diff.thresholds = Object.entries(cr.rehearsal.thresholds).flatMap(([metric, expression]) => {
+      const postShape = metric.startsWith("shape_post_p50_ms:") && w.postPlan?.shapes.includes(metric.slice("shape_post_p50_ms:".length));
+      const postMetric = postShape || (metric === "tps_post" && w.postPlan?.tps);
+      const standbyMetric = ["standby_cancellations", "replication_lag_s", "max_replication_lag_s", "standby_downtime_s"].includes(metric);
+      const measuredOnClone = postMetric || (clone?.standbyPort !== undefined && standbyMetric);
+      if (clone && postMetric) {
+        const baselineMetric = metric === "tps_post" ? "tps" : metric.replace("shape_post_p50_ms:", "shape_p50_ms:");
+        ref.metrics[metric] = metricValue(baseline, baselineMetric);
+      }
+      const context = clone && !measuredOnClone ? "rehearsal_threshold" : "production_threshold";
+      return evaluateExpectations(ref, w.after, { [metric]: expression }, { context });
+    });
     // A production step expectation the step snapshot cannot measure
     // (backup_verify, recovery_test) is judged here, on the end-of-window
     // collection that runs the verification; only for steps that completed.
@@ -481,18 +515,22 @@ export class RealLab implements LabPort {
       return expression === undefined ? [] : evaluateExpectations(w.before, w.after, { [metric]: expression }, { context: "end_of_window" }).map(r => ({ step, ...r }));
     });
     const notes = [...w.notes, "relative thresholds (x) are evaluated against the production W_prod baseline latency and TPS"];
-    if (target === "clone") notes.push("the clone archives WAL into its own directory, deleted with the clone, and has no standby by design");
+    if (target === "clone") notes.push(clone?.standbyPort === undefined
+      ? "the clone archives WAL into its own directory, deleted with the clone, and has no standby by design"
+      : `the clone includes a separate streaming hot standby on port ${clone.standbyPort} and archives WAL into its own directory`);
     const actor = w.act ? { steps: w.act.steps.map(({ metrics: _metrics, ...s }) => Object.fromEntries(Object.entries(s).filter(([k, v]) => v !== undefined && (k !== 'error' || v))) as ActorStepRecord), aborted: w.act.aborted, rolledBack: w.act.rolledBack, rollbackErrors: w.act.rollbackErrors, logPath: w.act.logPath } : null;
     return { target, workload: menu, seconds, before: w.before, after: w.after, diff, workload_summary: w.summary, actor, aborted: !actor || actor.aborted, notes, ...(deferred_expectations.length ? { deferred_expectations } : {}) };
   }
 
   /** opts.workload / opts.injectorTable: gate follow-up only (src/run/gate-rerun.ts); the benchmark never sets them. */
-  async rehearse(cr: CR, clone: Target, baseline: Snapshot, seconds: number, logPath: string, opts: { stepTimeoutS?: number; workload?: Workload; injectorTable?: string } = {}): Promise<TelemetryRecord> {
-    const ct = await this.d.tunnel(this.host.ip, [clone.port]);
+  async rehearse(cr: CR, clone: Target, baseline: Snapshot, seconds: number, logPath: string, opts: RehearsalOptions = {}): Promise<TelemetryRecord> {
+    const ct = await this.d.tunnel(this.host.ip, clone.standbyPort === undefined ? [clone.port] : [clone.port, clone.standbyPort]);
     const { workload, ...rest } = opts, menu = workload ?? cr.rehearsal.workload;
     try {
-      const w = await this.window({ conn: this.conn(clone.port, ct), standby: null, kind: "clone", menu, port: clone.port, seconds, cr, logPath, clone: clone.n, ...rest });
-      return this.lost(this.record("clone", menu, seconds, cr, baseline, w), ct);
+      const standby = clone.standbyPort === undefined ? null : this.conn(clone.standbyPort, ct);
+      const success = rest.clonePostWindow ? [...(rest.success ?? []), ...(this.keys ?? []), ...cr.rehearsal.metrics, ...Object.keys(cr.rehearsal.thresholds)] : undefined;
+      const w = await this.window({ conn: this.conn(clone.port, ct), standby, kind: "clone", menu, port: clone.port, standbyPort: clone.standbyPort, seconds, cr, logPath, clone: clone.n, ...rest, success });
+      return this.lost(this.record("clone", menu, seconds, cr, baseline, w, clone), ct);
     } finally { this.keep(ct, "clone tunnel"); await ct.close(); }
   }
 

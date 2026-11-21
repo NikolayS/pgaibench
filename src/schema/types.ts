@@ -53,6 +53,8 @@ export type Snapshot = {
   /** Oracle v2: primary TPS per 10 s bucket (change window, post window). */
   tps_buckets_10s?: number[];
   post_tps_buckets_10s?: number[];
+  /** Scenario sidecar workload (lab_profile.sidecar, C18 only); null = it failed. */
+  sidecar?: import('../oracle/hot-query').SidecarSummary | null;
   /** Oracle v2: primary transactions per 1 s (change window, post window). */
   tps_counts_1s?: number[];
   post_tps_counts_1s?: number[];

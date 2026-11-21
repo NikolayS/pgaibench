@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process';
 import { assertFixtureResults, idName, parseResults, type Results } from './results';
 import { relativize, type Ctx } from './html';
 import { pages } from './pages';
+import type { V02SiteInputs } from './v02-pages';
 import { parseFrozen, parseOutOfSet } from './inputs';
 import { cellSlug, crossCheck, parseCells, type Cell } from './cells';
 import { assertNoHeldOutSite, heldOutNames, isHeldOut } from './heldout';
@@ -40,7 +41,7 @@ export function publicScenarios(dir = join(ROOT, 'scenarios')): PublicScenario[]
   return readdirSync(dir).filter(f => f.endsWith('.json'))
     .filter(f => !isHeldOut(f.replace(/\.json$/, '')))
     .map(f => JSON.parse(readFileSync(join(dir, f), 'utf8')) as PublicScenario)
-    .filter(s => !isHeldOut(s.id) && s.holdout !== true)
+    .filter(s => !isHeldOut(s.id) && s.holdout !== true && !(s as { candidate?: string }).candidate)
     .map(s => ({ ...s, tables: contextTables(join(dir, 'context', `${s.id}.json`)) }))
     .sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
 }
@@ -63,6 +64,7 @@ function commit(): string {
 }
 
 export type BuildOptions = {
+  v02?: V02SiteInputs;
   published: boolean; base: string; resultsPath?: string; resultsJson?: unknown; changelogPath?: string;
   frozenPath?: string; frozenJson?: unknown; outOfSetPath?: string;
   cellsPath?: string; cellsJson?: unknown;
@@ -149,7 +151,7 @@ export function buildSite(o: BuildOptions): Map<string, string> {
   const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : null;
   const models = o.modelsJson === undefined ? null : parseModels(o.modelsJson);
   setEfforts(models ?? []);
-  const files = pages(ctx, { scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, records, models, snapshots: o.snapshots ?? [] });
+  const files = pages(ctx, { v02: o.v02, scenarios, results, changelog, frozen, outOfSet, cells, provisional: prov, pooled, registered, record, records, models, snapshots: o.snapshots ?? [] });
   if (prov && results) {
     const names = heldOutNames(), trackOf = new Map(results.tracks.flatMap(t => [...(t.text?.rows ?? []), ...(t.lab?.rows ?? [])].map(r => [r.model_id, t.name] as const)));
     const add = (p: string, doc: string) => files.set(p, relativize(doc, p, o.base));

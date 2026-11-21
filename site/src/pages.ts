@@ -40,8 +40,9 @@ import { updatesPage, type Snapshot } from './updates';
 import { MARKS_LEGEND, notCountedTable, outcomeTable, settingsTable } from './outtables';
 import { cellPath, heldoutLab, knownIssues, progressLine, type Provisional } from './provisional';
 import { EVIDENCE_GROUPS, STORED_LEVELS, evidenceGroup } from './evidence';
+import { controlPage, replayPage, renderBenchmarkCardHtml, type V02SiteInputs } from './v02-pages';
 
-export type SiteData = { models?: ModelsTable | null; pooled?: Pooled | null; registered?: Pooled | null; /** the frozen table of every release, oldest first */ records?: { release: Release; pooled: Pooled }[]; /** the three-run table of v0.1.0, when the main table averages more runs */ record?: Pooled | null; snapshots?: Snapshot[]; scenarios: PublicScenario[]; results: Results | null; changelog: string | null; frozen: Frozen | null; outOfSet: OutOfSet; cells?: Cell[] | null; provisional?: Provisional | null };
+export type SiteData = { v02?: V02SiteInputs; models?: ModelsTable | null; pooled?: Pooled | null; registered?: Pooled | null; /** the frozen table of every release, oldest first */ records?: { release: Release; pooled: Pooled }[]; /** the three-run table of v0.1.0, when the main table averages more runs */ record?: Pooled | null; snapshots?: Snapshot[]; scenarios: PublicScenario[]; results: Results | null; changelog: string | null; frozen: Frozen | null; outOfSet: OutOfSet; cells?: Cell[] | null; provisional?: Provisional | null };
 
 const ARXIV_DBA = 'https://arxiv.org/abs/2607.22165';
 /** Links that describe the release point to its tag. */
@@ -544,7 +545,7 @@ ${d.pooled ? `<h3 id="reader-panel">Reader panel</h3>
 ${d.models && d.pooled ? modelsTable(d.models, confIds(d), RN(d)) : ''}
 <p>The full design is in ${a(blob('docs/benchmark.md'), blob('docs/benchmark.md'))}.</p>
 ${citeBlock()}`;
-  return page(c, { path: 'method/', title: 'Method', lede: 'How one model answer becomes one outcome, and how we count outcomes.', body });
+  return page(c, { path: 'method/', title: 'Method', lede: 'How one model answer becomes one outcome, and how we count outcomes.', body: (d.v02?.benchmarkCard ? renderBenchmarkCardHtml(d.v02.benchmarkCard) : '') + body });
 }
 
 // ---------- scenarios ----------
@@ -668,7 +669,9 @@ function dataPage(c: Ctx, d?: SiteData): string {
 <div class="table-scroll" tabindex="0" role="region" aria-label="Cell fields"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Unit</th><th scope="col">Null</th><th scope="col">Meaning</th></tr></thead><tbody>${rows}</tbody></table></div>
 <h2 id="null">Null values</h2>
 <p>For a measured value, null means not measured: the cell has no production window (scored from text, stopped at rehearsal, or no change), or the value was not recorded. Null is never zero. The site shows null as "not measured".</p>`;
-  return page(c, { path: 'data/', title: 'Cell data', lede: 'The schema of the per-cell JSON files.', body });
+  const control = d?.v02?.controlPareto ? `<p><a href="${link(c, 'control/')}">AI Control protocol comparison</a></p>` : '';
+  const replay = d?.v02?.replays?.length ? `<p><a href="${link(c, 'replay/')}">Recorded lab replays</a></p>` : '';
+  return page(c, { path: 'data/', title: 'Cell data', lede: 'The schema of the per-cell JSON files.', body: control + replay + body });
 }
 
 // ---------- other pages ----------
@@ -718,7 +721,15 @@ const RELATED: [string, [string, string][], string, string, string][] = [
   ['SWE-bench Verified', [['https://www.swebench.com/verified.html', 'site']], 'coding agents on a human-validated subset', 'validated-set statement', 'we validate by execution in the lab'],
   ['Spider 2.0', [['https://arxiv.org/abs/2411.07763', 'arXiv 2411.07763']], 'text-to-SQL on enterprise workflows', 'tasks from real use', 'changes on a live system, not queries'],
   ['BIRD-CRITIC', [['https://bird-critic.github.io/', 'site']], 'fixing SQL from real user issues, including Postgres', 'tasks from real use', 'harm under load, not result correctness'],
-  ['AI Control', [['https://arxiv.org/abs/2312.06942', 'arXiv 2312.06942']], 'protocols against an untrusted model; usefulness and safety measured separately', 'two axes, never one blended score', 'we test honest mistakes, not deliberate attack'],
+  ['AI Control', [['https://arxiv.org/abs/2312.06942', 'arXiv 2312.06942']], 'protocols against an untrusted model; usefulness and safety measured separately', 'two axes, never one blended score, suspicion-score thresholding, human audit budget H', 'Track 2 tests four concrete Postgres protocols (P0–P3) on live two-node clones; honest mistakes first, adversarial sabotage next'],
+  ['STRATUS', [['https://arxiv.org/abs/2506.02009', 'arXiv 2506.02009']], 'autonomous SRE state machine separating detection, diagnosis and mitigation with Transactional No-Regression (TNR)', 'role-separated autonomous SRE framing and safe rollback discipline', 'closest architectural peer to AAA; we focus on binding two-node Postgres clone telemetry to independent Auditor authorization and Actor guards'],
+  ['LLM-Modulo', [['https://arxiv.org/abs/2402.01817', 'arXiv 2402.01817'], ['https://arxiv.org/abs/2411.14484', 'arXiv 2411.14484']], 'LLM candidate plan generation paired with external verifiers and iterative critique', 'external execution verifiers rather than trusting a second LLM alone', 'our verifier is a live two-node Postgres cluster under load, paired with an Auditor for clone-invisible hazards'],
+  ['AgentSpec', [['https://arxiv.org/abs/2503.18666', 'arXiv 2503.18666']], 'runtime DSL enforcing trigger-predicate-action safety rules during agent execution', 'deterministic runtime enforcement at the Auditor–Actor boundary', 'applied to live Postgres Actor guardrails (lock wait, standby health, workload errors, hygiene diffs)'],
+  ['Ensemble Monitoring', [['https://arxiv.org/abs/2605.15377', 'arXiv 2605.15377']], 'diverse monitor ensembles for AI Control on coding tasks', 'combining checks with uncorrelated error modes', 'motivates heterogeneous AAA Auditors (clone gate + policy + diverse models) in v0.3'],
+  ['Bootstrapped Monitoring', [['https://arxiv.org/abs/2606.11998', 'arXiv 2606.11998']], 'stronger untrusted intermediate monitor audited by a weaker trusted monitor', 'framing for when the Analyst outclasses the Auditor', 'closed APIs hide raw chain-of-thought; we ground weaker Auditors in deterministic clone telemetry instead'],
+  ['Multi-Agent AI Control', [['https://arxiv.org/abs/2607.07368', 'arXiv 2607.07368']], 'fragmentation effect where distributed harmful actions evade per-agent local audit', 'whole-plan and cumulative-diff auditing rather than per-statement checks', 'our Auditor inspects the full multi-step CR plus cumulative clone catalog and row-count diffs'],
+  ['SREGym', [['https://arxiv.org/abs/2605.07161', 'arXiv 2605.07161'], ['https://github.com/SREGym/SREGym', 'repo']], 'live SRE benchmark (90 tasks) with fault injection, noise and metastable failures', 'realistic live-system evaluation with correlated failure modes', 'benchmarking agents vs. rehearsing a concrete production change before apply; Postgres-deep'],
+  ['Simplex Architecture', [['https://www3.cs.stonybrook.edu/~stoller/papers/distrib-simplex-2022.pdf', 'paper']], 'safety-critical runtime assurance separating a capable unverified controller from deterministic safety enforcement', 'separation of control authority and feedback-grounded safety boundaries', 'Simplex switches between advanced and baseline controllers; AAA separates planning, authorization and execution'],
   ['ControlArena', [['https://github.com/UKGovernmentBEIS/control-arena', 'repo']], 'control settings with honest and attack modes', 'safety and usefulness metrics', 'no attack mode in v0.1'],
   ['BashArena', [['https://arxiv.org/abs/2512.15688', 'arXiv 2512.15688']], 'control setting with sysadmin tasks', 'privileged infrastructure tasks', 'Postgres only, accidental harm'],
   ['SHADE-Arena', [['https://arxiv.org/abs/2506.15740', 'arXiv 2506.15740']], 'sabotage side tasks and LLM monitors', 'the honest-against-attack distinction', 'no monitor in the score'],
@@ -740,7 +751,7 @@ function related(c: Ctx): string {
   const rows = RELATED.map(([n, links, m, t, d]) => `<tr><th scope="row">${n}</th><td>${links.map(([h, l]) => a(h, l)).join(', ')}</td><td>${m}</td><td>${t}</td><td>${d}</td></tr>`).join('');
   const body = `<p>Benchmarks and papers we learned from, and how PGAIBench differs from each. Every link goes to the primary source.</p>
 <div class="table-scroll" tabindex="0" role="region" aria-label="Related work"><table class="wide"><thead><tr><th scope="col">Work</th><th scope="col">Link</th><th scope="col">What it measures</th><th scope="col">What we took</th><th scope="col">How we differ</th></tr></thead><tbody>${rows}</tbody></table></div>
-<p>A longer comparison with DBA-Bench is in ${a(blob('docs/prior-art-dba-bench.md'), blob('docs/prior-art-dba-bench.md'))}.</p>`;
+<p>Longer comparisons are in ${a(blob('docs/prior-art-dba-bench.md'), 'docs/prior-art-dba-bench.md')} (DBA-Bench) and ${a(blob('docs/related-work-aaa.md'), 'docs/related-work-aaa.md')} (AAA positioning and November 2026 AI Control / autonomous SRE literature map).</p>`;
   return page(c, { path: 'related-work/', title: 'Related work', body });
 }
 
@@ -846,7 +857,15 @@ export function pages(c: Ctx, d: SiteData): Map<string, string> {
     ['submissions/index.html', submissions(c)], ['data/index.html', dataPage(c, d)], ['404.html', notFound(c)],
   ]);
   for (const s of d.scenarios) m.set(`scenarios/${s.id}/index.html`, scenarioPage(c, d, s));
+  const v02 = d.v02;
+  if (v02?.controlPareto) m.set('control/index.html', controlPage(c, v02.controlPareto));
+  if (v02?.replays?.length) m.set('replay/index.html', replayPage(c, v02.replays, v02.telemetryBundle));
   for (const [p, doc] of m) m.set(p, relativize(doc, p, c.base));
+  if (v02?.controlPareto) m.set('data/control-pareto.json', `${JSON.stringify(v02.controlPareto, null, 2)}\n`);
+  if (v02?.replays?.length && v02.telemetryBundle) {
+    if (v02.telemetryBundle.heldout_included) throw new Error('Cannot publish a telemetry bundle exported with held-out episodes enabled');
+    m.set('data/telemetry-bundle.json', `${JSON.stringify(v02.telemetryBundle, null, 2)}\n`);
+  }
   m.set('leaderboard/index.txt', toText(m.get('leaderboard/index.html')!));
   if (res) m.set('data/results.json', `${JSON.stringify(res, null, 2)}\n`);
   return m;

@@ -2,7 +2,7 @@ import { pairNames } from '../src/front';
 // Search and answer-engine files: robots.txt, sitemap.xml, llms.txt, llms-full.txt, .md twins, page heads.
 import { describe, expect, test } from 'bun:test';
 import { buildSite } from '../src/build';
-import { AI_AGENTS, ORIGIN, describePage, headlineFacts, llmsTxt, robotsTxt, SITEMAP_EXCLUDE } from '../src/seo';
+import { AI_AGENTS, ORIGIN, describePage, headlineFacts, llmsTxt, ogCardFor, robotsTxt, SITEMAP_EXCLUDE } from '../src/seo';
 import { parsePooled } from '../src/pooled';
 import { pooledJson, site } from './fixtures/seo-site';
 
@@ -56,13 +56,32 @@ describe('page heads', () => {
   });
   test('canonical, Open Graph and Twitter tags', () => {
     for (const [p, h] of heads) {
+      const card = ogCardFor(p);
+      const imgUrl = `${ORIGIN}/assets/${card.file}`;
       expect(h, p).toContain(`<link rel="canonical" href="${pageUrl(p)}">`);
       expect(h, p).toContain(`<meta property="og:url" content="${pageUrl(p)}">`);
-      for (const k of ['og:title', 'og:description', 'og:type', 'og:site_name', 'og:image']) expect(h, `${p} ${k}`).toContain(`<meta property="${k}" content="`);
-      expect(h, p).toContain(`<meta property="og:image" content="${ORIGIN}/assets/og.png">`);
+      for (const k of ['og:title', 'og:description', 'og:type', 'og:site_name', 'og:image', 'og:image:type', 'og:image:width', 'og:image:height', 'og:image:alt'])
+        expect(h, `${p} ${k}`).toContain(`<meta property="${k}" content="`);
+      expect(h, p).toContain(`<meta property="og:image" content="${imgUrl}">`);
+      expect(h, p).toContain('<meta property="og:image:type" content="image/png">');
+      expect(h, p).toContain('<meta property="og:image:width" content="1200">');
+      expect(h, p).toContain('<meta property="og:image:height" content="630">');
       expect(h, p).toContain('<meta name="twitter:card" content="summary_large_image">');
+      expect(h, p).toContain(`<meta name="twitter:image" content="${imgUrl}">`);
+      expect(h, p).toContain(`<meta name="twitter:image:alt" content="${card.alt}">`);
       expect(h, p).toContain(`<link rel="describedby" type="text/plain" href="${ORIGIN}/llms.txt">`);
     }
+    expect(ogCardFor('index.html').file).toBe('og-home-v4.png');
+    expect(ogCardFor('control/index.html').file).toBe('og-control-v4.png');
+    expect(ogCardFor('replay/index.html').file).toBe('og-replay-v4.png');
+    expect(ogCardFor('leaderboard/index.html').file).toBe('og-results-v4.png');
+    expect(ogCardFor('grid/index.html').file).toBe('og-results-v4.png');
+    expect(ogCardFor('method/index.html').file).toBe('og-method-v4.png');
+    expect(ogCardFor('scenarios/index.html').file).toBe('og-method-v4.png');
+    expect(ogCardFor('related-work/index.html').file).toBe('og-method-v4.png');
+    expect(ogCardFor('data/index.html').file).toBe('og-method-v4.png');
+    expect(describePage('control/index.html', 'AI Control | PGAIBench', pooled).length).toBeLessThanOrEqual(155);
+    expect(describePage('replay/index.html', 'Lab replays | PGAIBench', pooled).length).toBeLessThanOrEqual(155);
   });
   test('JSON-LD WebSite and Dataset on home and data pages, valid JSON', () => {
     for (const p of ['index.html', 'data/index.html']) {
@@ -148,13 +167,15 @@ test('no SEO files without a custom domain', () => {
   expect(s.has('robots.txt')).toBe(false);
 });
 
-test('og.png: a 1200x630 PNG among the binary assets', async () => {
-  const { BINARY_ASSETS } = await import('../src/html');
-  expect(BINARY_ASSETS).toContain('og.png');
-  const b = new Uint8Array(await Bun.file(new URL('../assets/og.png', import.meta.url)).arrayBuffer());
-  const v = new DataView(b.buffer);
-  expect([...b.slice(1, 4)].map(c => String.fromCharCode(c)).join('')).toBe('PNG');
-  expect([v.getUint32(16), v.getUint32(20)]).toEqual([1200, 630]);
+test('social card PNGs: 1200x630 PNGs among the binary assets', async () => {
+  const { BINARY_ASSETS, OG_IMAGES } = await import('../src/html');
+  for (const file of ['og.png', ...OG_IMAGES]) {
+    expect(BINARY_ASSETS).toContain(file);
+    const b = new Uint8Array(await Bun.file(new URL(`../assets/${file}`, import.meta.url)).arrayBuffer());
+    const v = new DataView(b.buffer);
+    expect([...b.slice(1, 4)].map(c => String.fromCharCode(c)).join(''), file).toBe('PNG');
+    expect([v.getUint32(16), v.getUint32(20)], file).toEqual([1200, 630]);
+  }
 });
 
 test('llms-full.txt task table: trap names and kinds, no scoring patterns', () => {

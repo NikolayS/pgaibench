@@ -11,8 +11,15 @@ export const BANNER_FIXTURE = 'Preview, not published. Numbers on this page are 
 
 export const NAME = 'PGAIBench';
 export const COPYRIGHT = '© 2026 Nik Samokhvalov and DBLab Inc. / Postgres.AI';
-/** Favicon files and the social card og.png (from og.svg): the only image files of the site (site/assets/, copied as is). */
-export const BINARY_ASSETS = ['favicon.svg', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'og.png'];
+export const OG_IMAGES = [
+  'og-home-v4.png',
+  'og-control-v4.png',
+  'og-replay-v4.png',
+  'og-results-v4.png',
+  'og-method-v4.png',
+] as const;
+/** Favicon files and the social card PNGs: the only image files of the site (site/assets/, copied as is). */
+export const BINARY_ASSETS = ['favicon.svg', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'og.png', ...OG_IMAGES];
 /** Title block for the home page, 5 rows of block characters. */
 export const TITLE = `####   ###   ###  ##### ####  ##### #   #  #### #   #
 #   # #     #   #   #   #   # #     ##  # #     #   #

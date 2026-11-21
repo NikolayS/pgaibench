@@ -29,8 +29,10 @@ export async function captureContext(o: { scenarios: Scenario[]; ports: Ports; h
   for (const sc of o.scenarios) {
     const task = toTask(sc);
     await o.ports.env.reset();
+    o.ports.lab.profile?.(sc.lab_profile ?? null);
     await o.ports.lab.open();
     try {
+      if (sc.lab_profile) await o.ports.lab.setup?.();
       await o.ports.lab.baseline(WINDOWS_S.baseline);
       const ctx = await o.ports.lab.inspect(task);
       const file = { contextResults: ctx.contextResults.map((r) => ({ sql: r.sql, result: scrub(r.result) })), catalogSummary: scrub(ctx.catalogSummary) };

@@ -133,7 +133,7 @@ const SERVER_CAUSES: [(string | null)[], RegExp][] = [
   [FATAL, /requested shared memory size/],
   [FATAL, /unrecognized configuration parameter|cannot be changed|must be less than|must be at least|requires "wal_level"/],
   [[null], /^postgres: "superuser_reserved_connections" \(\d+\) plus "reserved_connections" \(\d+\) must be less than "max_connections" \(\d+\)$/],
-  [FATAL, /because of insufficient parameter settings/],
+  [['FATAL', 'PANIC', 'WARNING'], /because of insufficient parameter settings/],
   [FATAL, /could not (load library|access file)/],
 ];
 // L-A: the level is read only right after the log_line_prefix of
@@ -249,6 +249,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
   if (target.kind === 'production' && cr.steps.some(step => 'config' in step && step.node !== 'primary') && !options.telemetry?.standbyConn) {
     throw new Error('Production config requires telemetry.standbyConn');
   }
+  const singleNodeClone = target.kind === 'clone' && !options.telemetry?.standbyConn;
   const factory = options.clientFactory ?? ACTOR_CLIENT, host = options.runOnHost ?? runOnHost, collect = options.collect ?? collectSnapshot;
   const logPath = options.logPath ?? `runs/actor-${Date.now()}-${crypto.randomUUID()}.jsonl`;
   await mkdir(dirname(logPath), { recursive: true });
@@ -389,6 +390,10 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
     if (!Number.isInteger(target.clone) || target.clone! < 1) throw new Error('Clone restart/upgrade needs target.clone (the clone number)');
     return target.clone!;
   };
+  const restartCommand = (node: 'primary' | 'standby') => {
+    const name = target.kind === 'production' ? node : `${node === 'primary' ? 'clone' : 'clone-standby'} ${cloneNumber()}`;
+    return `/opt/pgaibench/env/restart.sh ${name}`;
+  };
   const shellUpgrade = async (rollback = false) => {
     if (cr.task !== 'T5') throw new Error('env/upgrade.sh is allowed only for T5');
     await shell(target.kind === 'production' ? '/opt/pgaibench/env/upgrade.sh' : `/opt/pgaibench/env/upgrade.sh clone ${cloneNumber()}`, rollback);
@@ -403,7 +408,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
       ...options.telemetry, ip: target.ip, kind: target.kind, baseline, downtime_s,
       ...(rowcounts.length ? { rowcounts } : {}),
       ...(settings.length ? { settings } : {}),
-      ...(target.kind === 'clone' ? { standbyConn: null } : {}),
+      ...(singleNodeClone ? { standbyConn: null } : {}),
       clientFactory: options.clientFactory, runOnHost: options.runOnHost,
     });
     if (standbyDowntime !== undefined) snapshot.metrics.standby_downtime_s = standbyDowntime;
@@ -466,7 +471,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
           await log({ index, kind: 'sql_result', rows_affected: configResult.rows_affected ?? null, command: configResult.command ?? null });
         }
         else if ('shell' in step) await shellUpgrade();
-        else if (target.kind === 'clone' && step.node === 'standby') {
+        else if (singleNodeClone && step.node === 'standby') {
           configResult.skipped = 'node=standby has no clone counterpart';
           await log({ index, kind: 'skip', reason: configResult.skipped });
         } else {
@@ -479,13 +484,13 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
           if (setting.context === 'internal') throw new Error(`Setting ${step.config.name} cannot be changed`);
           const change = `alter system set "${step.config.name}" = ${renderValue(step.config.name, step.config.value)}`;
           const restart = setting.context === 'postmaster';
-          if (target.kind === 'clone') {
-            const restartCmd = restart ? `/opt/pgaibench/env/restart.sh clone ${cloneNumber()}` : null;
+          if (restart && target.kind === 'clone') cloneNumber();
+          if (singleNodeClone) {
             await hsql(change);
             changed.push({ node: 'primary', name: step.config.name, previous: setting, restart });
             if (restart) {
               await client.end(); await harness.end();
-              try { await shell(restartCmd!); } catch (error) { cloneDown = true; throw error; }
+              try { await shell(restartCommand('primary')); } catch (error) { cloneDown = true; throw error; }
               client = factory(target.conn); harness = factory(target.conn);
             } else await hsql('select pg_reload_conf()');
             configResult.setting_primary = await readApplied(hsql, step.config.name, step.config.value, restart);
@@ -508,7 +513,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
                 changed.push({ node, name: step.config.name, previous, restart });
                 if (restart) {
                   if (onPrimary) { await client.end(); await harness.end(); } else await standby.end();
-                  await shell(`/opt/pgaibench/env/restart.sh ${node}`, false, node);
+                  await shell(restartCommand(node), false, node);
                   if (onPrimary) { client = factory(target.conn); harness = factory(target.conn); } else standby = factory(standbyConn!);
                 } else await query('select pg_reload_conf()');
                 const actual = await readApplied(query, step.config.name, step.config.value, restart);
@@ -531,7 +536,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
         if (during != null) { after.metrics.step_max_lock_wait_s = during; after.metrics.max_lock_wait_s = Math.max(Number(after.metrics.max_lock_wait_s ?? 0), during); }
         // standby_setting_read: a node=standby step changed the standby only; its own setting is judged there.
         if ('config' in step && step.node === 'standby' && configResult.setting_standby !== undefined) after.settings[step.config.name] = configResult.setting_standby;
-        const expectations = evaluateExpectations(baseline, after, step.expect, { context: target.kind === 'clone' ? 'clone_step' : 'production_step' });
+        const expectations = evaluateExpectations(baseline, after, step.expect, { context: singleNodeClone ? 'clone_step' : 'production_step' });
         metrics = { ...after.metrics, ...Object.fromEntries(Object.keys(step.expect).map(name => [name, metricValue(after, name, baseline)])) };
         await log({ index, kind: 'expectations', expectations, metrics });
         const misses = expectations.filter(e => e.unavailable).map(e => ({ metric: e.metric, reason: e.unavailable! }));
@@ -550,6 +555,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
         const unread: string[] = [], oom: Record<string, boolean | null> = {};
         if (errorClass === 'server') {
           const containers = target.kind === 'clone' ? [`pgaibench-clone-${target.clone}`] : ['pgaibench-primary', 'pgaibench-standby'];
+          if (target.kind === 'clone' && !singleNodeClone) containers.push(`pgaibench-clone-${target.clone}-standby`);
           for (const c of stepSince ? containers : []) {
             try {
               const r = await host(target.ip, `set -o pipefail; docker logs --since ${stepSince} ${c} 2>&1 | head -c ${SERVER_LOG_MAX_BYTES + 1}`);
@@ -599,7 +605,7 @@ export async function applyCR(input: CR, target: ActorTarget, options: ActorOpti
               try { await execute<Row[]>(statement, 'sql', () => standby.unsafe(statement), true); }
               finally { await standby.end(); }
             }
-            if (change.restart) await shell(target.kind === 'clone' ? `/opt/pgaibench/env/restart.sh clone ${cloneNumber()}` : `/opt/pgaibench/env/restart.sh ${change.node}`, true, change.node);
+            if (change.restart) await shell(restartCommand(change.node), true, change.node);
             else if (change.node === 'primary') await harnessRollback('select pg_reload_conf()');
             else {
               const standby = factory(options.telemetry!.standbyConn!);

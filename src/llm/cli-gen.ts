@@ -135,14 +135,16 @@ function withTemp<T>(f: (cwd: string, instrFile: string) => Promise<T>, instruct
   return f(cwd, file).finally(() => { rmSync(cwd, { recursive: true, force: true }); rmSync(side, { recursive: true, force: true }); });
 }
 
-/** features of codex-cli 0.164.0 (codex features list) that add a tool,
+/** features of codex-cli (codex features list) that add a tool,
  *  a tool source or a personal context source; all off. --strict-config
  *  makes an unknown key or feature name an error, so a renamed feature
  *  cannot silently stay on. */
 export const CODEX_DISABLED_FEATURES = ["shell_tool", "unified_exec", "unified_exec_tty", "shell_snapshot", "multi_agent", "multi_agent_v2", "view_image", "image_generation",
-  "plugins", "remote_plugin", "skill_search", "skill_mcp_dependency_install", "hooks", "goals", "sleep_tool", "apps", "browser_use", "browser_use_external", "computer_use",
-  "in_app_browser", "tool_suggest", "memories", "code_mode_host", "workspace_dependencies", "tool_call_mcp_elicitation", "enable_mcp_apps", "standalone_web_search",
-  "request_permissions_tool", "default_mode_request_user_input", "incremental_tools", "fast_mode", "ultrafast_mode"] as const;
+  "image_generation_animation", "plugins", "remote_plugin", "skill_search", "skill_mcp_dependency_install", "hooks", "goals", "sleep_tool", "apps", "apps_early_resource_discovery",
+  "browser_use", "browser_use_external", "computer_use", "in_app_browser", "tool_suggest", "memories", "code_mode_host", "workspace_dependencies",
+  "tool_call_mcp_elicitation", "enable_mcp_apps", "agent_message_board_mcp", "standalone_web_search", "hosted_search_policy",
+  "request_permissions_tool", "default_mode_request_user_input", "incremental_tools", "incremental_exec_tools", "incremental_tools_legacy",
+  "incremental_tools_legacy_gcp", "prediction_preserve_parent_tools", "fast_mode", "ultrafast_mode"] as const;
 
 /** N5: the standard (non-priority) tier, requested for every model. Codex
  *  sends no service_tier field for it (offline capture); the catalog's
@@ -297,7 +299,7 @@ export function buildClaudeGenArgs(model: string, effort: string, instrFile: str
 
 /** the stream-json events a text-only claude turn may hold. */
 export const CLAUDE_EVENT_ALLOW = ["system", "assistant", "result", "rate_limit_event"];
-export const CLAUDE_SYSTEM_ALLOW = ["init", "thinking_tokens", "api_retry", "status"];
+export const CLAUDE_SYSTEM_ALLOW = ["init", "thinking_tokens", "api_retry", "status", "ui_invalidate"];
 export const CLAUDE_BLOCK_ALLOW = ["text", "thinking", "redacted_thinking"];
 
 export function parseClaudeGen(stdout: string, stderr: string, code: number) {

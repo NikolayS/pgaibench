@@ -49,7 +49,7 @@ export function gateCells(gate: string | string[]) {
 /** Earlier: the v0.1 scenario list: in (v01 not false, not marked out) and
  *  out with the reason (v01_reason, or the --scenario-out reason). */
 export function scenarioList(scenarioOut: Record<string, string> = {}) {
-  const all = loadScenarios().sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
+  const all = loadScenarios().filter(s => !s.candidate).sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
   return { in: all.filter(s => s.v01 !== false && scenarioOut[s.id] === undefined).map(s => s.id),
     out: all.filter(s => s.v01 === false || scenarioOut[s.id] !== undefined).map(s => ({ id: s.id, reason: scenarioOut[s.id] ?? s.v01_reason ?? 'v01: false' })) };
 }

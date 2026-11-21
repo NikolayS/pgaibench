@@ -84,9 +84,9 @@ describe("N4: tested CLI versions and the known Codex feature list", () => {
     writeFileSync(join(f.d, "features"), "");
     expect((await cliVersionGate(["codex-cli"], f.env, { tested }).catch((x) => x)).message).toMatch(/features list/);
   });
-  test("the repo list holds the 0.164.0 / 2.1.322 versions and the disabled features", async () => {
+  test("the repo list holds the tested codex / claude versions and the disabled features", async () => {
     const t = (await import("./cli-tested.json")).default;
-    expect(t.codex).toEqual(["0.164.0"]); expect(t.claude).toEqual(["2.1.322"]);
+    expect(t.codex).toEqual(["0.164.0", "0.169.0"]); expect(t.claude).toEqual(["2.1.322", "2.1.329"]);
     const { CODEX_DISABLED_FEATURES } = await import("./cli-gen");
     for (const x of CODEX_DISABLED_FEATURES) expect(t.codex_features).toContain(x);
   });

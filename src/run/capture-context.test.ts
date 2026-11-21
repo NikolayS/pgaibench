@@ -33,4 +33,16 @@ describe("capture-context", () => {
     expect(text).toBe(JSON.stringify({ contextResults: [{ sql: "select 2", result: "r" }, { sql: "select 1", result: "r" }], catalogSummary: "tables on [host] ([host])" }, null, 2) + "\n");
     expect(lab.calls).toEqual(["open", "close", "open", "close"]);
   });
+
+  test("lab profile: setup before the baseline, only for that scenario", async () => {
+    const out = mkdtempSync(join(tmpdir(), "ctx-"));
+    const ports = fakePorts();
+    const lab = ports.lab as any;
+    lab.profile = (p: { setup: string } | null) => lab.calls.push(`profile ${p ? p.setup : "null"}`);
+    lab.setup = async () => { lab.calls.push("setup"); };
+    const b = lab.baseline.bind(lab); lab.baseline = async (s: number) => { lab.calls.push("baseline"); return b(s); };
+    const withProfile = scenarioSchema.parse({ ...sc("C18"), lab_profile: { setup: "C18" } });
+    await captureContext({ scenarios: [sc("L1"), withProfile], ports, host, outDir: out });
+    expect(lab.calls).toEqual(["profile null", "open", "baseline", "close", "profile C18", "open", "setup", "baseline", "close"]);
+  });
 });
