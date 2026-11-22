@@ -171,8 +171,6 @@ th[scope="row"], tbody th, td:first-child, th:first-child, td.num, .baseline th 
 thead th, thead th.num { white-space: normal; vertical-align: bottom; min-width: 4ch; }
 thead th:first-child { white-space: nowrap; }
 
-@media print { .banner, .nav, .skip { display: none; } }
-
 /* Chart bar cells: spans of spaces with a pattern each, same width as text (bars.ts). */
 .bx { --c: var(--ink); white-space: pre; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .bx-solid { background: var(--c); }
@@ -471,4 +469,409 @@ details.more > summary::before { white-space: pre; flex: none; }
   .kpis { gap: calc(var(--lh) / 2); }
   .kpi-n b { font-size: 2rem; }
   .duty + .duty { border-left: 0; border-top: var(--bw) solid var(--line); }
+}
+
+.print-ref, .print-refs { display: none; }
+
+@page {
+  size: auto;
+  margin: 0.55in 0.5in 0.6in;
+}
+
+@media print {
+  /* Force light print palette regardless of system or saved dark theme. */
+  :root,
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    color-scheme: light !important;
+    --bg: #ffffff !important;
+    --ink: #141414 !important;
+    --muted: #52524d !important;
+    --line: #262626 !important;
+    --soft: #f3f3ee !important;
+    --accent: #1d43a6 !important;
+    --bar: #141414 !important;
+    --chart: #8094cc !important;
+    --fam-anthropic: #c4603c !important;
+    --fam-openai: #0b7d62 !important;
+    --fam-google: #2b6fe0 !important;
+    --fam-open: #8e4ba8 !important;
+    --mc-anthropic: #b4512c !important;
+    --mc-openai: #0b7d62 !important;
+    --mc-google: #2563d6 !important;
+    --mc-open: #7c3f98 !important;
+    --mc-other: #141414 !important;
+    --mc-warn: #b3261e !important;
+    --fig-bg: #ffffff !important;
+    --fig-line: #c9c6bf !important;
+    --bw: 1px;
+    --lh: 11.5pt;
+    font-size: 8.5pt !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #141414 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide navigation, theme switcher, interactive plot controls, and mobile stubs. */
+  .banner, .nav, .skip, header.top, .theme, .qctl, .scroll-hint,
+  .narrow-only, .phone-only, svg.chart-narrow, svg.mc-narrow, svg.bc-narrow {
+    display: none !important;
+  }
+
+  svg.chart-wide, svg.mc-wide, svg.bc-wide { display: block !important; }
+
+  /* Always print the light SVG figure variant. */
+  .fig .fig-light,
+  :root[data-theme="dark"] .fig .fig-light,
+  :root:not([data-theme="light"]) .fig .fig-light {
+    display: block !important;
+  }
+  .fig .fig-dark,
+  :root[data-theme="dark"] .fig .fig-dark,
+  :root:not([data-theme="light"]) .fig .fig-dark {
+    display: none !important;
+  }
+
+  /* Expand collapsed <details> so full benchmark tables print. */
+  details::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+
+  .wrap, .wrap.wide {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Two-column academic paper flow inside <main>. */
+  main {
+    column-count: 2;
+    column-gap: 18pt;
+    column-fill: balance;
+    orphans: 3;
+    widows: 3;
+  }
+
+  main > section.block {
+    display: contents;
+  }
+
+  main p, main li, main dd {
+    max-width: 100% !important;
+    orphans: 3;
+    widows: 3;
+  }
+
+  main a {
+    color: #141414 !important;
+    text-decoration-color: #888 !important;
+    text-decoration-thickness: 0.75pt;
+  }
+
+  /* Title block, lede, KPI strip, action links, and header table span full width. */
+  main > h1,
+  main > .lede,
+  main > .kpis,
+  main > p.actions,
+  main > table.header,
+  section.block > table.header,
+  .duties {
+    column-span: all;
+    max-width: 100% !important;
+  }
+
+  main > h1, main > h1.plain {
+    font-size: 15.5pt !important;
+    line-height: 1.2 !important;
+    margin: 0 0 5pt !important;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #262626;
+    text-transform: none;
+  }
+
+  main > .lede {
+    font-size: 9pt !important;
+    line-height: 1.4 !important;
+    margin: 0 0 8pt !important;
+  }
+
+  .kpis {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8pt !important;
+    margin: 0 0 7pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kpi {
+    border: 0.75pt solid #262626 !important;
+    padding: 5pt 7pt !important;
+  }
+
+  .kpi-n b {
+    font-size: 13pt !important;
+    line-height: 1.2 !important;
+  }
+
+  .kpi-n span, .kpi-l, .kpi-s {
+    font-size: 7.6pt !important;
+    line-height: 1.3 !important;
+  }
+
+  p.actions {
+    font-size: 7.8pt !important;
+    line-height: 1.35 !important;
+    margin: 0 0 9pt !important;
+    padding-bottom: 6pt;
+    border-bottom: 0.5pt solid #c9c6bf;
+  }
+
+  .duties {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    margin: 4pt 0 7pt !important;
+    border: 0.75pt solid #262626 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .duty {
+    padding: 5pt 7pt !important;
+    font-size: 7.8pt !important;
+    line-height: 1.35 !important;
+  }
+
+  .duty + .duty {
+    border-left: 0.75pt solid #262626 !important;
+    border-top: 0 !important;
+  }
+
+  .duty h3 {
+    font-size: 8.5pt !important;
+    margin: 0 0 2pt !important;
+  }
+
+  /* Headings stay attached to following prose. */
+  main h2 {
+    font-size: 10pt !important;
+    line-height: 1.25 !important;
+    margin: 10pt 0 4pt !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  main h3 {
+    font-size: 8.8pt !important;
+    line-height: 1.25 !important;
+    margin: 7pt 0 3pt !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  main p, main ul, main ol, main dl {
+    margin: 0 0 5.5pt !important;
+  }
+
+  /* Charts, figures, wide tables, and <details> span full width cleanly. */
+  figure,
+  figure.fig,
+  figure.svg-chart,
+  figure.mc-fig,
+  figure.bc-fig,
+  svg.control-pareto {
+    column-span: all;
+    max-width: 100% !important;
+    margin: 8pt 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .fig picture {
+    max-width: 100% !important;
+    border: 0.5pt solid #c9c6bf !important;
+    border-radius: 3pt !important;
+    background: #ffffff !important;
+  }
+
+  .fig img,
+  svg.control-pareto,
+  svg[data-chart],
+  svg.mc,
+  svg.bc {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 4.5in;
+    object-fit: contain;
+  }
+
+  figure figcaption {
+    font-size: 7.5pt !important;
+    line-height: 1.32 !important;
+    margin-top: 3pt !important;
+    max-width: 100% !important;
+    color: #444 !important;
+  }
+
+  details,
+  details.more,
+  .table-scroll,
+  main > table,
+  section.block > table,
+  pre.chart {
+    column-span: all;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  details {
+    margin: 7pt 0 !important;
+    padding: 5pt 7pt !important;
+    border: 0.5pt solid #c9c6bf !important;
+    background: #fafaf8 !important;
+  }
+
+  details > summary {
+    font-size: 8.4pt !important;
+    margin-bottom: 4pt !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  details > summary::before { content: "" !important; }
+
+  table, table.compact, table.safety {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 6.6pt !important;
+    line-height: 1.25 !important;
+    margin: 4pt 0 6pt !important;
+    border-collapse: collapse !important;
+  }
+
+  table thead { display: table-header-group; }
+  table tr { break-inside: avoid; page-break-inside: avoid; }
+
+  th, td, table.compact th, table.compact td {
+    border: 0.5pt solid #b8b8b0 !important;
+    padding: 2pt 3pt !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  th[scope="row"], tbody th, td:first-child, th:first-child, td.num, .baseline th {
+    white-space: normal !important;
+  }
+
+  table.header {
+    width: 100% !important;
+    margin: 7pt 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    font-size: 7.4pt !important;
+  }
+
+  table.header th,
+  table.header td:not(.width-auto) {
+    white-space: nowrap !important;
+  }
+
+  table.header .h1-cell { font-size: 10pt !important; margin: 0 !important; }
+
+  /* Inline reference markers & 2-column numbered Links bibliography. */
+  .print-ref {
+    display: inline !important;
+    font-size: 0.7em;
+    line-height: 0;
+    vertical-align: super;
+    margin-left: 0.12em;
+    color: #52524d;
+    font-weight: 400;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .print-refs {
+    display: block !important;
+    column-span: all;
+    margin: 10pt 0 0 !important;
+    padding-top: 6pt;
+    border-top: 0.75pt solid #888;
+    font-size: 7.2pt;
+    line-height: 1.3;
+    color: #141414;
+  }
+
+  .print-refs__title {
+    font-size: 9pt !important;
+    margin: 0 0 4pt !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .print-refs__list {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    column-count: 2;
+    column-gap: 16pt;
+    column-fill: balance;
+  }
+
+  .print-refs__list li {
+    display: flex;
+    gap: 0.45em;
+    margin: 0 0 2pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    max-width: none !important;
+  }
+
+  .print-refs__list li::before { content: none !important; }
+
+  .print-refs__num {
+    flex: 0 0 2.6em;
+    text-align: right;
+    color: #52524d;
+  }
+
+  .print-refs__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .print-refs__url {
+    display: block;
+    color: #333 !important;
+    text-decoration: none !important;
+    overflow-wrap: anywhere;
+    font-size: 0.92em;
+  }
+
+  .foot {
+    margin-top: 8pt !important;
+    padding-top: 5pt !important;
+    border-top: 0.75pt solid #888 !important;
+    font-size: 7pt !important;
+    line-height: 1.3 !important;
+    break-inside: avoid;
+  }
+
+  .foot a {
+    color: #333 !important;
+    text-decoration-color: #888 !important;
+    text-decoration-thickness: 0.75pt;
+  }
+
+  .foot p { max-width: 100% !important; margin: 0 0 2.5pt !important; }
 }
