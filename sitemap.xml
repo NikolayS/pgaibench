@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<url><loc>https://pgaibench.dev/</loc><lastmod>2026-11-17</lastmod></url>
+<url><loc>https://pgaibench.dev/</loc><lastmod>2026-11-22</lastmod></url>
 <url><loc>https://pgaibench.dev/auditor/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/changelog/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/compare/</loc><lastmod>2026-11-17</lastmod></url>
@@ -574,6 +574,6 @@
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/kimi-k3.1-pro/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/qwen3.8-27b/</loc><lastmod>2026-11-17</lastmod></url>
 <url><loc>https://pgaibench.dev/compare/sonnet-5.5/sonnet-5.5-medium/</loc><lastmod>2026-11-17</lastmod></url>
-  <url><loc>https://pgaibench.dev/control/</loc></url>
-  <url><loc>https://pgaibench.dev/replay/</loc></url>
+  <url><loc>https://pgaibench.dev/control/</loc><lastmod>2026-11-22</lastmod></url>
+  <url><loc>https://pgaibench.dev/replay/</loc><lastmod>2026-11-22</lastmod></url>
 </urlset>
