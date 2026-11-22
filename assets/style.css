@@ -427,3 +427,48 @@ svg.bc .bc-pl, svg.bc .bc-eff, svg.bc .bc-tick, svg.bc .bc-d0 { fill: var(--mute
 .bc-grid { stroke: var(--soft); stroke-width: 1; } .bc-axis { stroke: var(--ink); stroke-width: 1.5; }
 .bc-row:focus { outline: none; } .bc-row:focus .bc-lab, .bc-row:hover .bc-lab { text-decoration: underline; }
 @media (max-width: 40rem) { .mc-leg-note { flex-basis: 100%; } }
+
+/* Front page (2026-11-22): headline numbers, the three AAA duties, and theme-aware figures.
+   A figure holds two <picture> tags, .fig-light and .fig-dark; each one has a narrow source
+   for phones. The dark rules below mirror the theme rules at the top of this file. */
+:root { --fig-bg: #ffffff; --fig-line: #d9d9d2; }
+.kpis, .duties, .fig, p.actions, details.more:not([open]) { max-width: 100ch; }
+p.actions a { white-space: nowrap; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lh) 2ch; margin: var(--lh) 0; }
+.kpi { border: var(--bw) solid var(--line); padding: calc(var(--lh) / 2 - var(--bw)) 1ch; }
+.kpi p { margin: 0; }
+.kpi-n { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1ch; }
+.kpi-n b { font-size: clamp(1.6rem, 4.2vw, 2rem); line-height: calc(var(--lh) * 2); white-space: nowrap; }
+.kpi-n span { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.kpi-l { font-weight: 800; }
+.kpi-s { color: var(--muted); }
+.duties { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 var(--lh); border: var(--bw) solid var(--line); }
+.duty { padding: calc(var(--lh) / 2 - var(--bw)) 1ch calc(var(--lh) / 2); }
+.duty + .duty { border-left: var(--bw) solid var(--line); }
+.duty h3 { margin: 0; }
+.duty h3 span { font-weight: 400; color: var(--muted); }
+.duty p { margin: 0; }
+.fig { margin: 0 0 var(--lh); }
+.fig picture { border: 1px solid var(--fig-line); border-radius: 8px; background: var(--fig-bg); overflow: hidden; }
+.fig img { display: block; width: 100%; height: auto; }
+.fig figcaption { color: var(--muted); margin-top: calc(var(--lh) / 2); max-width: 80ch; }
+.fig .fig-light { display: block; }
+.fig .fig-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --fig-bg: #14161a; --fig-line: #2f3138; }
+  :root:not([data-theme="light"]) .fig .fig-light { display: none; }
+  :root:not([data-theme="light"]) .fig .fig-dark { display: block; }
+}
+:root[data-theme="dark"] { --fig-bg: #14161a; --fig-line: #2f3138; }
+:root[data-theme="dark"] .fig .fig-light { display: none; }
+:root[data-theme="dark"] .fig .fig-dark { display: block; }
+details.more > summary::before { white-space: pre; flex: none; }
+@media (max-width: 600px) { .fig picture { max-width: 30rem; } }
+@media (max-width: 40rem) {
+  p.actions { display: flex; flex-direction: column; }
+  p.actions .dot { display: none; }
+  .kpis, .duties { grid-template-columns: 1fr; }
+  .kpis { gap: calc(var(--lh) / 2); }
+  .kpi-n b { font-size: 2rem; }
+  .duty + .duty { border-left: 0; border-top: var(--bw) solid var(--line); }
+}
