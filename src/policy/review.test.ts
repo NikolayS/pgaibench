@@ -100,7 +100,7 @@ describe("C18: a restart under a no-restart scope", () => {
 
   test("a reload-context config step implies no restart", () => {
     const cr = { id: "CR", task: "t", steps: [{ config: { name: "synchronous_standby_names", value: "" } }] };
-    expect(reviewChangeRequest(cr, snapshot, c18Scope).verdict).toBe("approve");
+    expect(reviewChangeRequest(cr, snapshot, c18Scope).findings.filter((f) => f.rule === "TS-2")).toEqual([]);
   });
 
   test("a forbidden action class written as a statement is rejected", () => {

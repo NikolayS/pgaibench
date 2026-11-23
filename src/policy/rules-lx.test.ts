@@ -244,7 +244,9 @@ describe("X-1: concurrent index builds, VACUUM, reloads and config steps run out
 
   test("near miss: the L2 good reference, a lone CREATE INDEX CONCURRENTLY, and the same steps after COMMIT", () => {
     expect(review(cr("CREATE INDEX CONCURRENTLY a_idx ON public.pgbench_accounts (bid)")).verdict).toBe("approve");
-    const r = review(cr("BEGIN", "COMMIT", "VACUUM (ANALYZE) public.orders", { config: { name: "autovacuum_naptime", value: "30" }, node: "primary" }));
+    // A cluster-scoped ticket, so TS-3 allows the cluster-wide config step.
+    const r = reviewChangeRequest(cr("BEGIN", "COMMIT", "VACUUM (ANALYZE) public.orders", { config: { name: "autovacuum_naptime", value: "30" }, node: "primary" }),
+      snap(), { ...scope, cluster_scope: true });
     expect(r).toEqual({ verdict: "approve", findings: [] });
   });
 });
