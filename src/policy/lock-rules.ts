@@ -1,21 +1,14 @@
 import type { Check, CheckContext } from "./checks";
 import type { ClassifiedAction } from "./classify";
 import { lockStrength, type LockMode } from "./locks";
+import { thresholdValue } from "./rule-data";
 
 // Locking and transaction-structure rules L-1 to L-4 and X-1 to X-4 (issue #10).
 // They read the lock, transaction and session data the classifier attaches to
 // each action (locks.ts).
 
-const UNITS: Record<string, number> = { ms: 1, s: 1000, min: 60_000, h: 3_600_000, B: 1, kB: 1024, MB: 1024 ** 2, GiB: 1024 ** 3, GB: 1024 ** 3, MiB: 1024 ** 2, TiB: 1024 ** 4 };
-
 /** A threshold from the rule data in ms (durations) or bytes (sizes). */
-function threshold(ctx: CheckContext, name: string): number {
-  const raw = ctx.thresholds[name]?.value;
-  if (typeof raw === "number") return raw;
-  const m = /^(\d+(?:\.\d+)?)\s*([A-Za-z]+)$/.exec(raw ?? "");
-  if (!m || UNITS[m[2]] === undefined) throw new Error(`Threshold ${name} has no readable value: ${raw}`);
-  return Number(m[1]) * UNITS[m[2]];
-}
+const threshold = (ctx: CheckContext, name: string): number => thresholdValue(ctx.thresholds, name);
 
 const atLeast = (a: ClassifiedAction, mode: LockMode) => lockStrength(a.lock?.mode ?? null) >= lockStrength(mode);
 
@@ -54,14 +47,20 @@ function targetSize(ctx: CheckContext, a: ClassifiedAction): { relation: string;
 
 const gib = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
 
-// L-3: a validating constraint, blocking index build or rewriting column type
-// change scans or rewrites its table under a lock that blocks writes, so the
-// table may be at most S_scan. A relation the snapshot does not list (created
-// earlier in the change request) is not measured.
+// L-3: a validating constraint, blocking index build, rewriting column type
+// change, or ADD COLUMN that rewrites or scans, scans or rewrites its table
+// under a lock that blocks writes, so the table may be at most S_scan. A
+// relation the snapshot does not list (created earlier in the change request)
+// is not measured.
+const scansOrRewrites = (a: ClassifiedAction) =>
+  a.action === "ddl.alter_column_type" ? a.lock?.rewrites
+  : a.action === "ddl.add_column" ? a.lock?.rewrites || a.lock?.scans
+  : true;
+
 export const lockedScanSize: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ctx.actions
-    .filter((a) => appliesTo(ctx, a) && (a.action !== "ddl.alter_column_type" || a.lock?.rewrites))
+    .filter((a) => appliesTo(ctx, a) && scansOrRewrites(a))
     .flatMap((a) => {
       const size = targetSize(ctx, a);
       if (!size || size.total_bytes <= limit) return [];

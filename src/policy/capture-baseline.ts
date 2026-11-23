@@ -32,6 +32,8 @@ export const BASELINE_DIR = join(import.meta.dir, "fixtures", "baselines");
 const REPO_DIR = join(import.meta.dir, "..", "..");
 const LAB_DEFAULT_PASSWORD = "pgaibench";
 const PRIMARY_PORT = 5432, STANDBY_PORT = 5433;
+/** The primary's clock, in epoch seconds. collected_at also comes from the primary, so both ends of W share one clock. */
+const PRIMARY_NOW_CMD = "docker exec pgaibench-primary psql -U postgres -d app -XAtc 'SELECT extract(epoch FROM now())'";
 const USAGE = "Usage: bun run src/policy/capture-baseline.ts --seed <n> --scenario <id> [--window <s>] [--collect-at <s>] [--out <dir>]\n"
   + "       bun run src/policy/capture-baseline.ts --list | --plan <id> | --check <file>";
 
@@ -125,7 +127,6 @@ export interface BaselinePorts {
   client(conn: Connection): SqlClient;
   collect(connections: NodeConnections, cr: PolicyChangeRequest, options: CollectOptions): Promise<StateSnapshot>;
   sleep(ms: number): Promise<void>;
-  now(): Date;
   lock(): Promise<{ release(): Promise<void> }>;
   write(path: string, text: string): void;
   log(message: string): void;
@@ -137,6 +138,17 @@ async function must(p: BaselinePorts, cmd: string, what: string) {
   const r = await p.run(cmd);
   if (r.exitCode !== 0) throw new Error(`${what} exited ${r.exitCode}: ${redactText((r.stderr || r.stdout).slice(-300))}`);
   return r;
+}
+
+// The usage window starts on the primary's clock, not the laptop's: clock skew
+// would shift W or put its start after the snapshot time.
+async function primaryNow(p: BaselinePorts): Promise<Date> {
+  const r = await p.run(PRIMARY_NOW_CMD);
+  const seconds = Number(r.stdout.trim());
+  if (r.exitCode !== 0 || r.stdout.trim() === "" || !Number.isFinite(seconds)) {
+    throw new Error(`Could not read the primary's clock: ${redactText((r.stderr || r.stdout).slice(-300))}`);
+  }
+  return new Date(seconds * 1000);
 }
 
 /** Capture one baseline; returns the fixture path. Writes nothing unless every check passes. */
@@ -159,7 +171,7 @@ export async function captureBaseline(args: BaselineArgs, p: BaselinePorts): Pro
     }
 
     p.log(`${args.scenario}: starting W_prod for ${args.windowS} s; collecting at ${args.collectAtS} s`);
-    const usageWindowStart = p.now();
+    const usageWindowStart = await primaryNow(p);
     let workloadEnded = false;
     workloadStarted = true;
     const workload = p.run(`${REMOTE_ENV}/workload/w_prod.sh ${args.windowS} W_prod ${PRIMARY_PORT}`)
@@ -211,7 +223,6 @@ function realPorts(ip: string): BaselinePorts {
     client: createClient,
     collect: collectSnapshot,
     sleep: (ms) => Bun.sleep(ms),
-    now: () => new Date(),
     lock: () => acquireVmLock(ip),
     write: (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); },
     log: (m) => console.error(m),

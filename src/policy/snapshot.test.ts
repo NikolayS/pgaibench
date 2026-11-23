@@ -32,6 +32,13 @@ describe("state snapshot schema", () => {
     ["an index belongs to a table the snapshot does not list", (s: any) => { s.relations["public.orders_pkey"].table = "public.customers"; }],
     ["a constraint's backing index is not a listed index", (s: any) => { s.constraints[0].index = "public.orders"; }],
     ["the usage window starts after the snapshot time", (s: any) => { s.usage_window_start = "2026-11-23T10:00:01.000+00:00"; }],
+    // Rules look relations up by schema-qualified name, so an unqualified one would never match.
+    ["a relation name has no schema", (s: any) => { s.relations.orders = s.relations["public.orders"]; }],
+    ["a lock names a relation without its schema", (s: any) => { s.nodes.primary.locks[0].relation = "orders"; }],
+    ["index usage is keyed without the schema", (s: any) => { s.nodes.primary.usage.indexes.orders_pkey = s.nodes.primary.usage.indexes["public.orders_pkey"]; }],
+    ["table usage is keyed without the schema", (s: any) => { s.nodes.standby.usage.tables.orders = s.nodes.standby.usage.tables["public.orders"]; }],
+    ["a constraint names its table without the schema", (s: any) => { s.constraints[0].table = "orders"; }],
+    ["a foreign key does not name its referenced table", (s: any) => { s.constraints[1].type = "foreign_key"; }],
   ])("a snapshot is rejected when %s", (_label, corrupt) => {
     const s = clone();
     corrupt(s);

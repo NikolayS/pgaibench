@@ -8,6 +8,12 @@ import { collectSnapshot } from "./snapshot-collect";
 
 type Call = { query: string; params?: unknown[] };
 
+// Postgres renders oid::regclass::text without the schema for any relation on
+// search_path, so SQL that names relations that way gets "orders", not
+// "public.orders". The fake answers as Postgres would for the SQL it is sent.
+const asPostgresRenders = (query: string, raw: Record<string, unknown>) =>
+  /::regclass::text/.test(query) ? JSON.parse(JSON.stringify(raw).replaceAll('"public.', '"')) : raw;
+
 function fakeNode(raw: Record<string, unknown>, opts: { pgss?: boolean; pgssRows?: unknown[]; cascade?: Record<string, Row[]> } = {}) {
   const calls: Call[] = [];
   const client: SqlClient = {
@@ -16,7 +22,7 @@ function fakeNode(raw: Record<string, unknown>, opts: { pgss?: boolean; pgssRows
       if (query.includes("WITH RECURSIVE")) return opts.cascade?.[`${params![0]}:${params![1]}`] ?? [];
       if (query.includes("pg_extension")) return [{ installed: opts.pgss ?? false }];
       if (query.includes("FROM pg_stat_statements")) return [{ pgss: opts.pgssRows ?? [] }];
-      return [{ snapshot: raw }];
+      return [{ snapshot: asPostgresRenders(query, raw) }];
     },
     async end() {},
   };
@@ -46,8 +52,8 @@ const rawNode = (standby: boolean, preload: string) => ({
     { name: "public.order_totals", kind: "m", persistence: "p", total_bytes: 16384, reltuples: 10, reloptions: null, replica_identity: "n" },
   ],
   constraints: [
-    { name: "orders_pkey", type: "p", validated: true, table: "public.orders", index: "public.orders_pkey", definition: "PRIMARY KEY (id)" },
-    { name: "orders_amount_check", type: "c", validated: false, table: "public.orders", index: null, definition: "CHECK ((amount >= 0)) NOT VALID" },
+    { name: "orders_pkey", type: "p", validated: true, table: "public.orders", index: "public.orders_pkey", references: null, definition: "PRIMARY KEY (id)" },
+    { name: "orders_amount_check", type: "c", validated: false, table: "public.orders", index: null, references: null, definition: "CHECK ((amount >= 0)) NOT VALID" },
   ],
   indexes: [
     { index: "public.orders_pkey", table: "public.orders", valid: true, primary: true, unique: true, replident: false, total_bytes: 44941312 },

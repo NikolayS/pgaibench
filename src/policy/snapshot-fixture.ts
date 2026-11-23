@@ -33,7 +33,7 @@ export const index = (tableName: string, extra: Partial<Omit<IndexRelation, "kin
 });
 
 export const constraint = (name: string, tableName: string, type: Constraint["type"], extra: Partial<Constraint> = {}): Constraint => ({
-  name, type, validated: true, table: tableName, index: null, definition: "", ...extra,
+  name, type, validated: true, table: tableName, index: null, references: null, definition: "", ...extra,
 });
 
 /** pg_stat_user_indexes for one index on one node; lastScan null means never scanned. */

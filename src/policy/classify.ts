@@ -266,6 +266,22 @@ function typeName(t: Node): string {
   return `${name}${mods.length > 0 ? `(${mods.join(",")})` : ""}${bounds}`;
 }
 
+// TRUNCATE ... CASCADE also truncates every table with a foreign key to a
+// truncated table, transitively, so it touches all of them (TS-1).
+function truncateCascade(named: string[], snapshot: StateSnapshot): string[] {
+  const reached = new Set(named);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const c of snapshot.constraints) {
+      if (c.type === "foreign_key" && c.references !== null && reached.has(c.references) && !reached.has(c.table)) {
+        reached.add(c.table);
+        grew = true;
+      }
+    }
+  }
+  return [...reached];
+}
+
 function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
   const [type] = Object.keys(stmt);
   const body = stmt[type];
@@ -334,15 +350,31 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         return ok({ step, action: "obj.drop", objects: body.objects.map(droppedName), cascade: body.behavior === "DROP_CASCADE" });
       }
       break;
+    case "CreateStmt": {
+      // A new table, plus any parent it inherits from or is a partition of.
+      const parents: string[] = (body.inhRelations ?? []).map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname));
+      return ok({ step, action: "obj.create", objects: [qualify(body.relation.schemaname, body.relation.relname), ...parents] });
+    }
+    case "ViewStmt":
+      // The view's query is stored, not run, so only the view is touched.
+      return ok({ step, action: "obj.create", objects: [qualify(body.view.schemaname, body.view.relname)] });
+    case "CreateTableAsStmt": {
+      // CREATE TABLE AS and CREATE MATERIALIZED VIEW run their query, so it
+      // may call only read-only functions, as a query.read may.
+      const unknown = [...new Set(calledFunctions(body.query).filter((f) => !READ_ONLY_FUNCTIONS.has(f)))];
+      if (unknown.length > 0) {
+        return deny(step, "unknown_function", `Step ${step} calls ${unknown.join(", ")}, which the policy gate does not know to be read-only.`,
+          "Use only read-only built-in functions, or write the change as explicit SQL steps.", { functions: unknown });
+      }
+      return ok({ step, action: "obj.create", objects: [qualify(body.into.rel.schemaname, body.into.rel.relname)] });
+    }
     case "AlterTableStmt":
       return classifyAlterTable(body, step);
-    case "TruncateStmt":
-      return ok({
-        step,
-        action: "obj.truncate",
-        objects: body.relations.map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname)),
-        cascade: body.behavior === "DROP_CASCADE",
-      });
+    case "TruncateStmt": {
+      const named: string[] = body.relations.map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname));
+      const cascade = body.behavior === "DROP_CASCADE";
+      return ok({ step, action: "obj.truncate", objects: cascade ? truncateCascade(named, snapshot) : named, cascade });
+    }
     case "VacuumStmt": {
       const options = new Set((body.options ?? []).map((o: Node) => o.DefElem?.defname));
       if (options.has("full")) {
@@ -356,10 +388,6 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         : rels.map((r) => qualify(r.VacuumRelation.relation.schemaname, r.VacuumRelation.relation.relname));
       return ok({ step, action: "maint.vacuum_analyze", objects });
     }
-    case "UpdateStmt":
-    case "DeleteStmt":
-    case "InsertStmt":
-      return ok({ step, action: "dml.bounded", objects: [qualify(body.relation.schemaname, body.relation.relname)] });
     case "DoStmt":
       return deny(step, "do_block", `Step ${step} is a DO block, whose statements the policy gate cannot see.`,
         "Write each statement as its own SQL step.");
@@ -388,6 +416,13 @@ const CONSTRAINT_TYPES: Record<string, ConstraintInfo["type"]> = {
 // Functions whose value differs per row, so a column default that calls one rewrites the table.
 const VOLATILE_DEFAULTS = new Set(["random", "gen_random_uuid", "uuidv4", "uuidv7", "clock_timestamp", "nextval", "timeofday"]);
 
+// ADD COLUMN constraints that store a value per row, so the table is rewritten
+// (a stored generated or identity column; a PG 18 virtual column stores
+// nothing), and ones that read every row to build an index or check existing rows.
+const rewritingColumnConstraint = (c: Node) =>
+  c.contype === "CONSTR_IDENTITY" || (c.contype === "CONSTR_GENERATED" && c.generated_kind === "s");
+const SCANNING_COLUMN_CONSTRAINTS = new Set(["CONSTR_UNIQUE", "CONSTR_PRIMARY", "CONSTR_FOREIGN", "CONSTR_CHECK"]);
+
 // The column a constraint proves NOT NULL: NOT NULL col, or CHECK (col IS NOT NULL).
 function notNullColumn(c: Node): string | undefined {
   if (c.contype === "CONSTR_NOTNULL" && c.keys?.length === 1) return c.keys[0].String?.sval;
@@ -411,9 +446,12 @@ function classifyAlterTable(body: Node, step: number): Classified {
     const base = { step, objects: [target] };
     switch (cmd.subtype) {
       case "AT_AddColumn": {
-        const volatile = calledFunctions(cmd.def?.ColumnDef?.constraints).some((f) => VOLATILE_DEFAULTS.has(f));
+        const constraints: Node[] = (cmd.def?.ColumnDef?.constraints ?? []).map((c: Node) => c.Constraint ?? {});
+        const rewrites = calledFunctions(constraints).some((f) => VOLATILE_DEFAULTS.has(f))
+          || constraints.some(rewritingColumnConstraint);
+        const scans = rewrites || constraints.some((c) => SCANNING_COLUMN_CONSTRAINTS.has(c.contype));
         actions.push({ ...base, action: "ddl.add_column", column: cmd.def?.ColumnDef?.colname,
-          lock: { ...LOCK_PROFILES["ddl.add_column"], rewrites: volatile, scans: volatile, relations: [target] } });
+          lock: { ...LOCK_PROFILES["ddl.add_column"], rewrites, scans, relations: [target] } });
         continue;
       }
       case "AT_AddConstraint": {

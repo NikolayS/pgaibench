@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CHECKS } from "./checks";
 import { RULES_MD_PATH, renderRulesMarkdown } from "./gen-rules-md";
-import { loadRuleData, parseRuleData, RULES_YAML_PATH } from "./rule-data";
+import { loadRuleData, parseRuleData, RULES_YAML_PATH, thresholdValue } from "./rule-data";
 
 // Schema tests for the policy rule data (issue #3). The rule data file is the
 // source of truth for rule text; each rule ID maps to exactly one check function.
@@ -34,6 +34,17 @@ describe("rule data", () => {
     expect(() => parseRuleData(withBadVerdict)).toThrow();
     const withDuplicate = { ...good, rules: [...good.rules, good.rules[0]] };
     expect(() => parseRuleData(withDuplicate)).toThrow(/duplicate/i);
+  });
+
+  test("every threshold reads as one number, sizes in bytes and durations in ms", () => {
+    const { thresholds } = loadRuleData();
+    expect(thresholdValue(thresholds, "S_scan")).toBe(1024 ** 3);
+    expect(thresholdValue(thresholds, "T_lock")).toBe(2000);
+    expect(thresholdValue(thresholds, "B")).toBe(10000);
+    const t = (value: string) => ({ X: { value, meaning: "test" } });
+    expect(thresholdValue(t("1 TB"), "X")).toBe(thresholdValue(t("1TiB"), "X"));
+    expect(thresholdValue(t("5min"), "X")).toBe(300_000);
+    expect(() => thresholdValue(t("1 parsec"), "X")).toThrow(/no readable value/);
   });
 });
 

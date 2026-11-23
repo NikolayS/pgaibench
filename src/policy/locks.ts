@@ -85,13 +85,16 @@ type Node = Record<string, any>;
 
 // All SQL steps of a change request run in order on one reserved connection
 // (src/actor/session.ts), so a session SET persists into later steps until a
-// RESET; SET LOCAL lasts until its transaction ends. Config steps run on a
-// harness connection and never change the CR session.
+// RESET, unless its transaction rolls back, which undoes it; SET LOCAL lasts
+// until its transaction ends. Config steps run on a harness connection and
+// never change the CR session.
 export class TxnTracker {
   private next = 0;
   private group: number | null = null;
   private explicit = false;
   private session: number | null = null;
+  /** The session value when the open transaction began; a ROLLBACK restores it. */
+  private sessionAtTxnStart: number | null = null;
   private local: number | null | undefined = undefined;
   private multi = false;
   private statements = 0;
@@ -113,14 +116,15 @@ export class TxnTracker {
     if (type === "TransactionStmt") {
       if (body.kind === "TRANS_STMT_BEGIN" || body.kind === "TRANS_STMT_START") {
         // A BEGIN inside a multi-statement step turns its implicit transaction explicit.
-        if (this.group === null) this.group = ++this.next;
+        if (this.group === null) this.beginTxn();
         this.explicit = true;
       } else if (body.kind === "TRANS_STMT_COMMIT" || body.kind === "TRANS_STMT_ROLLBACK") {
+        if (body.kind === "TRANS_STMT_ROLLBACK" && this.group !== null) this.session = this.sessionAtTxnStart;
         this.endTxn();
       }
       return null;
     }
-    if (this.group === null) this.group = ++this.next;
+    if (this.group === null) this.beginTxn();
     this.statements++;
     if (type === "VariableSetStmt") this.setVariable(body);
     return { txn: this.current(), session: this.sessionState() };
@@ -138,6 +142,11 @@ export class TxnTracker {
 
   private sessionState(): SessionState {
     return { lock_timeout_ms: this.local !== undefined ? this.local : this.session };
+  }
+
+  private beginTxn(): void {
+    this.group = ++this.next;
+    this.sessionAtTxnStart = this.session;
   }
 
   private endTxn(): void {
