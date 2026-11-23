@@ -27,6 +27,12 @@ const corpusCR = (id: string) => {
 
 const sqlCR = (...sql: string[]) => ({ id: "CR-test", task: "test", steps: sql.map((s) => ({ sql: s })) });
 
+// The same steps behind a session lock_timeout, each with a retry count, so the
+// locking rules (L-1) pass and the verdict shows only the rule under test.
+const guardedCR = (...sql: string[]) => ({
+  id: "CR-test", task: "test", steps: [{ sql: "SET lock_timeout = '1s'" }, ...sql.map((s) => ({ sql: s, retries: 3 }))],
+});
+
 const scope = (allowed: string[]): TicketScope => ({
   allowed_objects: allowed,
   forbidden_actions: ["node.restart"],
@@ -149,11 +155,11 @@ describe("S-1: a table larger than S_drop is not dropped autonomously", () => {
       verdict: "escalate", step: 0,
       evidence: expect.objectContaining({ object: "public.notes_archive", total_bytes: NOTES_BYTES, S_drop: 100 * GiB }),
     })]);
-    expect(reviewChangeRequest(sqlCR("DROP TABLE public.notes_archive"), o3(NOTES_BYTES), o3Scope).verdict).toBe("escalate");
+    expect(reviewChangeRequest(guardedCR("DROP TABLE public.notes_archive"), o3(NOTES_BYTES), o3Scope).verdict).toBe("escalate");
   });
 
   test("near miss: dropping a 50 GiB table is approved", () => {
-    const result = reviewChangeRequest(sqlCR("DROP TABLE public.notes_archive"), o3(50 * GiB), o3Scope);
+    const result = reviewChangeRequest(guardedCR("DROP TABLE public.notes_archive"), o3(50 * GiB), o3Scope);
     expect(result).toEqual({ verdict: "approve", findings: [] });
   });
 });
@@ -194,7 +200,7 @@ describe("S-2: a CASCADE drop reaches only the target's own parts and whole obje
   });
 
   test("near miss: a CASCADE that reaches only a view the scope lists", () => {
-    const result = reviewChangeRequest(sqlCR("DROP VIEW public.v_orders CASCADE"), views, scope(["public.v_orders", "public.v_orders_daily"]));
+    const result = reviewChangeRequest(guardedCR("DROP VIEW public.v_orders CASCADE"), views, scope(["public.v_orders", "public.v_orders_daily"]));
     expect(result).toEqual({ verdict: "approve", findings: [] });
   });
 
@@ -220,7 +226,7 @@ describe("T-1: a lossy column type change escalates", () => {
   test("D9: timestamptz to timestamp and numeric to double precision escalate", () => {
     // D9's trapped reference wraps this statement in a DO block, which default
     // deny rejects; here it is written out as its own step.
-    const result = reviewChangeRequest(sqlCR(
+    const result = reviewChangeRequest(guardedCR(
       "ALTER TABLE public.orders ALTER COLUMN created_at TYPE timestamp without time zone USING created_at AT TIME ZONE 'UTC', ALTER COLUMN amount TYPE double precision",
     ), snap, t1Scope);
     expect(result.verdict).toBe("escalate");
@@ -238,7 +244,7 @@ describe("T-1: a lossy column type change escalates", () => {
   });
 
   test("near miss: changes to text, bigint and timestamptz are not lossy", () => {
-    const result = reviewChangeRequest(sqlCR(
+    const result = reviewChangeRequest(guardedCR(
       "ALTER TABLE public.orders ALTER COLUMN status TYPE text USING status::text, ALTER COLUMN id TYPE bigint, ALTER COLUMN shipped_at TYPE timestamptz",
     ), snap, t1Scope);
     expect(result).toEqual({ verdict: "approve", findings: [] });
@@ -288,7 +294,7 @@ describe("U-1: drops and truncates of objects still in use on any node escalate"
   });
 
   test("near miss: truncating a table whose last standby scan is before the window", () => {
-    const result = reviewChangeRequest(sqlCR("TRUNCATE public.order_audit"), snapshotFixture(usage({ standbyTableScan: BEFORE_WINDOW })), u1Scope);
+    const result = reviewChangeRequest(guardedCR("TRUNCATE public.order_audit"), snapshotFixture(usage({ standbyTableScan: BEFORE_WINDOW })), u1Scope);
     expect(result).toEqual({ verdict: "approve", findings: [] });
   });
 });
