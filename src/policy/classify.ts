@@ -23,6 +23,18 @@ export type ClassifiedAction = {
   nodes?: NodeName[];
   /** The setting a config step or role setting changes. */
   setting?: string;
+  /**
+   * The transaction the action runs in. Outside an explicit BEGIN, each step is
+   * one implicit transaction (a multi-statement step runs as one query); a
+   * BEGIN ... COMMIT block may span steps, since the Actor keeps one session.
+   */
+  txn: number;
+  /** dml.bounded: the statement kind, and the row count of an INSERT ... VALUES. */
+  dml?: { statement: "update" | "delete" | "insert"; values_rows?: number };
+  /** dml.bounded: the expected_rows its step declares, if the step has exactly one DML statement. */
+  expected_rows?: number;
+  /** ext.create: the extension's name. */
+  extension?: string;
 };
 
 export type DenyCode =
@@ -42,14 +54,17 @@ export type Denial = {
 
 export type Classification = { actions: ClassifiedAction[]; denials: Denial[] };
 
-type Classified = { actions: ClassifiedAction[]; denials: Denial[] };
+/** An action before classify() stamps its transaction. */
+type ActionDraft = Omit<ClassifiedAction, "txn">;
+
+type Classified = { actions: ActionDraft[]; denials: Denial[] };
 
 const deny = (
   step: number, code: DenyCode, reason: string, fix_hint: string,
   evidence: Record<string, unknown> = {}, verdict: Denial["verdict"] = "reject",
 ): Classified => ({ actions: [], denials: [{ step, verdict, code, reason, fix_hint, evidence: { code, ...evidence } }] });
 
-const ok = (...actions: ClassifiedAction[]): Classified => ({ actions, denials: [] });
+const ok = (...actions: ActionDraft[]): Classified => ({ actions, denials: [] });
 
 // Session settings that change which objects later statements resolve to, the
 // privileges they run with, or whether triggers and foreign keys fire.
@@ -122,6 +137,49 @@ function classifySelect(stmt: Node, body: Node, step: number): Classified {
   return ok({ step, action: "query.read", objects: [] });
 }
 
+const DML_STATEMENTS = new Set(["UpdateStmt", "DeleteStmt", "InsertStmt"]);
+
+// Built-in functions a DML statement may call to compute new values, on top of
+// the read-only ones: none writes elsewhere, locks or signals.
+const DML_VALUE_FUNCTIONS = new Set([
+  "generate_series", "md5", "sha256", "encode", "decode", "convert_to", "convert_from", "gen_random_uuid",
+  "concat", "concat_ws", "substr", "substring", "replace", "left", "right", "coalesce", "greatest", "least",
+  "clock_timestamp", "statement_timestamp", "random",
+]);
+
+// UPDATE, DELETE and INSERT are dml.bounded on their target table. Row bounds
+// come from the step's expected_rows (the Actor rolls back past it) or, for
+// INSERT ... VALUES, from the number of rows written out.
+function classifyDml(stmt: Node, type: string, body: Node, step: number): Classified {
+  if (hasNode(stmt, (n) => n.CommonTableExpr && !n.CommonTableExpr.ctequery?.SelectStmt)) {
+    return deny(step, "unknown_statement", `Step ${step} has a data-modifying WITH query, which the policy gate does not classify.`,
+      "Write each change as its own SQL step.", { statement: type });
+  }
+  const unknown = [...new Set(calledFunctions(stmt).filter((f) => !READ_ONLY_FUNCTIONS.has(f) && !DML_VALUE_FUNCTIONS.has(f)))];
+  if (unknown.length > 0) {
+    return deny(step, "unknown_function", `Step ${step} calls ${unknown.join(", ")}, which the policy gate does not know to be free of side effects.`,
+      "Use only built-in functions, or write the change as explicit SQL steps.", { functions: unknown });
+  }
+  const statement = ({ UpdateStmt: "update", DeleteStmt: "delete", InsertStmt: "insert" } as const)[type as "UpdateStmt"];
+  const values: Node[] | undefined = body.selectStmt?.SelectStmt?.valuesLists;
+  return ok({
+    step,
+    action: "dml.bounded",
+    objects: [qualify(body.relation.schemaname, body.relation.relname)],
+    dml: { statement, ...(values ? { values_rows: values.length } : {}) },
+  });
+}
+
+const RELOPTION_COMMANDS = new Set(["AT_SetRelOptions", "AT_ResetRelOptions"]);
+
+// ALTER TABLE ... SET (...) or RESET (...) of storage options: ddl.set_reloption
+// on the table. Undefined for any other ALTER TABLE command.
+function classifyRelOptions(body: Node, step: number): Classified | undefined {
+  const cmds: Node[] = body.cmds ?? [];
+  if (cmds.length === 0 || !cmds.every((c) => RELOPTION_COMMANDS.has(c.AlterTableCmd?.subtype))) return undefined;
+  return ok({ step, action: "ddl.set_reloption", objects: [qualify(body.relation.schemaname, body.relation.relname)] });
+}
+
 const SESSION_KILLS = new Set(["pg_terminate_backend", "pg_cancel_backend"]);
 
 // The first session-kill function called anywhere in a parse tree, if any.
@@ -190,8 +248,23 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
       });
     case "SelectStmt":
       return classifySelect(stmt, body, step);
+    case "UpdateStmt":
+    case "DeleteStmt":
+    case "InsertStmt":
+      return classifyDml(stmt, type, body, step);
+    case "CreateExtensionStmt":
+      // An extension is not a relation, so TS-5's allowlist, not TS-1, decides it.
+      return ok({ step, action: "ext.create", objects: [], extension: body.extname });
+    case "AlterTableStmt": {
+      const reloption = classifyRelOptions(body, step);
+      if (reloption) return reloption;
+      break;
+    }
     case "AlterRoleSetStmt":
-      return ok({ step, action: "cfg.set_role", objects: [`role:${body.role?.rolename}`], setting: body.setstmt?.name });
+      // ALTER ROLE ALL has no role and reaches every role.
+      return ok({ step, action: "cfg.set_role", objects: [`role:${body.role ? body.role.rolename : "*"}`], setting: body.setstmt?.name });
+    case "AlterDatabaseSetStmt":
+      return ok({ step, action: "cfg.set_role", objects: [`database:${body.dbname}`], setting: body.setstmt?.name });
     case "DropStmt":
       if (body.removeType === "OBJECT_INDEX") {
         const indexes: string[] = body.objects.map(nameFromList);
@@ -257,7 +330,7 @@ function classifyConfig(
   if (context === "postmaster") {
     return ok(
       { step, action: "cfg.set_restart", objects: [], nodes, setting },
-      ...nodes.map((n): ClassifiedAction => ({ step, action: "node.restart", objects: [], nodes: [n], setting })),
+      ...nodes.map((n): ActionDraft => ({ step, action: "node.restart", objects: [], nodes: [n], setting })),
     );
   }
   if (context && RELOAD_CONTEXTS.has(context)) return ok({ step, action: "cfg.set_reload", objects: [], nodes, setting });
@@ -271,11 +344,17 @@ function classifyConfig(
 
 export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Classification {
   const out: Classification = { actions: [], denials: [] };
-  const add = (c: Classified) => {
-    out.actions.push(...c.actions);
+  // Transaction grouping: a new implicit transaction starts at each step unless
+  // an explicit BEGIN is open, and after each COMMIT or ROLLBACK. A BEGIN takes
+  // over the implicit transaction it is in, as Postgres does in a multi-statement query.
+  let txn = -1;
+  let explicit = false;
+  const add = (c: Classified, extra: Partial<ClassifiedAction> = {}) => {
+    out.actions.push(...c.actions.map((a) => ({ ...a, ...extra, txn })));
     out.denials.push(...c.denials);
   };
   cr.steps.forEach((raw, step) => {
+    if (!explicit) txn++;
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       add(deny(step, "malformed_step", `Step ${step} is not a step object.`, "Write each step as a SQL step or a config step.", { value: raw }));
       return;
@@ -288,7 +367,20 @@ export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Clas
           "Fix the SQL syntax.", { error: parsed.error }));
         return;
       }
-      for (const { stmt } of parsed.stmts) if (stmt) add(classifyStatement(stmt as Node, step, snapshot));
+      const stmts = parsed.stmts.flatMap(({ stmt }) => (stmt ? [stmt as Node] : []));
+      const isDml = (st: Node) => DML_STATEMENTS.has(Object.keys(st)[0]);
+      // A step's expected_rows bounds its DML only when there is exactly one DML statement to bound.
+      const expected = stmts.filter(isDml).length === 1 && typeof s.expected_rows === "number"
+        ? { expected_rows: s.expected_rows } : {};
+      for (const stmt of stmts) {
+        const kind: string | undefined = stmt.TransactionStmt?.kind;
+        if (kind === "TRANS_STMT_BEGIN" || kind === "TRANS_STMT_START") explicit = true;
+        add(classifyStatement(stmt, step, snapshot), isDml(stmt) ? expected : {});
+        if (kind === "TRANS_STMT_COMMIT" || kind === "TRANS_STMT_ROLLBACK") {
+          explicit = false;
+          txn++;
+        }
+      }
     } else if ("config" in s && typeof s.config?.name === "string") {
       add(classifyConfig(s, step, snapshot));
     } else {

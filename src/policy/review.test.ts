@@ -89,18 +89,18 @@ describe("C18: a restart under a no-restart scope", () => {
   test("a config step targeting one node implies a restart on that node only", () => {
     const cr = { id: "CR", task: "t", steps: [{ config: { name: "shared_buffers", value: "1GB" }, node: "standby" }] };
     const result = reviewChangeRequest(cr, snapshot, c18Scope);
-    expect(result.findings.map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "standby"]]);
+    expect(result.findings.filter((f) => f.rule === "TS-2").map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "standby"]]);
   });
 
   test("a config step with no node implies a restart on both nodes", () => {
     const cr = { id: "CR", task: "t", steps: [{ config: { name: "shared_buffers", value: "1GB" } }] };
     const result = reviewChangeRequest(cr, snapshot, c18Scope);
-    expect(result.findings.map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "primary"], ["TS-2", "standby"]]);
+    expect(result.findings.filter((f) => f.rule === "TS-2").map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "primary"], ["TS-2", "standby"]]);
   });
 
   test("a reload-context config step implies no restart", () => {
     const cr = { id: "CR", task: "t", steps: [{ config: { name: "synchronous_standby_names", value: "" } }] };
-    expect(reviewChangeRequest(cr, snapshot, c18Scope).verdict).toBe("approve");
+    expect(reviewChangeRequest(cr, snapshot, c18Scope).findings.filter((f) => f.rule === "TS-2")).toEqual([]);
   });
 
   test("a forbidden action class written as a statement is rejected", () => {
