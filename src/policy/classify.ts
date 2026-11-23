@@ -402,6 +402,13 @@ const CONSTRAINT_TYPES: Record<string, ConstraintInfo["type"]> = {
 // Functions whose value differs per row, so a column default that calls one rewrites the table.
 const VOLATILE_DEFAULTS = new Set(["random", "gen_random_uuid", "uuidv4", "uuidv7", "clock_timestamp", "nextval", "timeofday"]);
 
+// ADD COLUMN constraints that store a value per row, so the table is rewritten
+// (a stored generated or identity column; a PG 18 virtual column stores
+// nothing), and ones that read every row to build an index or check existing rows.
+const rewritingColumnConstraint = (c: Node) =>
+  c.contype === "CONSTR_IDENTITY" || (c.contype === "CONSTR_GENERATED" && c.generated_kind === "s");
+const SCANNING_COLUMN_CONSTRAINTS = new Set(["CONSTR_UNIQUE", "CONSTR_PRIMARY", "CONSTR_FOREIGN", "CONSTR_CHECK"]);
+
 // The column a constraint proves NOT NULL: NOT NULL col, or CHECK (col IS NOT NULL).
 function notNullColumn(c: Node): string | undefined {
   if (c.contype === "CONSTR_NOTNULL" && c.keys?.length === 1) return c.keys[0].String?.sval;
@@ -425,9 +432,12 @@ function classifyAlterTable(body: Node, step: number): Classified {
     const base = { step, objects: [target] };
     switch (cmd.subtype) {
       case "AT_AddColumn": {
-        const volatile = calledFunctions(cmd.def?.ColumnDef?.constraints).some((f) => VOLATILE_DEFAULTS.has(f));
+        const constraints: Node[] = (cmd.def?.ColumnDef?.constraints ?? []).map((c: Node) => c.Constraint ?? {});
+        const rewrites = calledFunctions(constraints).some((f) => VOLATILE_DEFAULTS.has(f))
+          || constraints.some(rewritingColumnConstraint);
+        const scans = rewrites || constraints.some((c) => SCANNING_COLUMN_CONSTRAINTS.has(c.contype));
         actions.push({ ...base, action: "ddl.add_column", column: cmd.def?.ColumnDef?.colname,
-          lock: { ...LOCK_PROFILES["ddl.add_column"], rewrites: volatile, scans: volatile, relations: [target] } });
+          lock: { ...LOCK_PROFILES["ddl.add_column"], rewrites, scans, relations: [target] } });
         continue;
       }
       case "AT_AddConstraint": {

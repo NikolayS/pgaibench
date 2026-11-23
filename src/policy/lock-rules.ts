@@ -54,14 +54,20 @@ function targetSize(ctx: CheckContext, a: ClassifiedAction): { relation: string;
 
 const gib = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
 
-// L-3: a validating constraint, blocking index build or rewriting column type
-// change scans or rewrites its table under a lock that blocks writes, so the
-// table may be at most S_scan. A relation the snapshot does not list (created
-// earlier in the change request) is not measured.
+// L-3: a validating constraint, blocking index build, rewriting column type
+// change, or ADD COLUMN that rewrites or scans, scans or rewrites its table
+// under a lock that blocks writes, so the table may be at most S_scan. A
+// relation the snapshot does not list (created earlier in the change request)
+// is not measured.
+const scansOrRewrites = (a: ClassifiedAction) =>
+  a.action === "ddl.alter_column_type" ? a.lock?.rewrites
+  : a.action === "ddl.add_column" ? a.lock?.rewrites || a.lock?.scans
+  : true;
+
 export const lockedScanSize: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ctx.actions
-    .filter((a) => appliesTo(ctx, a) && (a.action !== "ddl.alter_column_type" || a.lock?.rewrites))
+    .filter((a) => appliesTo(ctx, a) && scansOrRewrites(a))
     .flatMap((a) => {
       const size = targetSize(ctx, a);
       if (!size || size.total_bytes <= limit) return [];

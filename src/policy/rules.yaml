@@ -149,12 +149,15 @@ rules:
     targets: [L1]
   - id: L-3
     scope: step
-    applies_to: [ddl.add_constraint_validating, idx.create_blocking, ddl.alter_column_type]
+    applies_to: [ddl.add_constraint_validating, idx.create_blocking, ddl.alter_column_type, ddl.add_column]
     condition: >
       Target relation size <= S_scan (alter_column_type only when it rewrites; without the column's current
-      type the gate assumes it does).
+      type the gate assumes it does. add_column only when it rewrites or scans: a volatile default, a
+      stored generated or identity column, or an inline UNIQUE, PRIMARY KEY, REFERENCES or CHECK constraint).
     verdict: reject
-    fix_hint: Use NOT VALID + COMMIT + VALIDATE, or CREATE INDEX CONCURRENTLY.
+    fix_hint: >
+      Use NOT VALID + COMMIT + VALIDATE, or CREATE INDEX CONCURRENTLY. For a new column, add it plain, then
+      backfill in batches and add constraints and indexes in their safe forms.
     targets: [L2, L6]
   - id: L-4
     scope: step
