@@ -32,6 +32,7 @@
     "auditor:report": "bun run src/auditor/report.ts"
   },
   "dependencies": {
+    "libpg-query": "18.2.2",
     "postgres": "^4.1.0",
     "zod": "^4.6.7"
   }
