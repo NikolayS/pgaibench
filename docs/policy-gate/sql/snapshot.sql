@@ -3,6 +3,9 @@
 -- Requires PG16+ (last_idx_scan / last_seq_scan); written for PG18.
 -- Read-only. Untested at authoring time (no Postgres in the authoring sandbox):
 -- run against the lab once and fix before relying on it.
+-- Relation names are always schema-qualified as nspname.relname, unquoted, the
+-- way the classifier names them. We never render a name with a regclass cast,
+-- which leaves off the schema for anything on search_path.
 SELECT json_build_object(
   'collected_at',       now(),
   'server_version_num', current_setting('server_version_num')::int,
@@ -52,9 +55,11 @@ SELECT json_build_object(
 
   'locks', (
     SELECT coalesce(json_agg(json_build_object(
-      'relation', l.relation::regclass::text, 'mode', l.mode, 'granted', l.granted,
+      'relation', ln.nspname || '.' || lc.relname, 'mode', l.mode, 'granted', l.granted,
       'pid', l.pid, 'xact_age_s', extract(epoch FROM now() - a.xact_start))), '[]'::json)
     FROM pg_locks l
+    JOIN pg_class lc      ON lc.oid = l.relation
+    JOIN pg_namespace ln  ON ln.oid = lc.relnamespace
     LEFT JOIN pg_stat_activity a ON a.pid = l.pid
     WHERE l.locktype = 'relation'
       AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database())
@@ -63,7 +68,7 @@ SELECT json_build_object(
   -- Note: pg_total_relation_size() is 0 for a partitioned parent; sum partitions if needed.
   'relations', (
     SELECT coalesce(json_agg(json_build_object(
-      'name', c.oid::regclass::text, 'kind', c.relkind, 'persistence', c.relpersistence,
+      'name', n.nspname || '.' || c.relname, 'kind', c.relkind, 'persistence', c.relpersistence,
       'total_bytes', pg_total_relation_size(c.oid), 'reltuples', c.reltuples,
       'reloptions', c.reloptions, 'replica_identity', c.relreplident)), '[]'::json)
     FROM pg_class c
@@ -77,23 +82,29 @@ SELECT json_build_object(
   'constraints', (
     SELECT coalesce(json_agg(json_build_object(
       'name', con.conname, 'type', con.contype, 'validated', con.convalidated,
-      'table', con.conrelid::regclass::text,
-      'index', CASE WHEN con.conindid <> 0 THEN con.conindid::regclass::text END,
+      'table', tn.nspname || '.' || t.relname,
+      'index', CASE WHEN con.conindid <> 0 THEN xn.nspname || '.' || x.relname END,
       'definition', pg_get_constraintdef(con.oid))), '[]'::json)
     FROM pg_constraint con
     JOIN pg_namespace n ON n.oid = con.connamespace
+    JOIN pg_class t       ON t.oid = con.conrelid
+    JOIN pg_namespace tn  ON tn.oid = t.relnamespace
+    LEFT JOIN pg_class x      ON x.oid = con.conindid
+    LEFT JOIN pg_namespace xn ON xn.oid = x.relnamespace
     WHERE con.conrelid <> 0
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')),
 
   'indexes', (
     SELECT coalesce(json_agg(json_build_object(
-      'index', i.indexrelid::regclass::text, 'table', i.indrelid::regclass::text,
+      'index', n.nspname || '.' || c.relname, 'table', tn.nspname || '.' || t.relname,
       'valid', i.indisvalid, 'primary', i.indisprimary, 'unique', i.indisunique,
       'replident', i.indisreplident,
       'total_bytes', pg_relation_size(i.indexrelid))), '[]'::json)
     FROM pg_index i
     JOIN pg_class c     ON c.oid = i.indexrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_class t     ON t.oid = i.indrelid
+    JOIN pg_namespace tn ON tn.oid = t.relnamespace
     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND n.nspname NOT LIKE 'pg\_toast%'
       AND n.nspname NOT LIKE 'pg\_temp%'),
@@ -101,13 +112,13 @@ SELECT json_build_object(
   -- Node-local counters: on a standby these reflect STANDBY reads (the L9 blind spot).
   'index_usage', (
     SELECT coalesce(json_agg(json_build_object(
-      'index', indexrelid::regclass::text, 'table', relid::regclass::text,
+      'index', schemaname || '.' || indexrelname, 'table', schemaname || '.' || relname,
       'idx_scan', idx_scan, 'last_idx_scan', last_idx_scan)), '[]'::json)
     FROM pg_stat_user_indexes),
 
   'table_usage', (
     SELECT coalesce(json_agg(json_build_object(
-      'table', relid::regclass::text,
+      'table', schemaname || '.' || relname,
       'seq_scan', seq_scan, 'last_seq_scan', last_seq_scan,
       'idx_scan', idx_scan, 'last_idx_scan', last_idx_scan,
       'n_live_tup', n_live_tup, 'n_dead_tup', n_dead_tup)), '[]'::json)

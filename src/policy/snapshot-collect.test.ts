@@ -8,6 +8,12 @@ import { collectSnapshot } from "./snapshot-collect";
 
 type Call = { query: string; params?: unknown[] };
 
+// Postgres renders oid::regclass::text without the schema for any relation on
+// search_path, so SQL that names relations that way gets "orders", not
+// "public.orders". The fake answers as Postgres would for the SQL it is sent.
+const asPostgresRenders = (query: string, raw: Record<string, unknown>) =>
+  /::regclass::text/.test(query) ? JSON.parse(JSON.stringify(raw).replaceAll('"public.', '"')) : raw;
+
 function fakeNode(raw: Record<string, unknown>, opts: { pgss?: boolean; pgssRows?: unknown[]; cascade?: Record<string, Row[]> } = {}) {
   const calls: Call[] = [];
   const client: SqlClient = {
@@ -16,7 +22,7 @@ function fakeNode(raw: Record<string, unknown>, opts: { pgss?: boolean; pgssRows
       if (query.includes("WITH RECURSIVE")) return opts.cascade?.[`${params![0]}:${params![1]}`] ?? [];
       if (query.includes("pg_extension")) return [{ installed: opts.pgss ?? false }];
       if (query.includes("FROM pg_stat_statements")) return [{ pgss: opts.pgssRows ?? [] }];
-      return [{ snapshot: raw }];
+      return [{ snapshot: asPostgresRenders(query, raw) }];
     },
     async end() {},
   };

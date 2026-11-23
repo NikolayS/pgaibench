@@ -18,6 +18,8 @@ const timestamp = z.iso.datetime({ offset: true });
 const count = z.number().int().nonnegative();
 /** Seconds; null when there is nothing to measure (no open transaction, no lag). */
 const seconds = z.number().nonnegative().nullable();
+/** A schema-qualified relation name, e.g. "public.orders". Rules look relations up by it. */
+const relationName = z.string().regex(/^[^.]+\..+$/, "Relation names must be schema-qualified, e.g. public.orders");
 
 export const settingContexts = ["internal", "postmaster", "sighup", "superuser-backend", "backend", "superuser", "user"] as const;
 
@@ -71,7 +73,7 @@ export const lockModes = [
 
 /** A relation lock held or awaited by another backend, with its transaction's age. */
 const lockSchema = z.object({
-  relation: z.string(),
+  relation: relationName,
   mode: z.enum(lockModes),
   granted: z.boolean(),
   pid: z.number().int(),
@@ -81,13 +83,13 @@ const lockSchema = z.object({
 /** Node-local, cumulative since the last stats reset; use scannedInWindow() for "used recently". */
 const usageSchema = z.object({
   /** pg_stat_user_indexes, keyed by index. */
-  indexes: z.record(z.string(), z.object({
-    table: z.string(),
+  indexes: z.record(relationName, z.object({
+    table: relationName,
     idx_scan: count,
     last_idx_scan: timestamp.nullable(),
   }).strict()),
   /** pg_stat_user_tables, keyed by table. */
-  tables: z.record(z.string(), z.object({
+  tables: z.record(relationName, z.object({
     seq_scan: count,
     last_seq_scan: timestamp.nullable(),
     idx_scan: count.nullable(),
@@ -123,7 +125,7 @@ const nodeSnapshotSchema = z.object({
 const indexRelationSchema = z.object({
   kind: z.literal("index"),
   /** The table the index belongs to. */
-  table: z.string(),
+  table: relationName,
   total_bytes: count,
   valid: z.boolean(),
   primary: z.boolean(),
@@ -153,9 +155,9 @@ const constraintSchema = z.object({
   type: z.enum(constraintTypes),
   /** False for a NOT VALID constraint not yet validated. */
   validated: z.boolean(),
-  table: z.string(),
+  table: relationName,
   /** The index that backs the constraint, if any. */
-  index: z.string().nullable(),
+  index: relationName.nullable(),
   definition: z.string(),
 }).strict();
 
@@ -174,7 +176,7 @@ export const stateSnapshotSchema = z.object({
   database: z.string(),
   nodes: z.object({ primary: nodeSnapshotSchema, standby: nodeSnapshotSchema }).strict(),
   /** Tables, indexes and other relations, keyed by name; read from the primary. */
-  relations: z.record(z.string(), relationSchema),
+  relations: z.record(relationName, relationSchema),
   constraints: z.array(constraintSchema),
   /** pg_db_role_setting: per-role and per-database settings, as "name=value". */
   role_db_settings: z.array(z.object({
