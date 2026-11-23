@@ -388,10 +388,6 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         : rels.map((r) => qualify(r.VacuumRelation.relation.schemaname, r.VacuumRelation.relation.relname));
       return ok({ step, action: "maint.vacuum_analyze", objects });
     }
-    case "UpdateStmt":
-    case "DeleteStmt":
-    case "InsertStmt":
-      return ok({ step, action: "dml.bounded", objects: [qualify(body.relation.schemaname, body.relation.relname)] });
     case "DoStmt":
       return deny(step, "do_block", `Step ${step} is a DO block, whose statements the policy gate cannot see.`,
         "Write each statement as its own SQL step.");
