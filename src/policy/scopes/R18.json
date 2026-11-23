@@ -1,0 +1,11 @@
+{
+  "allowed_objects": [],
+  "forbidden_actions": [],
+  "max_rows": 0,
+  "cluster_scope": true,
+  "downtime_allowed": [
+    "primary",
+    "standby"
+  ],
+  "extension_allowlist": []
+}
