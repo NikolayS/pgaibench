@@ -79,13 +79,17 @@ test("scope objects the snapshot does not show are reported", () => {
 });
 
 describe("capture", () => {
-  function ports(o: { setupFile?: boolean; workloadExit?: number; workloadEndsEarly?: boolean; snapshot?: StateSnapshot } = {}) {
+  // The primary VM clock; the laptop clock may differ from it.
+  const VM_NOW = "2026-11-23T09:03:20.500Z";
+
+  function ports(o: { setupFile?: boolean; workloadExit?: number; workloadEndsEarly?: boolean; snapshot?: StateSnapshot; primaryNow?: string } = {}) {
     const cmds: string[] = [], written: Record<string, string> = {}, logs: string[] = [], conns: Connection[] = [];
     let released = 0, tunnelClosed = 0, ended = 0, finishWorkload!: () => void;
     const p: BaselinePorts = {
       async run(cmd) {
         cmds.push(cmd);
         if (cmd.startsWith("test -f")) return { stdout: "", stderr: "", exitCode: o.setupFile === false ? 1 : 0 };
+        if (cmd.includes("now()")) return { stdout: o.primaryNow ?? `${Date.parse(VM_NOW) / 1000}\n`, stderr: "", exitCode: 0 };
         if (cmd.includes("w_prod.sh")) {
           if (!o.workloadEndsEarly) await new Promise<void>((r) => { finishWorkload = r; });
           return { stdout: '{"tps":2000}', stderr: "", exitCode: o.workloadExit ?? 0 };
@@ -100,7 +104,6 @@ describe("capture", () => {
         return { ...s, usage_window_start: opts.usageWindowStart.toISOString() };
       },
       async sleep() {},
-      now: () => new Date("2026-11-23T09:00:00Z"),
       async lock() { return { async release() { released++; } }; },
       write(path, text) { written[path] = text; },
       log(m) { logs.push(m); },
@@ -120,12 +123,14 @@ describe("capture", () => {
     expect(f.cmds[0]).toBe("/opt/pgaibench/env/reset.sh");
     expect(f.cmds[1]).toBe("test -f /opt/pgaibench/env/scenario-setup/O1.sql");
     expect(f.cmds[2]).toBe("/opt/pgaibench/env/scenario-setup.sh primary O1");
-    expect(f.cmds[3]).toBe("/opt/pgaibench/env/workload/w_prod.sh 180 W_prod 5432");
+    expect(f.cmds[3]).toMatch(/^docker exec pgaibench-primary psql .*now\(\)/);
+    expect(f.cmds[4]).toBe("/opt/pgaibench/env/workload/w_prod.sh 180 W_prod 5432");
     expect(f.conns.map((c) => c.port)).toEqual([15432, 15433]);
     expect(f.counts()).toEqual({ released: 1, tunnelClosed: 1, ended: 2 });
     const fixture = JSON.parse(f.written[path]!);
     expect(stateSnapshotSchema.safeParse(fixture).success).toBe(true);
-    expect(fixture.usage_window_start).toBe("2026-11-23T09:00:00.000Z");
+    // The usage window starts at the primary's clock, not the laptop's.
+    expect(fixture.usage_window_start).toBe(VM_NOW);
     expect(f.logs.join("\n")).not.toContain("hunter2");
   });
 
@@ -149,6 +154,14 @@ describe("capture", () => {
   test("no fixture when the workload ended before collection", async () => {
     const f = ports({ workloadEndsEarly: true });
     await expect(captureBaseline({ seed: 1, scenario: "L9", windowS: 180, collectAtS: 120, out: "/tmp/x" }, f.p)).rejects.toThrow(/workload was not running/);
+    expect(Object.keys(f.written)).toEqual([]);
+    expect(f.counts().released).toBe(1);
+  });
+
+  test("no fixture when the primary's clock cannot be read", async () => {
+    const f = ports({ primaryNow: "psql: error: connection refused" });
+    await expect(captureBaseline({ seed: 1, scenario: "L9", windowS: 180, collectAtS: 120, out: "/tmp/x" }, f.p)).rejects.toThrow(/primary's clock/);
+    expect(f.cmds.some((c) => c.includes("w_prod.sh"))).toBe(false);
     expect(Object.keys(f.written)).toEqual([]);
     expect(f.counts().released).toBe(1);
   });
