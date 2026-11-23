@@ -28,7 +28,7 @@ export type ClassifiedAction = {
 export type DenyCode =
   | "do_block" | "dynamic_sql" | "function_in_cr" | "vacuum_full" | "cluster" | "alter_system"
   | "session_kill" | "unknown_statement" | "parse_error" | "unknown_setting" | "unsettable_setting"
-  | "unsafe_session_setting" | "prepared_transaction" | "malformed_step";
+  | "unsafe_session_setting" | "prepared_transaction" | "malformed_step" | "locking_read" | "unknown_function";
 
 /** A statement or step the classifier refuses (default deny). Session kills escalate. */
 export type Denial = {
@@ -59,6 +59,68 @@ const PREPARED_TRANSACTION_KINDS = new Set(["TRANS_STMT_PREPARE", "TRANS_STMT_CO
 
 /** Stands for every relation in the database, which no ticket scope lists. */
 const ALL_RELATIONS = "*";
+
+// Built-in functions a query.read may call: none writes, locks, signals or
+// changes settings. Any other function in a SELECT is denied, because the
+// parse tree cannot show what a user-defined function does.
+const READ_ONLY_FUNCTIONS = new Set([
+  "count", "sum", "min", "max", "avg", "bool_and", "bool_or", "string_agg", "array_agg",
+  "now", "current_setting", "age", "date_trunc", "date_part", "extract", "to_char", "round", "abs",
+  "lower", "upper", "length", "format_type", "quote_ident", "split_part",
+  "pg_size_pretty", "pg_total_relation_size", "pg_relation_size", "pg_table_size", "pg_indexes_size",
+  "pg_describe_object", "pg_get_indexdef", "pg_get_constraintdef", "pg_get_viewdef",
+  "pg_is_in_recovery", "pg_current_wal_lsn", "pg_last_wal_replay_lsn", "pg_wal_lsn_diff",
+]);
+
+const functionName = (call: Node): string => {
+  const parts: string[] = call.funcname.map((p: Node) => p.String?.sval);
+  return parts.length === 2 && parts[0] === "pg_catalog" ? parts[1] : parts.join(".");
+};
+
+// Every function a parse tree calls.
+function calledFunctions(node: unknown, out: string[] = []): string[] {
+  if (Array.isArray(node)) node.forEach((n) => calledFunctions(n, out));
+  else if (node !== null && typeof node === "object") {
+    const call = (node as Node).FuncCall;
+    if (call) out.push(functionName(call));
+    Object.values(node).forEach((v) => calledFunctions(v, out));
+  }
+  return out;
+}
+
+// True if any node in the tree passes the test.
+function hasNode(node: unknown, test: (n: Node) => boolean): boolean {
+  if (Array.isArray(node)) return node.some((n) => hasNode(n, test));
+  if (node === null || typeof node !== "object") return false;
+  return test(node as Node) || Object.values(node).some((v) => hasNode(v, test));
+}
+
+function classifySelect(stmt: Node, body: Node, step: number): Classified {
+  const targets: Node[] = body.targetList ?? [];
+  const onlyCall = targets.length === 1 && !body.fromClause ? targets[0].ResTarget?.val?.FuncCall : undefined;
+  if (onlyCall && functionName(onlyCall) === "pg_reload_conf" && !onlyCall.args) {
+    return ok({ step, action: "node.reload", objects: [] });
+  }
+  if (hasNode(stmt, (n) => n.SelectStmt?.intoClause)) {
+    return deny(step, "unknown_statement", `Step ${step} is SELECT ... INTO, which creates a table.`,
+      "Use CREATE TABLE ... AS only if the ticket scope allows the new table.", { statement: "SelectStmt" });
+  }
+  if (hasNode(stmt, (n) => n.CommonTableExpr && !n.CommonTableExpr.ctequery?.SelectStmt)) {
+    return deny(step, "unknown_statement", `Step ${step} has a data-modifying WITH query, which the policy gate does not classify.`,
+      "Write each change as its own SQL step.", { statement: "SelectStmt" });
+  }
+  if (hasNode(stmt, (n) => n.SelectStmt?.lockingClause)) {
+    return deny(step, "locking_read", `Step ${step} locks rows with FOR UPDATE or FOR SHARE.`,
+      "Remove the locking clause; a change request may not hold row locks across steps.");
+  }
+  const unknown = [...new Set(calledFunctions(stmt).filter((f) => !READ_ONLY_FUNCTIONS.has(f)))];
+  if (unknown.length > 0) {
+    return deny(step, "unknown_function", `Step ${step} calls ${unknown.join(", ")}, which the policy gate does not know to be read-only.`,
+      "Use only read-only built-in functions, or write the change as explicit SQL steps.", { functions: unknown });
+  }
+  // A read changes nothing, so it touches no object for ticket scope.
+  return ok({ step, action: "query.read", objects: [] });
+}
 
 const SESSION_KILLS = new Set(["pg_terminate_backend", "pg_cancel_backend"]);
 
@@ -126,6 +188,8 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         action: body.concurrent ? "idx.create_concurrent" : "idx.create_blocking",
         objects: [qualify(body.relation.schemaname, body.relation.relname)],
       });
+    case "SelectStmt":
+      return classifySelect(stmt, body, step);
     case "AlterRoleSetStmt":
       return ok({ step, action: "cfg.set_role", objects: [`role:${body.role?.rolename}`], setting: body.setstmt?.name });
     case "DropStmt":

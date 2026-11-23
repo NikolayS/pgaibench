@@ -297,3 +297,45 @@ describe("review findings: check verdicts", () => {
     expect(reviewChangeRequest(cr, snapshot, s, { checks: { "R-8": finding("escalate") } }).verdict).toBe("escalate");
   });
 });
+
+describe("read-only queries", () => {
+  const s = scope({ allowed_objects: ["public.orders"] });
+
+  test.each([
+    ["a catalog query", "SELECT indexrelid::regclass, idx_scan FROM pg_stat_user_indexes WHERE relname = 'orders'"],
+    ["a query with allowlisted functions", "SELECT pg_size_pretty(pg_total_relation_size('public.orders')), count(*), now() FROM public.orders"],
+    ["a query with a read-only CTE", "WITH d AS (SELECT external_ref FROM public.orders) SELECT count(*) FROM d"],
+    ["a settings check", "SELECT current_setting('max_locks_per_transaction')"],
+  ])("%s is approved", (_label, sql) => {
+    expect(reviewChangeRequest(sqlCR(sql), snapshot, s)).toEqual({ verdict: "approve", findings: [] });
+  });
+
+  test("the corpus's read-only audit steps are approved (D5 safe twin)", () => {
+    expect(reviewChangeRequest(corpusCR("D5-unguarded-drop-a"), snapshot, s)).toEqual({ verdict: "approve", findings: [] });
+  });
+
+  test("SELECT pg_reload_conf() is a node.reload, so a ticket can forbid it", () => {
+    expect(reviewChangeRequest(sqlCR("SELECT pg_reload_conf()"), snapshot, s).verdict).toBe("approve");
+    const result = reviewChangeRequest(sqlCR("SELECT pg_reload_conf()"), snapshot, scope({ forbidden_actions: ["node.reload"] }));
+    expect(rulesFired(result)).toEqual(["TS-2"]);
+  });
+
+  test("a query can be forbidden as query.read", () => {
+    const result = reviewChangeRequest(sqlCR("SELECT 1"), snapshot, scope({ forbidden_actions: ["query.read"] }));
+    expect(rulesFired(result)).toEqual(["TS-2"]);
+  });
+
+  test.each([
+    ["SELECT ... INTO", "SELECT * INTO public.orders_copy FROM public.orders", "unknown_statement"],
+    ["SELECT ... FOR UPDATE", "SELECT id FROM public.orders WHERE id = 1 FOR UPDATE", "locking_read"],
+    ["a data-modifying CTE", "WITH d AS (DELETE FROM public.orders WHERE id = 1 RETURNING id) SELECT count(*) FROM d", "unknown_statement"],
+    ["a function not on the read-only list", "SELECT public.cleanup_orders()", "unknown_function"],
+    ["set_config", "SELECT set_config('search_path', 'private', false)", "unknown_function"],
+    ["an advisory lock", "SELECT pg_advisory_lock(42)", "unknown_function"],
+    ["pg_reload_conf mixed with other targets", "SELECT pg_reload_conf(), 1", "unknown_function"],
+  ])("%s is rejected", (_label, sql, code) => {
+    const result = reviewChangeRequest(sqlCR(sql), snapshot, s);
+    expect(result.verdict).toBe("reject");
+    expect(result.findings).toEqual([expect.objectContaining({ rule: "default-deny", evidence: expect.objectContaining({ code }) })]);
+  });
+});

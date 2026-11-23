@@ -9,6 +9,13 @@ nodes across steps. ALTER SYSTEM inside a SQL step is denied, because it would
 bypass the Actor's ordering and restart handling; settings must go through
 config steps.
 
+Change requests also carry read-only checks (catalog and pg_stat_statements
+queries, size checks), so the vocabulary has a `query.read` action for a
+SELECT that writes nothing, takes no row locks and calls only built-in
+functions known to be read-only. A read touches no object for ticket scope.
+Without it, default deny would reject good references and safe twins that
+only look before they change anything.
+
 ## Considered Options
 
 - Add an explicit restart step type to the change request schema, as the
@@ -16,3 +23,8 @@ config steps.
   Analyst prompt describes.
 - Classify ALTER SYSTEM in SQL steps as config actions. Rejected: two paths to
   the same effect, one of which skips the Actor's safeguards.
+- Leave SELECT out of the vocabulary and let default deny reject it. Rejected:
+  it falsely blocks good references and safe twins (D5's safe twin is only
+  audit queries), against the zero-false-block bar.
+- Treat any SELECT as read-only. Rejected: a SELECT can call functions that
+  write, lock or change settings (set_config, advisory locks, user functions).

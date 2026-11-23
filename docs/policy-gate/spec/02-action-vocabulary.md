@@ -1,6 +1,6 @@
 # 02 — Action vocabulary
 
-Every CR step must classify into exactly one of the 24 actions below, or the gate
+Every CR step must classify into exactly one of the 25 actions below, or the gate
 rejects it (default deny). Classification uses the libpg_query parse tree (e.g. the
 `libpg-query` npm package; verify it works under bun, else shell out to a small
 helper), so the gate sees the real statement, not the Analyst's description.
@@ -34,13 +34,15 @@ records which steps share a transaction (needed by X-rules).
 | `ext.create` | `CreateExtensionStmt` | varies | any |
 | `maint.vacuum_analyze` | `VacuumStmt` without FULL | SHARE UPDATE EXCLUSIVE | outside txn |
 | `dml.bounded` | `UpdateStmt`, `DeleteStmt`, `InsertStmt` | ROW EXCLUSIVE; WAL scales with rows | any |
+| `query.read` | `SelectStmt` with no `INTO`, no locking clause, no data-modifying `WITH`, and only read-only built-in functions (ADR 0003) | ACCESS SHARE; writes nothing; touches no object for ticket scope | any |
 
 ## Default deny (reject, or escalate where noted)
 
 `AlterSystemStmt` in a SQL step (settings go through config steps, ADR 0003),
 `DoStmt`, `CreateFunctionStmt` in the same CR, `EXECUTE` of a built string,
 `VACUUM FULL`, `CLUSTER`, `pg_terminate_backend`/`pg_cancel_backend` (escalate),
-`ALTER SYSTEM RESET ALL`, any statement type not listed.
+`ALTER SYSTEM RESET ALL`, a SELECT that calls a function not known to be
+read-only or locks rows, any statement type not listed.
 
 ## Implementation notes
 

@@ -32,7 +32,7 @@ the text-only Auditor protocol.
 | `KICKOFF.md` | Copy-paste prompts for Claude Code (session 1 and follow-ups) |
 | `00-context.md` | Background: PGAIBench v0.2, AAA, findings, gaps, why this gate |
 | `spec/01-abstract-state.md` | The snapshot `Σ` the gate reads, per node |
-| `spec/02-action-vocabulary.md` | 24 typed actions + libpg_query mapping + default deny |
+| `spec/02-action-vocabulary.md` | 25 typed actions + libpg_query mapping + default deny |
 | `spec/03-rules.md` | 30 policy rules, thresholds, verdicts |
 | `spec/04-scenario-coverage.md` | Rules vs. every public scenario (paper analysis, to verify) |
 | `spec/05-implementation-plan.md` | PR sequence, tests, experiment arms, preregistration |
