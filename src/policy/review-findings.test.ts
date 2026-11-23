@@ -101,3 +101,26 @@ describe("finding 4: a SET lock_timeout that is rolled back does not protect lat
     expect(fired(r, "L-1")).toEqual([]);
   });
 });
+
+describe("finding 5: CREATE TABLE, CREATE VIEW and CREATE TABLE AS classify as obj.create", () => {
+  test.each([
+    ["CREATE TABLE", "CREATE TABLE public.orders_archive (id bigint PRIMARY KEY, note text)"],
+    ["CREATE VIEW", "CREATE VIEW public.orders_archive AS SELECT id FROM public.orders WHERE id < 10"],
+    ["CREATE TABLE AS", "CREATE TABLE public.orders_archive AS SELECT id FROM public.orders WHERE id < 10"],
+    ["CREATE MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW public.orders_archive AS SELECT count(*) FROM public.orders"],
+  ])("%s of an in-scope object is approved", (_label, sql) => {
+    const r = reviewChangeRequest(cr(sql), snap(), scope("public.orders_archive"));
+    expect(r).toEqual({ verdict: "approve", findings: [] });
+  });
+
+  test("creating an object outside the ticket scope is a TS-1 reject, not a default deny", () => {
+    const r = reviewChangeRequest(cr("CREATE TABLE public.audit_copy (id bigint)"), snap(), scope("public.orders"));
+    expect(r.findings.map((f) => f.rule)).toEqual(["TS-1"]);
+    expect(r.findings[0]!.evidence.out_of_scope).toEqual(["public.audit_copy"]);
+  });
+
+  test("CREATE TABLE AS that calls a function not known to be read-only is denied", () => {
+    const r = reviewChangeRequest(cr("CREATE TABLE public.orders_archive AS SELECT purge_orders()"), snap(), scope("public.orders_archive"));
+    expect(r.findings.map((f) => [f.rule, f.evidence.code])).toEqual([["default-deny", "unknown_function"]]);
+  });
+});

@@ -302,6 +302,11 @@ Code review fixes (#1):
     PRIMARY KEY, REFERENCES or CHECK constraint).
 28. Confirm TS-1 counts every table a TRUNCATE ... CASCADE reaches through
     foreign keys, from the snapshot's foreign keys.
+29. Confirm L-1 treats a session `SET lock_timeout` as undone when its
+    transaction rolls back.
+30. Confirm CREATE TABLE, CREATE VIEW, CREATE TABLE AS and CREATE
+    MATERIALIZED VIEW classify as `obj.create` (TS-1 decides the new object
+    and any parent table) instead of default deny.
 
 ## 10. Freeze record and dated amendment log
 

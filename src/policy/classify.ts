@@ -350,6 +350,24 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         return ok({ step, action: "obj.drop", objects: body.objects.map(droppedName), cascade: body.behavior === "DROP_CASCADE" });
       }
       break;
+    case "CreateStmt": {
+      // A new table, plus any parent it inherits from or is a partition of.
+      const parents: string[] = (body.inhRelations ?? []).map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname));
+      return ok({ step, action: "obj.create", objects: [qualify(body.relation.schemaname, body.relation.relname), ...parents] });
+    }
+    case "ViewStmt":
+      // The view's query is stored, not run, so only the view is touched.
+      return ok({ step, action: "obj.create", objects: [qualify(body.view.schemaname, body.view.relname)] });
+    case "CreateTableAsStmt": {
+      // CREATE TABLE AS and CREATE MATERIALIZED VIEW run their query, so it
+      // may call only read-only functions, as a query.read may.
+      const unknown = [...new Set(calledFunctions(body.query).filter((f) => !READ_ONLY_FUNCTIONS.has(f)))];
+      if (unknown.length > 0) {
+        return deny(step, "unknown_function", `Step ${step} calls ${unknown.join(", ")}, which the policy gate does not know to be read-only.`,
+          "Use only read-only built-in functions, or write the change as explicit SQL steps.", { functions: unknown });
+      }
+      return ok({ step, action: "obj.create", objects: [qualify(body.into.rel.schemaname, body.into.rel.relname)] });
+    }
     case "AlterTableStmt":
       return classifyAlterTable(body, step);
     case "TruncateStmt": {
