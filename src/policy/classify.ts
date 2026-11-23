@@ -23,6 +23,10 @@ export type ClassifiedAction = {
   nodes?: NodeName[];
   /** The setting a config step or role setting changes. */
   setting?: string;
+  /** The new value a config step or role setting writes, as written in the change request. */
+  value?: string;
+  /** Storage parameters a ddl.set_reloption step sets, e.g. { autovacuum_enabled: "false" }. */
+  options?: Record<string, string>;
 };
 
 export type DenyCode =
@@ -152,6 +156,28 @@ type Node = Record<string, any>;
 
 const qualify = (schemaname: string | undefined, relname: string) => `${schemaname ?? DEFAULT_SCHEMA}.${relname}`;
 
+// The value of a DefElem argument as text: true, 90, 0.01, off.
+const defElemValue = (arg: Node | undefined): string => {
+  if (!arg) return "true";
+  if (arg.String) return arg.String.sval;
+  if (arg.Integer) return String(arg.Integer.ival ?? 0);
+  if (arg.Float) return arg.Float.fval;
+  if (arg.Boolean) return String(arg.Boolean.boolval ?? false);
+  if (arg.TypeName) return arg.TypeName.names.at(-1).String.sval;
+  return JSON.stringify(arg);
+};
+
+// The text of an A_Const in SET name = value: 'force_custom_plan', 64, 0.5, on.
+const constValue = (arg: Node): string => {
+  const c = arg.A_Const;
+  if (!c) return JSON.stringify(arg);
+  if (c.sval) return c.sval.sval ?? "";
+  if (c.ival) return String(c.ival.ival ?? 0);
+  if (c.fval) return c.fval.fval;
+  if (c.boolval) return String(c.boolval.boolval ?? false);
+  return "";
+};
+
 const nameFromList = (list: Node): string => {
   const parts = (list.List?.items ?? []).map((i: Node) => i.String?.sval as string);
   return parts.length === 1 ? qualify(undefined, parts[0]) : parts.join(".");
@@ -191,7 +217,10 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
     case "SelectStmt":
       return classifySelect(stmt, body, step);
     case "AlterRoleSetStmt":
-      return ok({ step, action: "cfg.set_role", objects: [`role:${body.role?.rolename}`], setting: body.setstmt?.name });
+      return ok({
+        step, action: "cfg.set_role", objects: [`role:${body.role?.rolename}`], setting: body.setstmt?.name,
+        ...(body.setstmt?.kind === "VAR_SET_VALUE" ? { value: (body.setstmt.args ?? []).map(constValue).join(", ") } : {}),
+      });
     case "DropStmt":
       if (body.removeType === "OBJECT_INDEX") {
         const indexes: string[] = body.objects.map(nameFromList);
@@ -218,6 +247,22 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         ? [ALL_RELATIONS]
         : rels.map((r) => qualify(r.VacuumRelation.relation.schemaname, r.VacuumRelation.relation.relname));
       return ok({ step, action: "maint.vacuum_analyze", objects });
+    }
+    case "AlterTableStmt": {
+      // ALTER TABLE ... SET (storage parameters). Other subcommands are left to
+      // default deny here; their classification belongs to other rules.
+      const cmds: Node[] = (body.cmds ?? []).map((c: Node) => c.AlterTableCmd);
+      if (body.objtype === "OBJECT_TABLE" && cmds.length > 0 && cmds.every((c) => c?.subtype === "AT_SetRelOptions")) {
+        const options: Record<string, string> = {};
+        for (const c of cmds) {
+          for (const item of c.def?.List?.items ?? []) {
+            const d: Node = item.DefElem;
+            options[d.defnamespace ? `${d.defnamespace}.${d.defname}` : d.defname] = defElemValue(d.arg);
+          }
+        }
+        return ok({ step, action: "ddl.set_reloption", objects: [qualify(body.relation.schemaname, body.relation.relname)], options });
+      }
+      break;
     }
     case "DoStmt":
       return deny(step, "do_block", `Step ${step} is a DO block, whose statements the policy gate cannot see.`,
@@ -253,14 +298,15 @@ function classifyConfig(
   }
   const nodes: NodeName[] = s.node === "primary" || s.node === "standby" ? [s.node] : ["primary", "standby"];
   const setting = s.config.name;
+  const value = String(s.config.value);
   const context = snapshot.nodes[nodes[0]].settings[setting]?.context;
   if (context === "postmaster") {
     return ok(
-      { step, action: "cfg.set_restart", objects: [], nodes, setting },
+      { step, action: "cfg.set_restart", objects: [], nodes, setting, value },
       ...nodes.map((n): ClassifiedAction => ({ step, action: "node.restart", objects: [], nodes: [n], setting })),
     );
   }
-  if (context && RELOAD_CONTEXTS.has(context)) return ok({ step, action: "cfg.set_reload", objects: [], nodes, setting });
+  if (context && RELOAD_CONTEXTS.has(context)) return ok({ step, action: "cfg.set_reload", objects: [], nodes, setting, value });
   if (context === undefined) {
     return deny(step, "unknown_setting", `Step ${step} sets ${setting}, which the state snapshot does not list.`,
       "Check the setting name against pg_settings.", { setting });
