@@ -30,7 +30,7 @@ import { collectSnapshot, type CollectOptions, type NodeConnections } from "./sn
 
 export const BASELINE_DIR = join(import.meta.dir, "fixtures", "baselines");
 const REPO_DIR = join(import.meta.dir, "..", "..");
-const LAB_DEFAULT_PASSWORD = "pgaibench";
+export const LAB_DEFAULT_PASSWORD = "pgaibench";
 const PRIMARY_PORT = 5432, STANDBY_PORT = 5433;
 /** The primary's clock, in epoch seconds. collected_at also comes from the primary, so both ends of W share one clock. */
 const PRIMARY_NOW_CMD = "docker exec pgaibench-primary psql -U postgres -d app -XAtc 'SELECT extract(epoch FROM now())'";
