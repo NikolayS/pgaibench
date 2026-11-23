@@ -130,7 +130,9 @@ rules:
   - id: L-1
     scope: step
     applies_to: [lock>=SHARE]
-    condition: The same session sets lock_timeout <= T_lock before the step, and the CR declares a retry count.
+    condition: >
+      The same session sets lock_timeout <= T_lock before the step (SET in an earlier statement, cleared by
+      RESET; or SET LOCAL in the same transaction), and the CR declares a retry count.
     verdict: reject
     targets: [L1, L5, L6, L7]
   - id: L-2
@@ -142,7 +144,9 @@ rules:
   - id: L-3
     scope: step
     applies_to: [ddl.add_constraint_validating, idx.create_blocking, ddl.alter_column_type]
-    condition: Target relation size <= S_scan (alter_column_type only when it rewrites).
+    condition: >
+      Target relation size <= S_scan (alter_column_type only when it rewrites; without the column's current
+      type the gate assumes it does).
     verdict: reject
     fix_hint: Use NOT VALID + COMMIT + VALIDATE, or CREATE INDEX CONCURRENTLY.
     targets: [L2, L6]
