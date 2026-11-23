@@ -63,8 +63,8 @@
     "public.orders_customer_created_idx": { "kind": "index", "table": "public.orders", "total_bytes": 60301312, "valid": true, "primary": false, "unique": false, "replica_identity": false }
   },
   "constraints": [
-    { "name": "orders_pkey", "type": "primary_key", "validated": true, "table": "public.orders", "index": "public.orders_pkey", "definition": "PRIMARY KEY (id)" },
-    { "name": "orders_amount_check", "type": "check", "validated": false, "table": "public.orders", "index": null, "definition": "CHECK ((amount >= 0)) NOT VALID" }
+    { "name": "orders_pkey", "type": "primary_key", "validated": true, "table": "public.orders", "index": "public.orders_pkey", "references": null, "definition": "PRIMARY KEY (id)" },
+    { "name": "orders_amount_check", "type": "check", "validated": false, "table": "public.orders", "index": null, "references": null, "definition": "CHECK ((amount >= 0)) NOT VALID" }
   ],
   "role_db_settings": [{ "role": "shipping_api", "database": null, "settings": ["statement_timeout=5s"] }],
   "cascade": {

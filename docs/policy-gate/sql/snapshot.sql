@@ -84,6 +84,7 @@ SELECT json_build_object(
       'name', con.conname, 'type', con.contype, 'validated', con.convalidated,
       'table', tn.nspname || '.' || t.relname,
       'index', CASE WHEN con.conindid <> 0 THEN xn.nspname || '.' || x.relname END,
+      'references', CASE WHEN con.confrelid <> 0 THEN rn.nspname || '.' || r.relname END,
       'definition', pg_get_constraintdef(con.oid))), '[]'::json)
     FROM pg_constraint con
     JOIN pg_namespace n ON n.oid = con.connamespace
@@ -91,6 +92,8 @@ SELECT json_build_object(
     JOIN pg_namespace tn  ON tn.oid = t.relnamespace
     LEFT JOIN pg_class x      ON x.oid = con.conindid
     LEFT JOIN pg_namespace xn ON xn.oid = x.relnamespace
+    LEFT JOIN pg_class r      ON r.oid = con.confrelid
+    LEFT JOIN pg_namespace rn ON rn.oid = r.relnamespace
     WHERE con.conrelid <> 0
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')),
 

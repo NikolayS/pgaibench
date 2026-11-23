@@ -266,6 +266,22 @@ function typeName(t: Node): string {
   return `${name}${mods.length > 0 ? `(${mods.join(",")})` : ""}${bounds}`;
 }
 
+// TRUNCATE ... CASCADE also truncates every table with a foreign key to a
+// truncated table, transitively, so it touches all of them (TS-1).
+function truncateCascade(named: string[], snapshot: StateSnapshot): string[] {
+  const reached = new Set(named);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const c of snapshot.constraints) {
+      if (c.type === "foreign_key" && c.references !== null && reached.has(c.references) && !reached.has(c.table)) {
+        reached.add(c.table);
+        grew = true;
+      }
+    }
+  }
+  return [...reached];
+}
+
 function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
   const [type] = Object.keys(stmt);
   const body = stmt[type];
@@ -336,13 +352,11 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
       break;
     case "AlterTableStmt":
       return classifyAlterTable(body, step);
-    case "TruncateStmt":
-      return ok({
-        step,
-        action: "obj.truncate",
-        objects: body.relations.map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname)),
-        cascade: body.behavior === "DROP_CASCADE",
-      });
+    case "TruncateStmt": {
+      const named: string[] = body.relations.map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname));
+      const cascade = body.behavior === "DROP_CASCADE";
+      return ok({ step, action: "obj.truncate", objects: cascade ? truncateCascade(named, snapshot) : named, cascade });
+    }
     case "VacuumStmt": {
       const options = new Set((body.options ?? []).map((o: Node) => o.DefElem?.defname));
       if (options.has("full")) {

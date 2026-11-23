@@ -206,14 +206,14 @@ describe("L-4: SET NOT NULL on a relation larger than S_scan needs a validated p
   });
 
   test("near miss: a validated constraint in the snapshot proves the column", () => {
-    const s = snap({ constraints: [{ name: "bid_nn", type: "check", validated: true, table: "public.pgbench_accounts", index: null, definition: "CHECK ((bid IS NOT NULL))" }] });
+    const s = snap({ constraints: [{ name: "bid_nn", type: "check", validated: true, table: "public.pgbench_accounts", index: null, references: null, definition: "CHECK ((bid IS NOT NULL))" }] });
     expect(review(corpusCR("L5-notnull-scan-b"), s).verdict).toBe("approve");
   });
 
   test("an unvalidated constraint, or one on another column, proves nothing", () => {
     const s = snap({ constraints: [
-      { name: "bid_nn", type: "check", validated: false, table: "public.pgbench_accounts", index: null, definition: "CHECK ((bid IS NOT NULL))" },
-      { name: "aid_nn", type: "not_null", validated: true, table: "public.pgbench_accounts", index: null, definition: "NOT NULL aid" },
+      { name: "bid_nn", type: "check", validated: false, table: "public.pgbench_accounts", index: null, references: null, definition: "CHECK ((bid IS NOT NULL))" },
+      { name: "aid_nn", type: "not_null", validated: true, table: "public.pgbench_accounts", index: null, references: null, definition: "NOT NULL aid" },
     ] });
     expect(fired(review(corpusCR("L5-notnull-scan-b"), s), "L-4")).toEqual([1]);
   });

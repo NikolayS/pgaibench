@@ -52,8 +52,8 @@ const rawNode = (standby: boolean, preload: string) => ({
     { name: "public.order_totals", kind: "m", persistence: "p", total_bytes: 16384, reltuples: 10, reloptions: null, replica_identity: "n" },
   ],
   constraints: [
-    { name: "orders_pkey", type: "p", validated: true, table: "public.orders", index: "public.orders_pkey", definition: "PRIMARY KEY (id)" },
-    { name: "orders_amount_check", type: "c", validated: false, table: "public.orders", index: null, definition: "CHECK ((amount >= 0)) NOT VALID" },
+    { name: "orders_pkey", type: "p", validated: true, table: "public.orders", index: "public.orders_pkey", references: null, definition: "PRIMARY KEY (id)" },
+    { name: "orders_amount_check", type: "c", validated: false, table: "public.orders", index: null, references: null, definition: "CHECK ((amount >= 0)) NOT VALID" },
   ],
   indexes: [
     { index: "public.orders_pkey", table: "public.orders", valid: true, primary: true, unique: true, replident: false, total_bytes: 44941312 },

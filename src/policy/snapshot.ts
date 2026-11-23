@@ -158,6 +158,8 @@ const constraintSchema = z.object({
   table: relationName,
   /** The index that backs the constraint, if any. */
   index: relationName.nullable(),
+  /** A foreign key's referenced table; null for every other constraint type. */
+  references: relationName.nullable(),
   definition: z.string(),
 }).strict();
 
@@ -196,6 +198,9 @@ export const stateSnapshotSchema = z.object({
   s.constraints.forEach((c, i) => {
     if (c.index !== null && s.relations[c.index]?.kind !== "index") {
       ctx.addIssue({ code: "custom", path: ["constraints", i, "index"], message: `Constraint ${c.name} is backed by ${c.index}, which is not a listed index` });
+    }
+    if ((c.type === "foreign_key") !== (c.references !== null)) {
+      ctx.addIssue({ code: "custom", path: ["constraints", i, "references"], message: `Constraint ${c.name}: only a foreign key, and every foreign key, names a referenced table` });
     }
   });
   if (Date.parse(s.usage_window_start) > Date.parse(s.collected_at)) {

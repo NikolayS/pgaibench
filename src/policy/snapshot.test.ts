@@ -38,6 +38,7 @@ describe("state snapshot schema", () => {
     ["index usage is keyed without the schema", (s: any) => { s.nodes.primary.usage.indexes.orders_pkey = s.nodes.primary.usage.indexes["public.orders_pkey"]; }],
     ["table usage is keyed without the schema", (s: any) => { s.nodes.standby.usage.tables.orders = s.nodes.standby.usage.tables["public.orders"]; }],
     ["a constraint names its table without the schema", (s: any) => { s.constraints[0].table = "orders"; }],
+    ["a foreign key does not name its referenced table", (s: any) => { s.constraints[1].type = "foreign_key"; }],
   ])("a snapshot is rejected when %s", (_label, corrupt) => {
     const s = clone();
     corrupt(s);
