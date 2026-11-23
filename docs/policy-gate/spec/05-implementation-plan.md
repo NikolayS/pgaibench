@@ -5,7 +5,7 @@ original proposal. Integration is Track 2 first (`src/control/protocols.ts`).
 
 ## Principles
 
-- Data-driven: the engine loads `rules/rules.yaml`; each rule id maps to one check
+- Data-driven: the engine loads `src/policy/rules.yaml`; each rule id maps to one check
   function. Adding a rule never requires touching the engine core.
 - Test-first, offline: unit tests need no network and no database (repo convention:
   `bun test`). Snapshots are JSON fixtures.

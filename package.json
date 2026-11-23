@@ -29,7 +29,8 @@
     "track2:rigor": "bun run scripts/track2-rigor.ts --k5",
     "auditor:generate": "bun run src/auditor/generate.ts",
     "auditor:score": "bun run src/auditor/report.ts --score",
-    "auditor:report": "bun run src/auditor/report.ts"
+    "auditor:report": "bun run src/auditor/report.ts",
+    "policy:rules-md": "bun run src/policy/gen-rules-md.ts"
   },
   "dependencies": {
     "libpg-query": "18.2.2",

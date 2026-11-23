@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { collectSqlSteps, loadParser, parseSql } from "./parse";
 
 // Parser spike (issue #2): prove libpg-query loads under Bun and parses every
@@ -19,6 +20,14 @@ describe("parseSql", () => {
     const result = parseSql("SELEC 1");
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain("syntax error");
+  });
+
+  test("throws before loadParser() instead of reporting a parse error", () => {
+    // A fresh process, because this file has already loaded the parser.
+    const script = `import { parseSql } from ${JSON.stringify(join(import.meta.dir, "parse.ts"))};
+try { parseSql("SELECT 1"); console.log("returned"); } catch (e) { console.log(String(e)); }`;
+    const out = Bun.spawnSync([process.execPath, "-e", script]).stdout.toString();
+    expect(out).toContain("loadParser");
   });
 
   test("accepts Postgres 18 syntax", () => {

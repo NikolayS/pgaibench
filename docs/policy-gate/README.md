@@ -38,13 +38,13 @@ the text-only Auditor protocol.
 | `spec/05-implementation-plan.md` | PR sequence, tests, experiment arms, preregistration |
 | `spec/06-formal-methods.md` | Where TLA+ and SMT fit; how to run the included spec |
 | `spec/07-limits-and-open-questions.md` | Known gaps and resolved open questions |
-| `rules/rules.yaml` | The 30 rules as data (single source of truth for the engine) |
+| `src/policy/rules.yaml` | The 30 rules as data (single source of truth for the engine; moved into the harness) |
 | `sql/snapshot.sql` | Per-node state collector, emits one JSON document |
 | `sql/snapshot_pgss.sql` | `pg_stat_statements` collector (run only if installed) |
 | `sql/cascade_closure.sql` | Approximate `pg_depend` closure for `S-2` |
 | `scripts/bootstrap.sh` | Clone + branch + install pack |
 | `scripts/collect-snapshot.sh` | Runs the collectors against one node |
-| `scripts/gen-rules-md.py` | Regenerates `spec/03-rules.md` from `rules/rules.yaml` |
+| `src/policy/gen-rules-md.ts` | Regenerates `spec/03-rules.md` from the rule data (`bun run policy:rules-md`) |
 | `tla/HotStandbyParam.tla` + two `.cfg` | TLA+ model of rule `R-2`: unguarded (expect violation) and guarded (expect safe + done) |
 | `sketch/types.ts` | Type sketch only; adapt to the harness's real types |
 | `PROVENANCE.md` | Where this came from, what is verified vs. assumed (SQL and TLA+ were not executed) |

@@ -12,7 +12,7 @@ Session 1 (orientation and a PLAN.md) is done. Its output is the repo's
 ```
 
 Test-first with `bun test` (no network, no database). Every rule in
-`docs/policy-gate/rules/rules.yaml` gets at least one positive and one negative
+`src/policy/rules.yaml` gets at least one positive and one negative
 fixture. Never edit `prompts/`, pinned scenario files, or existing result data.
 
 ## Offline replay (after the engine exists and the preregistration is frozen)

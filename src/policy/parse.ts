@@ -8,11 +8,17 @@ import { buildCorpus } from "../control/corpus";
 
 export type ParseResult = { ok: true; stmts: RawStmt[] } | { ok: false; error: string };
 
+let loaded = false;
+
 export async function loadParser(): Promise<void> {
   await loadModule();
+  loaded = true;
 }
 
+// Throws if the parser is not loaded, so that a missing loadParser() call is
+// never mistaken for SQL that does not parse.
 export function parseSql(sql: string): ParseResult {
+  if (!loaded) throw new Error("Call loadParser() before parseSql()");
   try {
     return { ok: true, stmts: parseSync(sql).stmts ?? [] };
   } catch (err) {

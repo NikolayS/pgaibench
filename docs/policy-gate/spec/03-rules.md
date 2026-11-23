@@ -1,6 +1,6 @@
 # 03 — Policy rules
 
-Generated from `rules/rules.yaml` (the source of truth) by `scripts/gen-rules-md.py`.
+Generated from `src/policy/rules.yaml` (the source of truth) by `src/policy/gen-rules-md.ts`.
 30 rules; each returns **reject** (back to the Analyst with rule ID, reason and
 fix hint), **defer** (state is temporarily unsafe; recheck every 10s for up to D_budget,
 then escalate) or

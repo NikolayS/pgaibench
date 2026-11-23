@@ -1,0 +1,233 @@
+import type { ActionKind, NodeName } from "./actions";
+import { parseSql } from "./parse";
+import type { StateSnapshot } from "./snapshot";
+
+// The classifier turns each change-request step into typed actions from the
+// closed vocabulary, or into a default-deny finding. It never executes anything.
+
+export type PolicyStep =
+  | { sql: string; expected_rows?: number; retries?: number }
+  | { config: { name: string; value: string }; node?: "primary" | "standby" | "both" }
+  | { shell: string };
+
+/** The full change-request schema or the reduced Track 2 item shape. */
+export type PolicyChangeRequest = { id: string; task: string; steps: readonly unknown[] };
+
+export type ClassifiedAction = {
+  /** Zero-based index of the change-request step this action comes from. */
+  step: number;
+  action: ActionKind;
+  /** Schema-qualified objects the action touches or creates that must be in ticket scope. */
+  objects: string[];
+  /** Nodes a config step or implied restart acts on. */
+  nodes?: NodeName[];
+  /** The setting a config step or role setting changes. */
+  setting?: string;
+};
+
+export type DenyCode =
+  | "do_block" | "dynamic_sql" | "function_in_cr" | "vacuum_full" | "cluster" | "alter_system"
+  | "session_kill" | "unknown_statement" | "parse_error" | "unknown_setting" | "unsettable_setting"
+  | "unsafe_session_setting" | "prepared_transaction" | "malformed_step";
+
+/** A statement or step the classifier refuses (default deny). Session kills escalate. */
+export type Denial = {
+  step: number;
+  verdict: "reject" | "escalate";
+  code: DenyCode;
+  reason: string;
+  fix_hint: string;
+  evidence: Record<string, unknown>;
+};
+
+export type Classification = { actions: ClassifiedAction[]; denials: Denial[] };
+
+type Classified = { actions: ClassifiedAction[]; denials: Denial[] };
+
+const deny = (
+  step: number, code: DenyCode, reason: string, fix_hint: string,
+  evidence: Record<string, unknown> = {}, verdict: Denial["verdict"] = "reject",
+): Classified => ({ actions: [], denials: [{ step, verdict, code, reason, fix_hint, evidence: { code, ...evidence } }] });
+
+const ok = (...actions: ClassifiedAction[]): Classified => ({ actions, denials: [] });
+
+// Session settings that change which objects later statements resolve to, the
+// privileges they run with, or whether triggers and foreign keys fire.
+const UNSAFE_SESSION_SETTINGS = new Set(["search_path", "role", "session_authorization", "session_replication_role"]);
+
+const PREPARED_TRANSACTION_KINDS = new Set(["TRANS_STMT_PREPARE", "TRANS_STMT_COMMIT_PREPARED", "TRANS_STMT_ROLLBACK_PREPARED"]);
+
+/** Stands for every relation in the database, which no ticket scope lists. */
+const ALL_RELATIONS = "*";
+
+const SESSION_KILLS = new Set(["pg_terminate_backend", "pg_cancel_backend"]);
+
+// The first session-kill function called anywhere in a parse tree, if any.
+function findSessionKill(node: unknown): string | undefined {
+  if (Array.isArray(node)) {
+    for (const n of node) {
+      const hit = findSessionKill(n);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  if (node === null || typeof node !== "object") return undefined;
+  const call = (node as Node).FuncCall;
+  if (call) {
+    const name = call.funcname?.at(-1)?.String?.sval;
+    if (SESSION_KILLS.has(name)) return name;
+  }
+  for (const v of Object.values(node)) {
+    const hit = findSessionKill(v);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+const DEFAULT_SCHEMA = "public";
+
+type Node = Record<string, any>;
+
+const qualify = (schemaname: string | undefined, relname: string) => `${schemaname ?? DEFAULT_SCHEMA}.${relname}`;
+
+const nameFromList = (list: Node): string => {
+  const parts = (list.List?.items ?? []).map((i: Node) => i.String?.sval as string);
+  return parts.length === 1 ? qualify(undefined, parts[0]) : parts.join(".");
+};
+
+function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
+  const [type] = Object.keys(stmt);
+  const body = stmt[type];
+  const kill = findSessionKill(stmt);
+  if (kill) {
+    return deny(step, "session_kill", `Step ${step} calls ${kill}; a human decides on session kills.`,
+      "Escalate to a human instead of ending sessions in the change request.", { function: kill }, "escalate");
+  }
+  switch (type) {
+    case "TransactionStmt":
+      // Transaction boundaries and savepoints are not actions. A prepared
+      // transaction outlives the change request, holding its locks.
+      if (PREPARED_TRANSACTION_KINDS.has(body.kind)) {
+        return deny(step, "prepared_transaction", `Step ${step} uses a prepared (two-phase) transaction, which can outlive the change request and hold its locks.`,
+          "Use plain BEGIN and COMMIT.", { kind: body.kind });
+      }
+      return ok();
+    case "VariableSetStmt":
+      // SET, SET LOCAL and RESET change the session state that later steps run under.
+      if (UNSAFE_SESSION_SETTINGS.has(body.name)) {
+        return deny(step, "unsafe_session_setting", `Step ${step} sets ${body.name}, which changes how later statements resolve objects, which privileges they use, or whether triggers and foreign keys fire.`,
+          "Remove the SET and schema-qualify object names.", { setting: body.name });
+      }
+      return ok({ step, action: "cfg.set_session", objects: [], setting: body.name });
+    case "IndexStmt":
+      // A new index on a table is in scope when its table is.
+      return ok({
+        step,
+        action: body.concurrent ? "idx.create_concurrent" : "idx.create_blocking",
+        objects: [qualify(body.relation.schemaname, body.relation.relname)],
+      });
+    case "AlterRoleSetStmt":
+      return ok({ step, action: "cfg.set_role", objects: [`role:${body.role?.rolename}`], setting: body.setstmt?.name });
+    case "DropStmt":
+      if (body.removeType === "OBJECT_INDEX") {
+        const indexes: string[] = body.objects.map(nameFromList);
+        const tables = indexes.map((i) => snapshot.relations[i]?.table).filter((t): t is string => !!t);
+        return ok({
+          step,
+          action: body.concurrent ? "idx.drop_concurrent" : "idx.drop_blocking",
+          objects: [...new Set([...indexes, ...tables])],
+        });
+      }
+      break;
+    case "VacuumStmt": {
+      const options = new Set((body.options ?? []).map((o: Node) => o.DefElem?.defname));
+      if (options.has("full")) {
+        return deny(step, "vacuum_full", `Step ${step} runs VACUUM FULL, which rewrites the table under ACCESS EXCLUSIVE.`,
+          "Use plain VACUUM, or escalate if the table needs a rewrite.");
+      }
+      // VACUUM and ANALYZE share a node; with no relation list they cover the whole database.
+      const rels: Node[] = body.rels ?? [];
+      const objects = rels.length === 0
+        ? [ALL_RELATIONS]
+        : rels.map((r) => qualify(r.VacuumRelation.relation.schemaname, r.VacuumRelation.relation.relname));
+      return ok({ step, action: "maint.vacuum_analyze", objects });
+    }
+    case "DoStmt":
+      return deny(step, "do_block", `Step ${step} is a DO block, whose statements the policy gate cannot see.`,
+        "Write each statement as its own SQL step.");
+    case "ExecuteStmt":
+      return deny(step, "dynamic_sql", `Step ${step} executes a prepared statement whose text the policy gate cannot see.`,
+        "Write the statement out in full as its own SQL step.");
+    case "CreateFunctionStmt":
+      return deny(step, "function_in_cr", `Step ${step} creates a function or procedure in the change request; its body is opaque to the policy gate.`,
+        "Write the statements as SQL steps instead of wrapping them in a function.");
+    case "ClusterStmt":
+      return deny(step, "cluster", `Step ${step} runs CLUSTER, which rewrites the table under ACCESS EXCLUSIVE.`,
+        "Escalate if the table needs a rewrite.");
+    case "AlterSystemStmt":
+      return deny(step, "alter_system", `Step ${step} runs ALTER SYSTEM in a SQL step, which bypasses the Actor's node ordering and restart handling.`,
+        "Use a config step ({ config: { name, value }, node }) instead of ALTER SYSTEM.", { setting: body.setstmt?.name });
+  }
+  return deny(step, "unknown_statement", `Step ${step} is a ${type} statement, which is not in the policy gate's action vocabulary.`,
+    "Use only statements the policy gate can classify, or escalate.", { statement: type });
+}
+
+const RELOAD_CONTEXTS = new Set(["sighup", "superuser", "user", "backend", "superuser-backend"]);
+
+// Config steps classify without parsing. The Actor restarts each targeted node
+// after a postmaster-context setting, so such a step implies node.restart per
+// node; an omitted node means both nodes (ADR 0003).
+function classifyConfig(
+  s: Extract<PolicyStep, { config: unknown }>, step: number, snapshot: StateSnapshot,
+): Classified {
+  if (s.node !== undefined && !["primary", "standby", "both"].includes(s.node)) {
+    return deny(step, "malformed_step", `Step ${step} targets node ${JSON.stringify(s.node)}, which is not primary, standby or both.`,
+      "Set node to primary, standby or both, or omit it for both nodes.", { node: s.node });
+  }
+  const nodes: NodeName[] = s.node === "primary" || s.node === "standby" ? [s.node] : ["primary", "standby"];
+  const setting = s.config.name;
+  const context = snapshot.nodes[nodes[0]].settings[setting]?.context;
+  if (context === "postmaster") {
+    return ok(
+      { step, action: "cfg.set_restart", objects: [], nodes, setting },
+      ...nodes.map((n): ClassifiedAction => ({ step, action: "node.restart", objects: [], nodes: [n], setting })),
+    );
+  }
+  if (context && RELOAD_CONTEXTS.has(context)) return ok({ step, action: "cfg.set_reload", objects: [], nodes, setting });
+  if (context === undefined) {
+    return deny(step, "unknown_setting", `Step ${step} sets ${setting}, which the state snapshot does not list.`,
+      "Check the setting name against pg_settings.", { setting });
+  }
+  return deny(step, "unsettable_setting", `Step ${step} sets ${setting}, whose context (${context}) cannot be changed by a config step.`,
+    "Remove the step; this setting cannot be changed on a running cluster.", { setting, context });
+}
+
+export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Classification {
+  const out: Classification = { actions: [], denials: [] };
+  const add = (c: Classified) => {
+    out.actions.push(...c.actions);
+    out.denials.push(...c.denials);
+  };
+  cr.steps.forEach((raw, step) => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      add(deny(step, "malformed_step", `Step ${step} is not a step object.`, "Write each step as a SQL step or a config step.", { value: raw }));
+      return;
+    }
+    const s = raw as PolicyStep;
+    if ("sql" in s && typeof s.sql === "string") {
+      const parsed = parseSql(s.sql);
+      if (!parsed.ok) {
+        add(deny(step, "parse_error", `Step ${step} does not parse as Postgres SQL: ${parsed.error}.`,
+          "Fix the SQL syntax.", { error: parsed.error }));
+        return;
+      }
+      for (const { stmt } of parsed.stmts) if (stmt) add(classifyStatement(stmt as Node, step, snapshot));
+    } else if ("config" in s && typeof s.config?.name === "string") {
+      add(classifyConfig(s, step, snapshot));
+    } else {
+      add(deny(step, "unknown_statement", `Step ${step} is not a SQL step or a config step.`,
+        "Use only SQL steps and config steps.", { statement: Object.keys(s as object)[0] }));
+    }
+  });
+  return out;
+}
