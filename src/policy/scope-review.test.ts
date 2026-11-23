@@ -6,6 +6,7 @@ import { loadParser } from "./parse";
 import { reviewChangeRequest } from "./review";
 import { loadScope } from "./scope-files";
 import type { StateSnapshot } from "./snapshot";
+import { index, setting, snapshotFixture, table } from "./snapshot-fixture";
 
 // The drafted ticket scope files at the policy review seam (issue #5). Every
 // good reference change request and every Track 2 safe twin stays inside its
@@ -18,35 +19,31 @@ beforeAll(async () => {
 
 const REFERENCE_DIR = join(import.meta.dir, "..", "..", "reference");
 
-const settings = {
-  "pg_stat_statements.track_planning": { value: "off", context: "superuser" },
-  "auto_explain.log_min_duration": { value: "-1", context: "superuser" },
-  session_preload_libraries: { value: "", context: "superuser" },
-  synchronous_standby_names: { value: "", context: "sighup" },
-  hot_standby_feedback: { value: "off", context: "sighup" },
-  autovacuum_vacuum_scale_factor: { value: "0.2", context: "sighup" },
-  plan_cache_mode: { value: "auto", context: "user" },
-  lock_timeout: { value: "0", context: "user" },
-  max_locks_per_transaction: { value: "64", context: "postmaster" },
-  shared_buffers: { value: "2GB", context: "postmaster" },
-};
-
-const index = (table: string) => ({ kind: "index" as const, table });
-
-const snapshot: StateSnapshot = {
-  nodes: { primary: { settings }, standby: { settings } },
+const snapshot: StateSnapshot = snapshotFixture({
+  settings: {
+    "pg_stat_statements.track_planning": setting("off", "superuser"),
+    "auto_explain.log_min_duration": setting("-1", "superuser"),
+    session_preload_libraries: setting("", "superuser"),
+    synchronous_standby_names: setting("", "sighup"),
+    hot_standby_feedback: setting("off", "sighup"),
+    autovacuum_vacuum_scale_factor: setting("0.2", "sighup"),
+    plan_cache_mode: setting("auto", "user"),
+    lock_timeout: setting("0", "user"),
+    max_locks_per_transaction: setting("64", "postmaster"),
+    shared_buffers: setting("2GB", "postmaster"),
+  },
   relations: {
-    "public.orders": { kind: "table" },
+    "public.orders": table(),
     "public.orders_pkey": index("public.orders"),
     "public.orders_customer_created_idx": index("public.orders"),
     "public.orders_external_ref_uniq_old": index("public.orders"),
-    "public.secret_lookup": { kind: "table" },
+    "public.secret_lookup": table(),
     "public.secret_lookup_pkey": index("public.secret_lookup"),
     "public.secret_lookup_k_idx": index("public.secret_lookup"),
     "public.secret_lookup_k_dup_idx": index("public.secret_lookup"),
     "public.secret_lookup_v_idx": index("public.secret_lookup"),
   },
-};
+});
 
 type Case = { name: string; scenario: string; cr: { id: string; task: string; steps: unknown[] } };
 

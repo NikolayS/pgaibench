@@ -68,7 +68,7 @@ SELECT json_build_object(
       'reloptions', c.reloptions, 'replica_identity', c.relreplident)), '[]'::json)
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE c.relkind IN ('r', 'p', 'm')
+    WHERE c.relkind IN ('r', 'p', 'm', 'v', 'S', 'f')
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND n.nspname NOT LIKE 'pg\_toast%'
       AND n.nspname NOT LIKE 'pg\_temp%'),
@@ -95,7 +95,8 @@ SELECT json_build_object(
     JOIN pg_class c     ON c.oid = i.indexrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
-      AND n.nspname NOT LIKE 'pg\_toast%'),
+      AND n.nspname NOT LIKE 'pg\_toast%'
+      AND n.nspname NOT LIKE 'pg\_temp%'),
 
   -- Node-local counters: on a standby these reflect STANDBY reads (the L9 blind spot).
   'index_usage', (
