@@ -23,6 +23,12 @@ export type ClassifiedAction = {
   nodes?: NodeName[];
   /** The setting a config step or role setting changes. */
   setting?: string;
+  /** obj.drop and obj.truncate: true with CASCADE. */
+  cascade?: boolean;
+  /** ddl.alter_column_type and ddl.drop_column: the column. */
+  column?: string;
+  /** ddl.alter_column_type: the new type as written, e.g. "float8" or "varchar(20)". */
+  new_type?: string;
 };
 
 export type DenyCode =
@@ -157,6 +163,50 @@ const nameFromList = (list: Node): string => {
   return parts.length === 1 ? qualify(undefined, parts[0]) : parts.join(".");
 };
 
+// obj.drop covers tables, views and types (02-action-vocabulary.md); other
+// DROP statements stay default-deny.
+const DROPPABLE_OBJECTS = new Set(["OBJECT_TABLE", "OBJECT_VIEW", "OBJECT_MATVIEW", "OBJECT_TYPE"]);
+
+// DROP TABLE and DROP VIEW name objects as a List; DROP TYPE as a TypeName.
+const droppedName = (o: Node): string =>
+  o.TypeName ? nameFromList({ List: { items: o.TypeName.names } }) : nameFromList(o);
+
+// A type name as written, without pg_catalog: "float8", "varchar(20)", "numeric(10,2)".
+function typeName(t: Node): string {
+  const parts: string[] = t.names.map((n: Node) => n.String?.sval);
+  const name = parts.length === 2 && parts[0] === "pg_catalog" ? parts[1] : parts.join(".");
+  const mods = (t.typmods ?? []).map((m: Node) => m.A_Const?.ival?.ival ?? "?");
+  const bounds = t.arrayBounds ? "[]".repeat(t.arrayBounds.length) : "";
+  return `${name}${mods.length > 0 ? `(${mods.join(",")})` : ""}${bounds}`;
+}
+
+// ALTER TABLE: one action per subcommand; a subcommand outside the vocabulary is denied.
+function classifyAlterTable(body: Node, step: number): Classified {
+  if (body.objtype !== "OBJECT_TABLE") {
+    return deny(step, "unknown_statement", `Step ${step} is an ALTER statement on a ${body.objtype}, which is not in the policy gate's action vocabulary.`,
+      "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", objtype: body.objtype });
+  }
+  const tableName = qualify(body.relation.schemaname, body.relation.relname);
+  const out: Classified = { actions: [], denials: [] };
+  for (const { AlterTableCmd: cmd } of body.cmds as Node[]) {
+    let c: Classified;
+    switch (cmd.subtype) {
+      case "AT_AlterColumnType":
+        c = ok({ step, action: "ddl.alter_column_type", objects: [tableName], column: cmd.name, new_type: typeName(cmd.def.ColumnDef.typeName) });
+        break;
+      case "AT_DropColumn":
+        c = ok({ step, action: "ddl.drop_column", objects: [tableName], column: cmd.name });
+        break;
+      default:
+        c = deny(step, "unknown_statement", `Step ${step} uses ALTER TABLE ${cmd.subtype}, which is not in the policy gate's action vocabulary.`,
+          "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", subtype: cmd.subtype });
+    }
+    out.actions.push(...c.actions);
+    out.denials.push(...c.denials);
+  }
+  return out;
+}
+
 function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
   const [type] = Object.keys(stmt);
   const body = stmt[type];
@@ -205,7 +255,19 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
           objects: [...new Set([...indexes, ...tables])],
         });
       }
+      if (DROPPABLE_OBJECTS.has(body.removeType)) {
+        return ok({ step, action: "obj.drop", objects: body.objects.map(droppedName), cascade: body.behavior === "DROP_CASCADE" });
+      }
       break;
+    case "AlterTableStmt":
+      return classifyAlterTable(body, step);
+    case "TruncateStmt":
+      return ok({
+        step,
+        action: "obj.truncate",
+        objects: body.relations.map((r: Node) => qualify(r.RangeVar.schemaname, r.RangeVar.relname)),
+        cascade: body.behavior === "DROP_CASCADE",
+      });
     case "VacuumStmt": {
       const options = new Set((body.options ?? []).map((o: Node) => o.DefElem?.defname));
       if (options.has("full")) {
