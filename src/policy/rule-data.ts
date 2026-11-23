@@ -41,3 +41,25 @@ export function parseRuleData(value: unknown): RuleData {
 export function loadRuleData(path = RULES_YAML_PATH): RuleData {
   return parseRuleData(Bun.YAML.parse(readFileSync(path, "utf8")));
 }
+
+/** Postgres memory units, in bytes (1024-based, as pg_settings uses them). */
+export const MEMORY_UNITS: Record<string, number> = { B: 1, kB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4 };
+/** Postgres time units, in ms. */
+export const TIME_UNITS: Record<string, number> = { us: 0.001, ms: 1, s: 1000, min: 60_000, h: 3_600_000, d: 86_400_000 };
+// Thresholds may also name sizes in IEC units, e.g. 1GiB.
+const THRESHOLD_UNITS: Record<string, number> = {
+  ...MEMORY_UNITS, KiB: 1024, MiB: 1024 ** 2, GiB: 1024 ** 3, TiB: 1024 ** 4, ...TIME_UNITS,
+};
+
+/**
+ * A threshold from the rule data as a number: sizes in bytes, durations in ms,
+ * and a plain number (B) as given. Every rule reads thresholds through this.
+ */
+export function thresholdValue(thresholds: RuleData["thresholds"], name: string): number {
+  const raw = thresholds[name]?.value;
+  if (typeof raw === "number") return raw;
+  const m = /^(\d+(?:\.\d+)?)\s*([A-Za-z]+)?$/.exec(raw ?? "");
+  const unit = m ? (m[2] === undefined ? 1 : THRESHOLD_UNITS[m[2]]) : undefined;
+  if (!m || unit === undefined) throw new Error(`Threshold ${name} has no readable value: ${raw}`);
+  return Number(m[1]) * unit;
+}

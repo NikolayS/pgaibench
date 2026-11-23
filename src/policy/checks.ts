@@ -2,7 +2,7 @@ import type { ClassifiedAction } from "./classify";
 import {
   lockedScanSize, lockTimeoutSet, noDdlWithDml, noOldBlocker, notValidCommitted, oneBigExclusivePerTxn, outsideTxnBlock, setNotNullProven,
 } from "./lock-rules";
-import type { Rule, RuleData } from "./rule-data";
+import { thresholdValue, type Rule, type RuleData } from "./rule-data";
 import type { TicketScope } from "./scope";
 import { scannedInWindow, type StateSnapshot } from "./snapshot";
 import { REPLICATION_CHECKS } from "./checks-replication";
@@ -109,20 +109,9 @@ const indexBacksNothing: Check = ({ actions, snapshot }) =>
     }];
   }));
 
-const BYTE_UNITS: Record<string, number> = { B: 1, kB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4, KiB: 1024, MiB: 1024 ** 2, GiB: 1024 ** 3, TiB: 1024 ** 4 };
-
-/** A size threshold from rules.yaml (e.g. "1GiB") in bytes. */
-function thresholdBytes(thresholds: RuleData["thresholds"], name: string): number {
-  const value = String(thresholds[name]?.value);
-  const m = /^(\d+(?:\.\d+)?)\s*([A-Za-z]+)?$/.exec(value);
-  const unit = m ? BYTE_UNITS[m[2] ?? "B"] : undefined;
-  if (!m || unit === undefined) throw new Error(`Threshold ${name} is not a size: ${value}`);
-  return Number(m[1]) * unit;
-}
-
 // I-3: a blocking index drop takes ACCESS EXCLUSIVE on the table, so only on tables up to S_scan.
 const blockingIndexDropSmall: Check = ({ actions, snapshot, thresholds }) => {
-  const limit = thresholdBytes(thresholds, "S_scan");
+  const limit = thresholdValue(thresholds, "S_scan");
   return actions.filter((a) => a.action === "idx.drop_blocking").flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx, rel]) => {
     const bytes = snapshot.relations[rel.table]?.total_bytes ?? 0;
     if (bytes <= limit) return [];
@@ -137,7 +126,7 @@ const blockingIndexDropSmall: Check = ({ actions, snapshot, thresholds }) => {
 
 // S-1: tables larger than S_drop need a staged, human-approved drop.
 const dropWithinSize: Check = ({ actions, snapshot, thresholds }) => {
-  const limit = thresholdBytes(thresholds, "S_drop");
+  const limit = thresholdValue(thresholds, "S_drop");
   return actions.filter((a) => a.action === "obj.drop").flatMap((a) => a.objects.flatMap((o) => {
     const bytes = snapshot.relations[o]?.total_bytes ?? 0;
     if (bytes <= limit) return [];
@@ -316,7 +305,7 @@ function rowBound(a: ClassifiedAction, snapshot: StateSnapshot): number | undefi
 // TS-7: the DML in one transaction changes at most B rows. One finding per
 // transaction, at the step that crosses B or first cannot be bounded.
 const rowsPerTransaction: Check = ({ actions, snapshot, thresholds }) => {
-  const limit = Number(thresholds.B.value);
+  const limit = thresholdValue(thresholds, "B");
   const byTxn = new Map<number, ClassifiedAction[]>();
   for (const a of actions) if (a.action === "dml.bounded" && a.txn) byTxn.set(a.txn.group, [...(byTxn.get(a.txn.group) ?? []), a]);
   return [...byTxn.values()].flatMap((dml) => {
@@ -341,9 +330,6 @@ const rowsPerTransaction: Check = ({ actions, snapshot, thresholds }) => {
     }];
   });
 };
-
-// Rules whose checks later tickets implement (#1). Until then they never fire.
-const pending: Check = () => [];
 
 export const CHECKS: Record<string, Check> = {
   "TS-1": objectsInScope,

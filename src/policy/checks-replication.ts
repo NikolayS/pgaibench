@@ -1,5 +1,6 @@
 import type { NodeName } from "./actions";
 import type { Check, RuleFinding } from "./checks";
+import { MEMORY_UNITS, TIME_UNITS } from "./rule-data";
 import type { Setting } from "./snapshot";
 
 // Checks for the replication and settings rules R-1 to R-4 and R-6 to R-9
@@ -221,8 +222,6 @@ const standbyOnlySettings: Check = ({ actions, rule }) => {
 };
 
 // Unit multipliers as Postgres reads them in setting values (guc.c).
-const MEMORY_UNITS: Record<string, number> = { B: 1, kB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4 };
-const TIME_UNITS: Record<string, number> = { us: 0.001, ms: 1, s: 1000, min: 60_000, h: 3_600_000, d: 86_400_000 };
 
 // A setting's base unit, e.g. "8kB" is 8192 bytes and "s" is 1000 ms.
 function baseUnit(unit: string | null): { table: Record<string, number>; factor: number } | undefined {
