@@ -10,7 +10,7 @@ import { listScopeIds } from "./scope-files";
 import { stateSnapshotSchema, type StateSnapshot } from "./snapshot";
 
 // The baseline capture entry point (issue #7). The wizard in
-// scripts/capture-baselines.sh calls it once per scenario on a lab VM. No
+// scripts/capture-baselines.ts calls it once per scenario on a lab VM. No
 // database and no VM here: the ports are fakes.
 
 const FIXTURE = join(import.meta.dir, "fixtures", "snapshot-two-node.json");

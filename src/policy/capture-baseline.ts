@@ -21,8 +21,8 @@ import { collectSnapshot, type CollectOptions, type NodeConnections } from "./sn
 // W_prod (injector on), and collect a state snapshot of both nodes while the
 // workload runs. The validated, redacted snapshot becomes a committed fixture
 // in src/policy/fixtures/baselines/<scenario>.json. These are inputs for
-// replay, not scored results. scripts/capture-baselines.sh walks a human
-// through every scenario.
+// replay, not scored results. The wizard in scripts/capture-baselines.ts
+// (`bun run capture-baselines`) walks a human through every scenario.
 //
 // Credentials: the Postgres password comes from the environment (or the
 // documented lab default) and goes only to the client. We never log it, and
@@ -30,7 +30,7 @@ import { collectSnapshot, type CollectOptions, type NodeConnections } from "./sn
 
 export const BASELINE_DIR = join(import.meta.dir, "fixtures", "baselines");
 const REPO_DIR = join(import.meta.dir, "..", "..");
-const LAB_DEFAULT_PASSWORD = "pgaibench";
+export const LAB_DEFAULT_PASSWORD = "pgaibench";
 const PRIMARY_PORT = 5432, STANDBY_PORT = 5433;
 /** The primary's clock, in epoch seconds. collected_at also comes from the primary, so both ends of W share one clock. */
 const PRIMARY_NOW_CMD = "docker exec pgaibench-primary psql -U postgres -d app -XAtc 'SELECT extract(epoch FROM now())'";
