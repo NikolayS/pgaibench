@@ -429,7 +429,24 @@ svg.bc .bc-pl, svg.bc .bc-eff, svg.bc .bc-tick, svg.bc .bc-d0 { fill: var(--mute
 /* Front page (2026-11-22): headline numbers, the three AAA duties, and theme-aware figures.
    A figure holds two <picture> tags, .fig-light and .fig-dark; each one has a narrow source
    for phones. The dark rules below mirror the theme rules at the top of this file. */
-:root { --fig-bg: #ffffff; --fig-line: #d9d9d2; }
+:root { --fig-bg: #ffffff; --fig-line: #d9d9d2; --cta-fg: #ffffff; --cta-bg: #eef2fc; }
+header.top .nav a.nav-post { background: var(--accent); color: var(--cta-fg); font-weight: 800; padding: 0.1rem 0.9ch; text-decoration: none; white-space: nowrap; }
+header.top .nav a.nav-post:hover, header.top .nav a.nav-post:focus-visible { background: var(--ink); color: var(--bg); }
+.post-cta { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(var(--lh) * 0.65) 2.5ch; max-width: 100ch; margin: var(--lh) 0; padding: calc(var(--lh) * 0.75) 1.75ch; border: var(--bw) solid var(--accent); border-left-width: 6px; background: var(--cta-bg); }
+.post-cta:focus-within { outline: var(--bw) solid var(--accent); outline-offset: 2px; }
+.post-cta-body { flex: 1 1 42ch; min-width: 0; }
+.post-cta-body p { margin: 0; max-width: none; }
+.post-cta-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1ch; margin-bottom: 0.35rem; font-size: 0.82rem; line-height: 1.3; }
+.post-cta-badge { background: var(--accent); color: var(--cta-fg); font-weight: 800; padding: 0.08rem 0.75ch; letter-spacing: 0.04em; }
+.post-cta-meta { color: var(--muted); font-weight: 600; }
+.post-cta-title { font-size: 1.08rem; line-height: 1.35; font-weight: 800; margin-bottom: 0.25rem; }
+.post-cta-link { color: var(--ink); text-decoration: none; }
+.post-cta-link::after { content: ""; position: absolute; inset: 0; }
+.post-cta-link:focus-visible { outline: none; }
+.post-cta-sub { color: var(--muted); font-size: 0.92rem; line-height: 1.4; }
+.post-cta-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--cta-fg); font-weight: 800; padding: 0.65rem 1.8ch; border: var(--bw) solid var(--accent); white-space: nowrap; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
+.post-cta:hover .post-cta-btn, .post-cta:focus-within .post-cta-btn { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.post-cta:hover .post-cta-link { text-decoration: underline; text-decoration-thickness: var(--bw); text-underline-offset: 3px; }
 .kpis, .duties, .fig, p.actions, details.more:not([open]) { max-width: 100ch; }
 p.actions a { white-space: nowrap; }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lh) 2ch; margin: var(--lh) 0; }
@@ -453,16 +470,20 @@ p.actions a { white-space: nowrap; }
 .fig .fig-light { display: block; }
 .fig .fig-dark { display: none; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --fig-bg: #14161a; --fig-line: #2f3138; }
+  :root:not([data-theme="light"]) { --fig-bg: #14161a; --fig-line: #2f3138; --cta-fg: #0b0b0c; --cta-bg: #121726; }
   :root:not([data-theme="light"]) .fig .fig-light { display: none; }
   :root:not([data-theme="light"]) .fig .fig-dark { display: block; }
 }
-:root[data-theme="dark"] { --fig-bg: #14161a; --fig-line: #2f3138; }
+:root[data-theme="dark"] { --fig-bg: #14161a; --fig-line: #2f3138; --cta-fg: #0b0b0c; --cta-bg: #121726; }
 :root[data-theme="dark"] .fig .fig-light { display: none; }
 :root[data-theme="dark"] .fig .fig-dark { display: block; }
 details.more > summary::before { white-space: pre; flex: none; }
 @media (max-width: 600px) { .fig picture { max-width: 30rem; } }
 @media (max-width: 40rem) {
+  header.top .nav a.nav-post { min-height: 32px; padding: 0 1ch; align-self: center; line-height: 1.4; }
+  .post-cta { flex-direction: column; align-items: stretch; padding: calc(var(--lh) * 0.65) 1.25ch; }
+  .post-cta-body { flex: 0 0 auto; }
+  .post-cta-btn { width: 100%; min-height: 44px; text-align: center; }
   p.actions { display: flex; flex-direction: column; }
   p.actions .dot { display: none; }
   .kpis, .duties { grid-template-columns: 1fr; }
@@ -574,9 +595,10 @@ details.more > summary::before { white-space: pre; flex: none; }
     text-decoration-thickness: 0.75pt;
   }
 
-  /* Title block, lede, KPI strip, action links, and header table span full width. */
+  /* Title block, lede, featured post CTA, KPI strip, action links, and header table span full width. */
   main > h1,
   main > .lede,
+  main > .post-cta,
   main > .kpis,
   main > p.actions,
   main > table.header,
@@ -599,6 +621,38 @@ details.more > summary::before { white-space: pre; flex: none; }
     font-size: 9pt !important;
     line-height: 1.4 !important;
     margin: 0 0 8pt !important;
+  }
+
+  .post-cta {
+    background: #f4f6fb !important;
+    border: 0.75pt solid #1d43a6 !important;
+    border-left-width: 3pt !important;
+    padding: 4pt 7pt !important;
+    margin: 0 0 6pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .post-cta-kicker {
+    font-size: 7pt !important;
+    margin-bottom: 1.5pt !important;
+  }
+  .post-cta-badge {
+    background: #1d43a6 !important;
+    color: #ffffff !important;
+    padding: 0.5pt 4pt !important;
+  }
+  .post-cta-title {
+    font-size: 8.8pt !important;
+    line-height: 1.22 !important;
+    margin-bottom: 1pt !important;
+  }
+  .post-cta-sub {
+    font-size: 7.4pt !important;
+    line-height: 1.25 !important;
+  }
+  .post-cta-btn,
+  .post-cta-link::after {
+    display: none !important;
   }
 
   .kpis {
@@ -804,17 +858,17 @@ details.more > summary::before { white-space: pre; flex: none; }
   .print-refs {
     display: block !important;
     column-span: all;
-    margin: 10pt 0 0 !important;
-    padding-top: 6pt;
+    margin: 6pt 0 0 !important;
+    padding-top: 4pt;
     border-top: 0.75pt solid #888;
-    font-size: 7.2pt;
-    line-height: 1.3;
+    font-size: 6.9pt;
+    line-height: 1.24;
     color: #141414;
   }
 
   .print-refs__title {
-    font-size: 9pt !important;
-    margin: 0 0 4pt !important;
+    font-size: 8.6pt !important;
+    margin: 0 0 3pt !important;
     break-after: avoid;
     page-break-after: avoid;
   }
@@ -831,7 +885,7 @@ details.more > summary::before { white-space: pre; flex: none; }
   .print-refs__list li {
     display: flex;
     gap: 0.45em;
-    margin: 0 0 2pt !important;
+    margin: 0 0 1.5pt !important;
     break-inside: avoid;
     page-break-inside: avoid;
     max-width: none !important;
@@ -859,11 +913,11 @@ details.more > summary::before { white-space: pre; flex: none; }
   }
 
   .foot {
-    margin-top: 8pt !important;
-    padding-top: 5pt !important;
+    margin-top: 6pt !important;
+    padding-top: 4pt !important;
     border-top: 0.75pt solid #888 !important;
-    font-size: 7pt !important;
-    line-height: 1.3 !important;
+    font-size: 6.8pt !important;
+    line-height: 1.24 !important;
     break-inside: avoid;
   }
 
@@ -873,5 +927,5 @@ details.more > summary::before { white-space: pre; flex: none; }
     text-decoration-thickness: 0.75pt;
   }
 
-  .foot p { max-width: 100% !important; margin: 0 0 2.5pt !important; }
+  .foot p { max-width: 100% !important; margin: 0 0 2pt !important; }
 }
