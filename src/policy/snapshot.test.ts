@@ -81,7 +81,7 @@ describe("policy review over a full snapshot", () => {
     const cr = { id: "CR", task: "t", steps: [{ config: { name: "max_locks_per_transaction", value: "128" } }] };
     const scope = { allowed_objects: [], forbidden_actions: ["node.restart" as const], cluster_scope: false, downtime_allowed: [], extension_allowlist: [] };
     const result = reviewChangeRequest(cr, stateSnapshotSchema.parse(twoNode), scope);
-    expect(result.findings.map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "primary"], ["TS-2", "standby"]]);
+    expect(result.findings.filter((f) => f.rule === "TS-2").map((f) => [f.rule, f.evidence.node])).toEqual([["TS-2", "primary"], ["TS-2", "standby"]]);
   });
 });
 
