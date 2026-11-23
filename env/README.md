@@ -299,9 +299,11 @@ nonzero with a diagnostic if the standby does not catch up.
 
 ## Baseline snapshots for policy replay
 
-`scripts/capture-baselines.sh [scenario ...]` is a guided procedure that
-captures one policy-gate state snapshot per scenario in `src/policy/scopes/`.
-For each scenario it calls `src/policy/capture-baseline.ts`, which takes the
+`bun run capture-baselines [scenario ...]` (`scripts/capture-baselines.ts`)
+is a guided procedure that captures one policy-gate state snapshot per
+scenario in `src/policy/scopes/`. The Postgres password, when the lab does
+not use the default, is asked for hidden and passed to the capture only in
+its environment; it is never written to `.env`, fixtures or logs. For each scenario it calls `src/policy/capture-baseline.ts`, which takes the
 VM lock, runs `reset.sh`, applies `scenario-setup/<id>.sql` when the scenario
 needs one, starts a 180 s W_prod window, and collects both nodes at 120 s. It
 writes the redacted, validated snapshot to
