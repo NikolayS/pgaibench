@@ -447,6 +447,9 @@ header.top .nav a.nav-post:hover, header.top .nav a.nav-post:focus-visible { bac
 .post-cta-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--cta-fg); font-weight: 800; padding: 0.65rem 1.8ch; border: var(--bw) solid var(--accent); white-space: nowrap; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
 .post-cta:hover .post-cta-btn, .post-cta:focus-within .post-cta-btn { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .post-cta:hover .post-cta-link { text-decoration: underline; text-decoration-thickness: var(--bw); text-underline-offset: 3px; }
+ul.findings { max-width: 100ch; margin: 0 0 var(--lh); }
+ul.findings li { max-width: 92ch; margin-bottom: calc(var(--lh) * 0.4); }
+ul.findings li:last-child { margin-bottom: 0; }
 .kpis, .duties, .fig, p.actions, details.more:not([open]) { max-width: 100ch; }
 p.actions a { white-space: nowrap; }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lh) 2ch; margin: var(--lh) 0; }
