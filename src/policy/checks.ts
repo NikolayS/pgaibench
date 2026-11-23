@@ -1,4 +1,7 @@
 import type { ClassifiedAction } from "./classify";
+import {
+  lockedScanSize, lockTimeoutSet, noDdlWithDml, noOldBlocker, notValidCommitted, oneBigExclusivePerTxn, outsideTxnBlock, setNotNullProven,
+} from "./lock-rules";
 import type { Rule, RuleData } from "./rule-data";
 import type { TicketScope } from "./scope";
 import type { StateSnapshot } from "./snapshot";
@@ -69,8 +72,8 @@ export const CHECKS: Record<string, Check> = {
   "TS-3": pending, "TS-4": pending, "TS-5": pending, "TS-6": pending, "TS-7": pending,
   "R-1": pending, "R-2": pending, "R-3": pending, "R-4": pending, "R-6": pending,
   "R-7": pending, "R-8": pending, "R-9": pending,
-  "L-1": pending, "L-2": pending, "L-3": pending, "L-4": pending,
-  "X-1": pending, "X-2": pending, "X-3": pending, "X-4": pending,
+  "L-1": lockTimeoutSet, "L-2": noOldBlocker, "L-3": lockedScanSize, "L-4": setNotNullProven,
+  "X-1": outsideTxnBlock, "X-2": notValidCommitted, "X-3": oneBigExclusivePerTxn, "X-4": noDdlWithDml,
   "I-1": pending, "I-2": pending, "I-3": pending,
   "U-1": pending, "T-1": pending, "S-1": pending, "S-2": pending,
 };

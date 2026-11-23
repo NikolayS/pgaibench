@@ -1,4 +1,5 @@
 import type { ActionKind, NodeName } from "./actions";
+import { LOCK_PROFILES, TxnTracker, type ActionLock, type SessionState, type TxnInfo } from "./locks";
 import { parseSql } from "./parse";
 import type { StateSnapshot } from "./snapshot";
 
@@ -23,6 +24,25 @@ export type ClassifiedAction = {
   nodes?: NodeName[];
   /** The setting a config step or role setting changes. */
   setting?: string;
+  /** Lock, scan and rewrite behavior (locks.ts); classify() always sets it. */
+  lock?: ActionLock;
+  /** The transaction the action runs in; classify() always sets it. */
+  txn?: TxnInfo;
+  /** Session state in effect when the action runs; classify() always sets it. */
+  session?: SessionState;
+  /** The retry count the step declares, if any. */
+  retries?: number;
+  /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */
+  constraint?: ConstraintInfo;
+  /** The column a column-level ALTER TABLE action changes. */
+  column?: string;
+};
+
+export type ConstraintInfo = {
+  name?: string;
+  type?: "check" | "not_null" | "foreign_key" | "unique" | "primary_key" | "exclusion";
+  /** The column the constraint proves NOT NULL (NOT NULL col, or CHECK (col IS NOT NULL)). */
+  not_null_column?: string;
 };
 
 export type DenyCode =
@@ -219,6 +239,13 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
         : rels.map((r) => qualify(r.VacuumRelation.relation.schemaname, r.VacuumRelation.relation.relname));
       return ok({ step, action: "maint.vacuum_analyze", objects });
     }
+    case "AlterTableStmt":
+      if (body.objtype === "OBJECT_TABLE") return classifyAlterTable(body, step);
+      break;
+    case "UpdateStmt":
+    case "DeleteStmt":
+    case "InsertStmt":
+      return ok({ step, action: "dml.bounded", objects: [qualify(body.relation.schemaname, body.relation.relname)] });
     case "DoStmt":
       return deny(step, "do_block", `Step ${step} is a DO block, whose statements the policy gate cannot see.`,
         "Write each statement as its own SQL step.");
@@ -237,6 +264,67 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
   }
   return deny(step, "unknown_statement", `Step ${step} is a ${type} statement, which is not in the policy gate's action vocabulary.`,
     "Use only statements the policy gate can classify, or escalate.", { statement: type });
+}
+
+const CONSTRAINT_TYPES: Record<string, ConstraintInfo["type"]> = {
+  CONSTR_CHECK: "check", CONSTR_NOTNULL: "not_null", CONSTR_FOREIGN: "foreign_key",
+  CONSTR_UNIQUE: "unique", CONSTR_PRIMARY: "primary_key", CONSTR_EXCLUSION: "exclusion",
+};
+
+// Functions whose value differs per row, so a column default that calls one rewrites the table.
+const VOLATILE_DEFAULTS = new Set(["random", "gen_random_uuid", "uuidv4", "uuidv7", "clock_timestamp", "nextval", "timeofday"]);
+
+// The column a constraint proves NOT NULL: NOT NULL col, or CHECK (col IS NOT NULL).
+function notNullColumn(c: Node): string | undefined {
+  if (c.contype === "CONSTR_NOTNULL" && c.keys?.length === 1) return c.keys[0].String?.sval;
+  const test = c.contype === "CONSTR_CHECK" ? c.raw_expr?.NullTest : undefined;
+  const fields = test?.nulltesttype === "IS_NOT_NULL" ? test.arg?.ColumnRef?.fields : undefined;
+  return fields?.length === 1 ? fields[0].String?.sval : undefined;
+}
+
+// ALTER TABLE: one action per subcommand. A subcommand outside the vocabulary
+// denies the whole statement.
+function classifyAlterTable(body: Node, step: number): Classified {
+  const target = qualify(body.relation.schemaname, body.relation.relname);
+  const actions: ClassifiedAction[] = [];
+  for (const { AlterTableCmd: cmd } of body.cmds as Node[]) {
+    const base = { step, objects: [target] };
+    switch (cmd.subtype) {
+      case "AT_AddColumn": {
+        const volatile = calledFunctions(cmd.def?.ColumnDef?.constraints).some((f) => VOLATILE_DEFAULTS.has(f));
+        actions.push({ ...base, action: "ddl.add_column", column: cmd.def?.ColumnDef?.colname,
+          lock: { ...LOCK_PROFILES["ddl.add_column"], rewrites: volatile, scans: volatile, relations: [target] } });
+        continue;
+      }
+      case "AT_AddConstraint": {
+        const c: Node = cmd.def.Constraint;
+        const type = CONSTRAINT_TYPES[c.contype];
+        if (!type) break;
+        const notValid = c.skip_validation === true;
+        const action = notValid ? "ddl.add_check_not_valid" : "ddl.add_constraint_validating";
+        const constraint: ConstraintInfo = { name: c.conname, type, not_null_column: notNullColumn(c) };
+        // A foreign key takes SHARE ROW EXCLUSIVE on both tables (PG 18 ALTER TABLE).
+        const referenced = type === "foreign_key" ? qualify(c.pktable.schemaname, c.pktable.relname) : undefined;
+        const lock: ActionLock = referenced
+          ? { ...LOCK_PROFILES[action], mode: "ShareRowExclusiveLock", relations: [target, referenced] }
+          : { ...LOCK_PROFILES[action], relations: [target] };
+        actions.push({ ...base, objects: referenced ? [target, referenced] : [target], action, constraint, lock });
+        continue;
+      }
+      case "AT_ValidateConstraint":
+        actions.push({ ...base, action: "ddl.validate_constraint", constraint: { name: cmd.name } });
+        continue;
+      case "AT_SetNotNull":
+        actions.push({ ...base, action: "ddl.set_not_null", column: cmd.name });
+        continue;
+      case "AT_AlterColumnType":
+        actions.push({ ...base, action: "ddl.alter_column_type", column: cmd.name });
+        continue;
+    }
+    return deny(step, "unknown_statement", `Step ${step} has an ALTER TABLE ${cmd.subtype} subcommand, which is not in the policy gate's action vocabulary.`,
+      "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", subtype: cmd.subtype });
+  }
+  return ok(...actions);
 }
 
 const RELOAD_CONTEXTS = new Set(["sighup", "superuser", "user", "backend", "superuser-backend"]);
@@ -269,12 +357,24 @@ function classifyConfig(
     "Remove the step; this setting cannot be changed on a running cluster.", { setting, context });
 }
 
+// Every action gets its lock behavior, transaction and session state, and its step's retry count.
+function annotate(c: Classified, at: { txn: TxnInfo; session: SessionState }, retries: unknown): Classified {
+  for (const a of c.actions) {
+    a.lock ??= { ...LOCK_PROFILES[a.action], relations: a.objects.filter((o) => !o.startsWith("role:")) };
+    a.txn = at.txn;
+    a.session = at.session;
+    if (typeof retries === "number") a.retries = retries;
+  }
+  return c;
+}
+
 export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Classification {
   const out: Classification = { actions: [], denials: [] };
   const add = (c: Classified) => {
     out.actions.push(...c.actions);
     out.denials.push(...c.denials);
   };
+  const tracker = new TxnTracker();
   cr.steps.forEach((raw, step) => {
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       add(deny(step, "malformed_step", `Step ${step} is not a step object.`, "Write each step as a SQL step or a config step.", { value: raw }));
@@ -288,9 +388,16 @@ export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Clas
           "Fix the SQL syntax.", { error: parsed.error }));
         return;
       }
-      for (const { stmt } of parsed.stmts) if (stmt) add(classifyStatement(stmt as Node, step, snapshot));
+      tracker.beginStep(parsed.stmts.length);
+      for (const { stmt } of parsed.stmts) {
+        if (!stmt) continue;
+        const at = tracker.statement(stmt as Node);
+        const c = classifyStatement(stmt as Node, step, snapshot);
+        add(at ? annotate(c, at, s.retries) : c);
+      }
+      tracker.endStep();
     } else if ("config" in s && typeof s.config?.name === "string") {
-      add(classifyConfig(s, step, snapshot));
+      add(annotate(classifyConfig(s, step, snapshot), tracker.config(), undefined));
     } else {
       add(deny(step, "unknown_statement", `Step ${step} is not a SQL step or a config step.`,
         "Use only SQL steps and config steps.", { statement: Object.keys(s as object)[0] }));
