@@ -32,3 +32,8 @@ history over window `W`. All fields come from standard catalog/stats views; only
   sandboxed extractor derives it (open question).
 - Snapshot JSON shape is defined by `sql/snapshot.sql`; the TS type sketch is in
   `sketch/types.ts`. Adapt to harness conventions.
+- In the harness, the zod schema in `src/policy/snapshot.ts` is the snapshot
+  type the rules read; `src/policy/snapshot-collect.ts` runs this SQL on both
+  nodes and builds it, and `src/policy/snapshot-fixture.ts` builds test
+  snapshots. Usage within `W` compares last-scan times to the snapshot's
+  `usage_window_start`.

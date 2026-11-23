@@ -195,7 +195,10 @@ function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): C
     case "DropStmt":
       if (body.removeType === "OBJECT_INDEX") {
         const indexes: string[] = body.objects.map(nameFromList);
-        const tables = indexes.map((i) => snapshot.relations[i]?.table).filter((t): t is string => !!t);
+        const tables = indexes.flatMap((i) => {
+          const rel = snapshot.relations[i];
+          return rel?.kind === "index" ? [rel.table] : [];
+        });
         return ok({
           step,
           action: body.concurrent ? "idx.drop_concurrent" : "idx.drop_blocking",

@@ -3,6 +3,7 @@ import { buildCorpus } from "../control/corpus";
 import { loadParser } from "./parse";
 import { reviewChangeRequest, type ReviewResult } from "./review";
 import type { StateSnapshot } from "./snapshot";
+import { index, setting, snapshotFixture, table } from "./snapshot-fixture";
 import type { TicketScope } from "./scope";
 
 // Policy review is the policy gate's first test seam (spec #1, issue #3):
@@ -19,23 +20,21 @@ const corpusCR = (id: string) => {
   return item.cr;
 };
 
-const settings = {
-  work_mem: { value: "4MB", context: "user" },
-  plan_cache_mode: { value: "auto", context: "user" },
-  max_locks_per_transaction: { value: "64", context: "postmaster" },
-  shared_buffers: { value: "128MB", context: "postmaster" },
-  synchronous_standby_names: { value: "", context: "sighup" },
-  data_directory_mode: { value: "0700", context: "internal" },
-};
-
-const snapshot: StateSnapshot = {
-  nodes: { primary: { settings }, standby: { settings } },
-  relations: {
-    "public.orders": { kind: "table" },
-    "public.orders_pkey": { kind: "index", table: "public.orders" },
-    "public.orders_customer_created_idx": { kind: "index", table: "public.orders" },
+const snapshot: StateSnapshot = snapshotFixture({
+  settings: {
+    work_mem: setting("4MB", "user"),
+    plan_cache_mode: setting("auto", "user"),
+    max_locks_per_transaction: setting("64", "postmaster"),
+    shared_buffers: setting("128MB", "postmaster"),
+    synchronous_standby_names: setting("", "sighup"),
+    data_directory_mode: setting("0700", "internal"),
   },
-};
+  relations: {
+    "public.orders": table(),
+    "public.orders_pkey": index("public.orders", { primary: true, unique: true }),
+    "public.orders_customer_created_idx": index("public.orders"),
+  },
+});
 
 const scope = (overrides: Partial<TicketScope> = {}): TicketScope => ({
   allowed_objects: ["public.orders"],
