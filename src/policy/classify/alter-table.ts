@@ -1,4 +1,5 @@
 import { LOCK_PROFILES, type ActionLock } from "../locks";
+import type { StateSnapshot } from "../snapshot";
 import { calledFunctions, defElemValue, qualify, typeName, type Node } from "./ast";
 import { deny, ok, type Classified, type ActionDraft, type ConstraintInfo, type StatementClassifier } from "./types";
 
@@ -28,14 +29,14 @@ function notNullColumn(c: Node): string | undefined {
 // ALTER TABLE: one action per subcommand, except that SET (storage parameters)
 // subcommands merge into one ddl.set_reloption action. A subcommand outside the
 // vocabulary denies the whole statement.
-function classifyAlterTable(body: Node, step: number): Classified {
+function classifyAlterTable(body: Node, step: number, snapshot: StateSnapshot): Classified {
   if (body.objtype !== "OBJECT_TABLE") {
     return deny(step, "unknown_statement", `Step ${step} is an ALTER statement on a ${body.objtype}, which is not in the policy gate's action vocabulary.`,
       "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", objtype: body.objtype });
   }
   const target = qualify(body.relation.schemaname, body.relation.relname);
   const actions: ActionDraft[] = [];
-  let reloptions: Record<string, string> | undefined;
+  let reloption: Extract<ActionDraft, { action: "ddl.set_reloption" }> | undefined;
   for (const { AlterTableCmd: cmd } of body.cmds as Node[]) {
     const base = { step, objects: [target] };
     switch (cmd.subtype) {
@@ -76,15 +77,34 @@ function classifyAlterTable(body: Node, step: number): Classified {
         actions.push({ ...base, action: "ddl.drop_column", column: cmd.name });
         continue;
       case "AT_SetRelOptions":
-        if (!reloptions) {
-          reloptions = {};
-          actions.push({ ...base, action: "ddl.set_reloption", options: reloptions });
+      case "AT_ResetRelOptions": {
+        if (!reloption) {
+          reloption = { ...base, action: "ddl.set_reloption", options: {} };
+          actions.push(reloption);
         }
         for (const item of cmd.def?.List?.items ?? []) {
           const d: Node = item.DefElem;
-          reloptions[d.defnamespace ? `${d.defnamespace}.${d.defname}` : d.defname] = defElemValue(d.arg);
+          const name = d.defnamespace ? `${d.defnamespace}.${d.defname}` : d.defname;
+          if (cmd.subtype === "AT_SetRelOptions") reloption.options[name] = defElemValue(d.arg);
+          else (reloption.reset ??= []).push(name);
         }
         continue;
+      }
+      case "AT_DropConstraint": {
+        // CASCADE would also drop what depends on the constraint (e.g. foreign
+        // keys on other tables that reference its index), so it stays denied.
+        if (cmd.behavior === "DROP_CASCADE") break;
+        // A foreign key's referenced table is locked too, and touched for ticket scope.
+        const known = snapshot.constraints.find((c) => c.table === target && c.name === cmd.name);
+        const referenced = known?.type === "foreign_key" && known.references ? known.references : undefined;
+        const relations = referenced ? [target, referenced] : [target];
+        actions.push({
+          ...base, objects: relations, action: "ddl.drop_constraint",
+          constraint: { name: cmd.name, ...(known && known.type !== "trigger" ? { type: known.type } : {}) },
+          lock: { ...LOCK_PROFILES["ddl.drop_constraint"], relations },
+        });
+        continue;
+      }
     }
     return deny(step, "unknown_statement", `Step ${step} has an ALTER TABLE ${cmd.subtype} subcommand, which is not in the policy gate's action vocabulary.`,
       "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", subtype: cmd.subtype });
@@ -93,5 +113,5 @@ function classifyAlterTable(body: Node, step: number): Classified {
 }
 
 export const ALTER_TABLE_STATEMENTS: Record<string, StatementClassifier> = {
-  AlterTableStmt: ({ body, step }) => classifyAlterTable(body, step),
+  AlterTableStmt: ({ body, step, snapshot }) => classifyAlterTable(body, step, snapshot),
 };

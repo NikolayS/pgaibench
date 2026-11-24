@@ -48,9 +48,9 @@ type ActionPayloads = [
   /** The column and its new type as written, e.g. "float8" or "varchar(20)". */
   { action: "ddl.alter_column_type"; column: string; new_type: string },
   /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */
-  { action: "ddl.add_check_not_valid" | "ddl.add_constraint_validating" | "ddl.validate_constraint"; constraint: ConstraintInfo },
-  /** Storage parameters set, e.g. { autovacuum_enabled: "false" }. */
-  { action: "ddl.set_reloption"; options: Record<string, string> },
+  { action: "ddl.add_check_not_valid" | "ddl.add_constraint_validating" | "ddl.validate_constraint" | "ddl.drop_constraint"; constraint: ConstraintInfo },
+  /** Storage parameters set, e.g. { autovacuum_enabled: "false" }, and any RESET to their defaults. */
+  { action: "ddl.set_reloption"; options: Record<string, string>; reset?: string[] },
   /** True with CASCADE. */
   { action: "obj.drop" | "obj.truncate"; cascade: boolean },
   /**
@@ -62,7 +62,7 @@ type ActionPayloads = [
   { action: "ext.create"; extension: string },
   {
     action: "node.reload" | "obj.create" | "maint.vacuum_analyze" | "query.read"
-      | "idx.create_concurrent" | "idx.create_blocking" | "idx.drop_concurrent" | "idx.drop_blocking";
+      | "idx.create_concurrent" | "idx.create_blocking" | "idx.drop_concurrent" | "idx.drop_blocking" | "lock.table";
   },
 ];
 
@@ -101,7 +101,8 @@ export type ConstraintInfo = {
 export type DenyCode =
   | "do_block" | "dynamic_sql" | "function_in_cr" | "vacuum_full" | "cluster" | "alter_system"
   | "session_kill" | "unknown_statement" | "parse_error" | "unknown_setting" | "unsettable_setting"
-  | "unsafe_session_setting" | "prepared_transaction" | "malformed_step" | "locking_read" | "unknown_function";
+  | "unsafe_session_setting" | "prepared_transaction" | "malformed_step" | "locking_read" | "unknown_function"
+  | "lock_outside_txn";
 
 /** A statement or step the classifier refuses (default deny). Session kills escalate. */
 export type Denial = {
