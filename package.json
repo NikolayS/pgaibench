@@ -30,11 +30,14 @@
     "auditor:generate": "bun run src/auditor/generate.ts",
     "auditor:score": "bun run src/auditor/report.ts --score",
     "auditor:report": "bun run src/auditor/report.ts",
+    "policy:rules-md": "bun run src/policy/gen-rules-md.ts",
+    "capture-baselines": "bun run scripts/capture-baselines.ts",
     "typecheck": "tsc -p .",
     "check": "bun run scripts/check.ts",
     "prepare": "husky"
   },
   "dependencies": {
+    "libpg-query": "18.2.2",
     "postgres": "^4.1.0",
     "zod": "^4.6.7"
   },
