@@ -1,7 +1,7 @@
 import type { NodeName } from "../actions";
 import { MEMORY_UNITS, TIME_UNITS } from "../rule-data";
 import type { Setting } from "../snapshot";
-import { NODES } from "./shared";
+import { NODES, ofKind } from "./shared";
 import type { Check, RuleFinding } from "./types";
 
 // Checks for the replication and settings rules R-1 to R-4 and R-6 to R-9
@@ -24,12 +24,12 @@ const hotStandbyOrder: Check = ({ actions, snapshot, rule }) => {
       standby: snapshot.nodes.standby.settings[a.setting]?.value ?? "",
     };
     const next = { ...current };
-    for (const n of a.nodes ?? NODES) next[n] = a.value;
+    for (const n of a.nodes) next[n] = a.value;
     running.set(a.setting, next);
     const primary = Number(next.primary);
     const standby = Number(next.standby);
     if (!Number.isFinite(primary) || !Number.isFinite(standby) || standby >= primary) continue;
-    const raising = Number(a.value) > Number(current[a.nodes![0]]);
+    const raising = Number(a.value) > Number(current[a.nodes[0]]);
     findings.push({
       step: a.step,
       reason: `After step ${a.step} the standby runs ${a.setting} = ${next.standby} below the primary's ${next.primary}, so the standby stops replaying WAL.`,
@@ -45,8 +45,8 @@ const hotStandbyOrder: Check = ({ actions, snapshot, rule }) => {
 // R-3: every restart a config step implies is allowed by TS-2 (node.restart is
 // not forbidden) and falls on a node the ticket allows downtime for.
 const restartAllowed: Check = ({ actions, scope }) =>
-  actions.filter((a) => a.action === "node.restart").flatMap((a) => {
-    const node = a.nodes![0];
+  ofKind(actions, "node.restart").flatMap((a) => {
+    const node = a.nodes[0];
     const forbidden = scope.forbidden_actions.includes("node.restart");
     if (!forbidden && scope.downtime_allowed.includes(node)) return [];
     return [{
@@ -77,8 +77,8 @@ const syncStandbyNames: Check = ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
   const streaming = snapshot.nodes.primary.replication.replicas
     .filter((r) => r.state === "streaming").map((r) => r.application_name);
-  return actions.filter((a) => a.action === "cfg.set_reload" && settings.has(a.setting!) && a.value !== undefined).flatMap((a) => {
-    const parsed = parseSyncNames(a.value!);
+  return ofKind(actions, "cfg.set_reload").filter((a) => settings.has(a.setting)).flatMap((a) => {
+    const parsed = parseSyncNames(a.value);
     const matching = parsed ? streaming.filter((s) => parsed.names.some((n) => n === "*" || n === s.toLowerCase())) : [];
     const unknown = parsed ? parsed.names.filter((n) => n !== "*" && !streaming.some((s) => s.toLowerCase() === n)) : [];
     if (parsed && unknown.length === 0 && parsed.count <= matching.length) return [];
@@ -111,8 +111,8 @@ const walLevelKept: Check = ({ actions, snapshot, rule }) => {
   const archiving = NODES.some((n) => ["on", "always"].includes(snapshot.nodes[n].settings.archive_mode?.value ?? "off"));
   const needs = logicalSlots.length > 0 ? "logical"
     : hasStandby || physicalSlots.length > 0 || archiving ? "replica" : "minimal";
-  return actions.filter((a) => a.action === "cfg.set_restart" && settings.has(a.setting!) && a.value !== undefined).flatMap((a) => {
-    const value = a.value!.trim().toLowerCase();
+  return ofKind(actions, "cfg.set_restart").filter((a) => settings.has(a.setting)).flatMap((a) => {
+    const value = a.value.trim().toLowerCase();
     const rank = WAL_LEVELS.indexOf(value === "archive" || value === "hot_standby" ? "replica" : value);
     // An unknown value is R-1's concern.
     if (rank < 0 || rank >= WAL_LEVELS.indexOf(needs)) return [];
@@ -135,10 +135,9 @@ const libraryList = (value: string) =>
 // removal is rejected (TS-6: scope comes only from structured fields).
 const preloadLibrariesKept: Check = ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
-  return actions.filter((a) => (a.action === "cfg.set_reload" || a.action === "cfg.set_restart")
-    && settings.has(a.setting!) && a.value !== undefined).flatMap((a) => {
-    const next = new Set(libraryList(a.value!));
-    const current = (a.nodes ?? NODES).flatMap((n) => libraryList(snapshot.nodes[n].settings[a.setting!]?.value ?? ""));
+  return ofKind(actions, "cfg.set_reload", "cfg.set_restart").filter((a) => settings.has(a.setting)).flatMap((a) => {
+    const next = new Set(libraryList(a.value));
+    const current = a.nodes.flatMap((n) => libraryList(snapshot.nodes[n].settings[a.setting]?.value ?? ""));
     const dropped = [...new Set(current.filter((l) => !next.has(l)))];
     if (dropped.length === 0) return [];
     return [{
@@ -166,7 +165,7 @@ const isPlannerToggle = (setting: string) => setting === "autovacuum" || setting
 // R-8: autovacuum and the enable_* planner toggles are never turned off
 // cluster-wide (reject); a table-level autovacuum_enabled = false escalates.
 const noToggleOff: Check = ({ actions }) => actions.flatMap((a): RuleFinding[] => {
-  if ((a.action === "cfg.set_reload" || a.action === "cfg.set_restart") && isPlannerToggle(a.setting!) && parseBool(a.value ?? "") === false) {
+  if ((a.action === "cfg.set_reload" || a.action === "cfg.set_restart") && isPlannerToggle(a.setting) && parseBool(a.value) === false) {
     return [{
       step: a.step,
       verdict: "reject",
@@ -196,8 +195,8 @@ const noToggleOff: Check = ({ actions }) => actions.flatMap((a): RuleFinding[] =
 // escalates.
 const standbyOnlySettings: Check = ({ actions, rule }) => {
   const settings = new Set(rule.settings ?? []);
-  return actions.filter((a) => a.action === "cfg.set_reload" && settings.has(a.setting!)).flatMap((a): RuleFinding[] => {
-    const nodes = a.nodes ?? [...NODES];
+  return ofKind(actions, "cfg.set_reload").filter((a) => settings.has(a.setting)).flatMap((a): RuleFinding[] => {
+    const nodes = a.nodes;
     if (nodes.includes("primary")) {
       return [{
         step: a.step,
@@ -273,12 +272,14 @@ function typeError(value: string, s: Setting): string | undefined {
 // R-1: every new setting value type-checks against pg_settings on each node it
 // targets (role settings against the primary's).
 const valueTypeChecks: Check = ({ actions, snapshot }) =>
-  actions.filter((a) => (a.action === "cfg.set_reload" || a.action === "cfg.set_restart" || a.action === "cfg.set_role")
-    && a.setting && a.value !== undefined).flatMap((a) => {
-    const nodes = a.action === "cfg.set_role" ? ["primary" as const] : a.nodes ?? NODES;
+  ofKind(actions, "cfg.set_reload", "cfg.set_restart", "cfg.set_role").flatMap((a) => {
+    const { setting, value } = a;
+    // A role setting may be RESET (no value) or name no setting (RESET ALL).
+    if (!setting || value === undefined) return [];
+    const nodes = a.action === "cfg.set_role" ? ["primary" as const] : a.nodes;
     for (const n of nodes) {
-      const s = snapshot.nodes[n].settings[a.setting!];
-      const error = s && typeError(a.value!, s);
+      const s = snapshot.nodes[n].settings[setting];
+      const error = s && typeError(value, s);
       if (!error) continue;
       return [{
         step: a.step,

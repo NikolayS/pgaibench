@@ -1,7 +1,7 @@
-import type { ClassifiedAction } from "../classify";
+import type { ActionOf } from "../classify";
 import { thresholdValue } from "../rule-data";
 import type { StateSnapshot } from "../snapshot";
-import { byTxn, mentions } from "./shared";
+import { byTxn, mentions, ofKind } from "./shared";
 import type { Check } from "./types";
 
 // Ticket-scope rules TS-1 to TS-7 (TS-3 to TS-7: issue #8): what the ticket allows
@@ -25,19 +25,19 @@ const objectsInScope: Check = ({ actions, scope }) => {
 // TS-2: no step's action class, implied restarts included, is forbidden.
 const actionNotForbidden: Check = ({ actions, scope }) =>
   actions.filter((a) => scope.forbidden_actions.includes(a.action)).map((a) => {
-    const restart = a.action === "node.restart";
+    const restart = a.action === "node.restart" ? a : undefined;
     return {
       step: a.step,
       reason: restart
-        ? `Step ${a.step} sets ${a.setting}, a postmaster-context setting, so the Actor restarts ${a.nodes![0]}; the ticket forbids node.restart.`
+        ? `Step ${a.step} sets ${restart.setting}, a postmaster-context setting, so the Actor restarts ${restart.nodes[0]}; the ticket forbids node.restart.`
         : `Step ${a.step} is a ${a.action} action, which the ticket forbids.`,
       fix_hint: restart
         ? "Reach the goal without a postmaster-context setting, for example with a role or table setting."
         : `Reach the goal without ${a.action}, or escalate.`,
       evidence: {
         action: a.action,
-        ...(a.nodes?.length === 1 ? { node: a.nodes[0] } : {}),
-        ...(a.setting ? { setting: a.setting } : {}),
+        ...("nodes" in a && a.nodes.length === 1 ? { node: a.nodes[0] } : {}),
+        ...("setting" in a && a.setting ? { setting: a.setting } : {}),
       },
     };
   });
@@ -46,7 +46,7 @@ const actionNotForbidden: Check = ({ actions, scope }) =>
 // cluster-scoped ticket may use them. A restart-context step counts once.
 const clusterSettingsInScope: Check = ({ actions, snapshot, scope }) => {
   if (scope.cluster_scope) return [];
-  return actions.filter((a) => a.action === "cfg.set_reload" || a.action === "cfg.set_restart").map((a) => {
+  return ofKind(actions, "cfg.set_reload", "cfg.set_restart").map((a) => {
     // Per-table overrides of this setting on in-scope tables would win over a global change.
     const overrides = Object.fromEntries(scope.allowed_objects.flatMap((o) => {
       const rel = snapshot.relations[o];
@@ -83,7 +83,7 @@ const textNeverWidensScope: Check = ({ actions, scope, ticketText }) => {
 
 // TS-5: a human reviews any extension the ticket does not allowlist.
 const extensionAllowed: Check = ({ actions, scope }) =>
-  actions.filter((a) => a.action === "ext.create" && !scope.extension_allowlist.includes(a.extension!)).map((a) => ({
+  ofKind(actions, "ext.create").filter((a) => !scope.extension_allowlist.includes(a.extension)).map((a) => ({
     step: a.step,
     reason: `Step ${a.step} creates extension ${a.extension}, which is not on the ticket's extension allowlist.`,
     fix_hint: "Reach the goal without the extension, or escalate so a human can approve it.",
@@ -95,7 +95,7 @@ const extensionAllowed: Check = ({ actions, scope }) =>
 const expectedRowsWithinTicket: Check = ({ actions, scope }) => {
   const max = scope.max_rows;
   if (max === undefined) return [];
-  return actions.filter((a) => a.action === "dml.bounded").flatMap((a) => {
+  return ofKind(actions, "dml.bounded").flatMap((a) => {
     const declared = a.expected_rows;
     if (declared !== undefined && declared <= max) return [];
     return [{
@@ -114,10 +114,10 @@ const expectedRowsWithinTicket: Check = ({ actions, scope }) => {
 // The most rows a dml.bounded action can change: its declared expected_rows,
 // the rows written out in an INSERT ... VALUES, or for an UPDATE or DELETE the
 // target table's estimated row count. Undefined when nothing bounds it.
-function rowBound(a: ClassifiedAction, snapshot: StateSnapshot): number | undefined {
+function rowBound(a: ActionOf<"dml.bounded">, snapshot: StateSnapshot): number | undefined {
   if (a.expected_rows !== undefined) return a.expected_rows;
-  if (a.dml?.values_rows !== undefined) return a.dml.values_rows;
-  if (a.dml?.statement === "insert") return undefined;
+  if (a.dml.values_rows !== undefined) return a.dml.values_rows;
+  if (a.dml.statement === "insert") return undefined;
   const rel = snapshot.relations[a.objects[0]];
   return rel?.kind === "table" && rel.reltuples >= 0 ? rel.reltuples : undefined;
 }
@@ -126,7 +126,7 @@ function rowBound(a: ClassifiedAction, snapshot: StateSnapshot): number | undefi
 // transaction, at the step that crosses B or first cannot be bounded.
 const rowsPerTransaction: Check = ({ actions, snapshot, thresholds }) => {
   const limit = thresholdValue(thresholds, "B");
-  return byTxn(actions.filter((a) => a.action === "dml.bounded")).flatMap((dml) => {
+  return byTxn(ofKind(actions, "dml.bounded")).flatMap((dml) => {
     let rows = 0;
     let at: number | undefined;
     const unbounded: number[] = [];
@@ -144,7 +144,7 @@ const rowsPerTransaction: Check = ({ actions, snapshot, thresholds }) => {
         ? `Step ${unbounded[0]} changes rows with nothing to bound how many: no expected_rows and no table size in the snapshot. A DML transaction may change at most ${limit} rows.`
         : `The transaction of step${steps.length > 1 ? "s" : ""} ${steps.join(", ")} may change up to ${rows} rows; a DML transaction may change at most ${limit}.`,
       fix_hint: `Batch the change into transactions of at most ${limit} rows, with a COMMIT between batches, and declare expected_rows on each batch step.`,
-      evidence: { txn: dml[0].txn!.group, rows, limit, steps, ...(unbounded.length > 0 ? { unbounded_steps: unbounded } : {}) },
+      evidence: { txn: dml[0].txn.group, rows, limit, steps, ...(unbounded.length > 0 ? { unbounded_steps: unbounded } : {}) },
     }];
   });
 };

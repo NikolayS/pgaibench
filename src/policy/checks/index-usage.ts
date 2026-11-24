@@ -1,12 +1,11 @@
 import type { ClassifiedAction } from "../classify";
 import { thresholdValue } from "../rule-data";
 import { scannedInWindow, type StateSnapshot } from "../snapshot";
-import { mentions, NODES } from "./shared";
+import { mentions, NODES, ofKind } from "./shared";
 import type { Check, RuleFinding } from "./types";
 
 // Index, usage, type and scale rules I-1 to I-3, U-1, T-1, S-1 and S-2 (issue #11).
 
-const isIndexDrop = (a: ClassifiedAction) => a.action === "idx.drop_concurrent" || a.action === "idx.drop_blocking";
 
 // The existing indexes an index drop names; an index absent from the snapshot
 // (DROP INDEX IF EXISTS of nothing) drops nothing.
@@ -18,7 +17,7 @@ const droppedIndexes = (a: ClassifiedAction, snapshot: StateSnapshot) =>
 
 // I-1: no node, standbys included, scanned the index within the window W.
 const indexUnusedEverywhere: Check = ({ actions, snapshot }) =>
-  actions.filter(isIndexDrop).flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx]) => {
+  ofKind(actions, "idx.drop_concurrent", "idx.drop_blocking").flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx]) => {
     const nodes = NODES.filter((n) => scannedInWindow(snapshot, snapshot.nodes[n].usage.indexes[idx]?.last_idx_scan ?? null));
     if (nodes.length === 0) return [];
     return [{
@@ -31,7 +30,7 @@ const indexUnusedEverywhere: Check = ({ actions, snapshot }) =>
 
 // I-2: the index backs no constraint (pg_constraint.conindid) and is not the replica identity.
 const indexBacksNothing: Check = ({ actions, snapshot }) =>
-  actions.filter(isIndexDrop).flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx, rel]) => {
+  ofKind(actions, "idx.drop_concurrent", "idx.drop_blocking").flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx, rel]) => {
     const backed = snapshot.constraints.find((c) => c.index === idx);
     if (!backed && !rel.replica_identity) return [];
     const what = backed ? `constraint ${backed.name} (${backed.type})` : `the replica identity of ${rel.table}`;
@@ -48,7 +47,7 @@ const indexBacksNothing: Check = ({ actions, snapshot }) =>
 // I-3: a blocking index drop takes ACCESS EXCLUSIVE on the table, so only on tables up to S_scan.
 const blockingIndexDropSmall: Check = ({ actions, snapshot, thresholds }) => {
   const limit = thresholdValue(thresholds, "S_scan");
-  return actions.filter((a) => a.action === "idx.drop_blocking").flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx, rel]) => {
+  return ofKind(actions, "idx.drop_blocking").flatMap((a) => droppedIndexes(a, snapshot).flatMap(([idx, rel]) => {
     const bytes = snapshot.relations[rel.table]?.total_bytes ?? 0;
     if (bytes <= limit) return [];
     return [{
@@ -63,7 +62,7 @@ const blockingIndexDropSmall: Check = ({ actions, snapshot, thresholds }) => {
 // S-1: tables larger than S_drop need a staged, human-approved drop.
 const dropWithinSize: Check = ({ actions, snapshot, thresholds }) => {
   const limit = thresholdValue(thresholds, "S_drop");
-  return actions.filter((a) => a.action === "obj.drop").flatMap((a) => a.objects.flatMap((o) => {
+  return ofKind(actions, "obj.drop").flatMap((a) => a.objects.flatMap((o) => {
     const bytes = snapshot.relations[o]?.total_bytes ?? 0;
     if (bytes <= limit) return [];
     return [{
@@ -85,7 +84,7 @@ function partOf(identity: string, owner: string): boolean {
 }
 
 const cascadeInScope: Check = ({ actions, snapshot, scope }) =>
-  actions.filter((a) => a.action === "obj.drop" && a.cascade).flatMap((a) => a.objects.flatMap((target): RuleFinding[] => {
+  ofKind(actions, "obj.drop").filter((a) => a.cascade).flatMap((a) => a.objects.flatMap((target): RuleFinding[] => {
     const closure = snapshot.cascade[target];
     if (!closure) {
       return [{
@@ -116,7 +115,7 @@ const cascadeInScope: Check = ({ actions, snapshot, scope }) =>
 const LOSSLESS_TARGETS = new Set(["text", "varchar", "int8", "numeric", "timestamptz", "jsonb"]);
 
 const typeChangeLossless: Check = ({ actions }) =>
-  actions.filter((a) => a.action === "ddl.alter_column_type" && !LOSSLESS_TARGETS.has(a.new_type!)).map((a) => ({
+  ofKind(actions, "ddl.alter_column_type").filter((a) => !LOSSLESS_TARGETS.has(a.new_type)).map((a) => ({
     step: a.step,
     reason: `Step ${a.step} changes ${a.objects[0]}.${a.column} to ${a.new_type}, which can lose precision, range, length or time-zone meaning.`,
     fix_hint: "Escalate. Keep the column type and offer a view or a new column with the target type instead.",
@@ -128,13 +127,13 @@ const typeChangeLossless: Check = ({ actions }) =>
 // pg_stat_statements gives no evidence either way. Query text is matched by
 // the unqualified name, so a same-named object in another schema also counts.
 const objectUnused: Check = ({ actions, snapshot }) =>
-  actions.filter((a) => a.action === "ddl.drop_column" || a.action === "obj.drop" || a.action === "obj.truncate")
+  ofKind(actions, "ddl.drop_column", "obj.drop", "obj.truncate")
     .flatMap((a) => a.objects.flatMap((rel) => {
-      const column = a.action === "ddl.drop_column";
-      const object = column ? `${rel}.${a.column}` : rel;
-      const word = column ? a.column! : rel.split(".").at(-1)!;
+      const column = a.action === "ddl.drop_column" ? a.column : undefined;
+      const object = column !== undefined ? `${rel}.${column}` : rel;
+      const word = column ?? rel.split(".").at(-1)!;
       const nodes = NODES.filter((n) => (snapshot.nodes[n].query_stats ?? []).some((q) => mentions(q.query, word)));
-      const t = column ? undefined : snapshot.nodes.standby.usage.tables[rel];
+      const t = column !== undefined ? undefined : snapshot.nodes.standby.usage.tables[rel];
       const standbyScan = [t?.last_seq_scan ?? null, t?.last_idx_scan ?? null].find((s) => scannedInWindow(snapshot, s));
       if (nodes.length === 0 && !standbyScan) return [];
       const why = [
