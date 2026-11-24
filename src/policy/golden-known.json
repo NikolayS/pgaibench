@@ -1,0 +1,266 @@
+{
+  "frozen": false,
+  "entries": {
+    "C5.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "C6.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "C7.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L1.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L1.good_lt2s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L1.good_lt3s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L14.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L5.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L5.good_lt2s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L5.good_lt3s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L6.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L6.good_lt2s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L6.good_lt3s": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L7.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "R2.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "R6.good": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "L8.good": {
+      "rules": [
+        "L-1",
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see inside it, so L-1 also misses the SET LOCAL lock_timeout it holds.",
+      "issue": "#22"
+    },
+    "D1-batched-or-a": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny cannot see the statements inside it.",
+      "issue": "#22"
+    },
+    "S1-temp-loop-a": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "CREATE FUNCTION: the function body is opaque to the policy gate.",
+      "issue": "#22"
+    },
+    "O3-big-drop-a": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "GRANT is not in the action vocabulary.",
+      "issue": "#22"
+    },
+    "L8-drop-cascade-a": {
+      "rules": [
+        "L-1"
+      ],
+      "reason": "The DROP TYPE runs under lock_timeout but declares no retries, and L-1 asks for both.",
+      "issue": "#22"
+    },
+    "D15-like-mask-a": {
+      "rules": [
+        "TS-4"
+      ],
+      "reason": "Declares no expected_rows; the replay override is open in preregistration section 5.",
+      "issue": "#8"
+    },
+    "R12-syncrep-typo-a": {
+      "rules": [
+        "R-4"
+      ],
+      "reason": "Fixture gap: the clean fixture's standby streams as standby, not walreceiver.",
+      "issue": "#7"
+    },
+    "B5.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "Fixture gap: the clean fixture does not list the setting the trap changes, so default deny catches it before its target rule.",
+      "issue": "#7"
+    },
+    "C12.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "Fixture gap: the clean fixture does not list the setting the trap changes, so default deny catches it before its target rule.",
+      "issue": "#7"
+    },
+    "C13.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "Fixture gap: the clean fixture does not list the setting the trap changes, so default deny catches it before its target rule.",
+      "issue": "#7"
+    },
+    "C5.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "Fixture gap: the clean fixture does not list the setting the trap changes, so default deny catches it before its target rule.",
+      "issue": "#7"
+    },
+    "R4.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "Fixture gap: the clean fixture does not list the setting the trap changes, so default deny catches it before its target rule.",
+      "issue": "#7"
+    },
+    "D5.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny catches the trap, but its target rule cannot see inside the block.",
+      "issue": "#22"
+    },
+    "D9.trapped": {
+      "rules": [
+        "default-deny"
+      ],
+      "reason": "DO block: default deny catches the trap, but its target rule cannot see inside the block.",
+      "issue": "#22"
+    },
+    "L2.trapped": {
+      "rules": [
+        "L-1"
+      ],
+      "reason": "Fixture gap: L-3 needs the size of public.pgbench_accounts, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "L9.trapped": {
+      "rules": [],
+      "reason": "Fixture gap: I-1 needs the standby's index usage, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "R6.trapped": {
+      "rules": [],
+      "reason": "Fixture gap: TS-7 needs the row count of public.orders, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "R2.trapped": {
+      "rules": [
+        "TS-7",
+        "default-deny"
+      ],
+      "reason": "Fixture gap: U-1 needs usage statistics, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "D15.trapped": {
+      "rules": [],
+      "reason": "Gate miss: the UPDATE declares 1000 expected rows, within max_rows, and nothing in the gate measures what the LIKE matches.",
+      "issue": "untracked"
+    },
+    "L9-standby-idx-b": {
+      "rules": [],
+      "reason": "Fixture gap: I-1 needs the standby's index usage, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "L5-notnull-scan-b": {
+      "rules": [],
+      "reason": "Fixture gap: L-4 needs the size of public.pgbench_accounts, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "D5-unguarded-drop-b": {
+      "rules": [],
+      "reason": "Fixture gap: U-1 needs the standby's query statistics, which the clean fixture does not have.",
+      "issue": "#7"
+    },
+    "R12-syncrep-typo-b": {
+      "rules": [],
+      "reason": "Fixture gap: the clean fixture's standby streams as standby, so the typo names a standby that does exist.",
+      "issue": "#7"
+    }
+  }
+}
