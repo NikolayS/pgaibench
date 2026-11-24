@@ -94,7 +94,7 @@ describe("replayCases: every public reference and Track 2 twin", () => {
   });
 
   test("only decided overrides apply: the open D15 override (#8) does not", () => {
-    expect(cases.filter((c) => c.override).map((c) => c.id)).toEqual(["L6-lock-table-a"]);
+    expect(cases.filter((c) => c.override).map((c) => c.id)).toEqual(["L8.good", "L6-lock-table-a", "L8-drop-cascade-a"]);
   });
 });
 
