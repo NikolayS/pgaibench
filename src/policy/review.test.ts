@@ -114,7 +114,7 @@ describe("default deny", () => {
   const anyScope = scope({ allowed_objects: ["public.orders"] });
 
   test.each([
-    ["a DO block", "DO $$ BEGIN UPDATE public.orders SET status = 'x'; END $$", "do_block"],
+    ["a DO block with a loop", "DO $$ BEGIN LOOP UPDATE public.orders SET status = 'x'; EXIT; END LOOP; END $$", "do_block"],
     ["dynamic EXECUTE", "EXECUTE cleanup_orders(1)", "dynamic_sql"],
     ["a function created in the change request", "CREATE FUNCTION public.f() RETURNS int LANGUAGE sql AS 'select 1'", "function_in_cr"],
     ["a procedure created in the change request", "CREATE PROCEDURE public.p() LANGUAGE sql AS 'select 1'", "function_in_cr"],

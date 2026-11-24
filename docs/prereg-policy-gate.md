@@ -17,7 +17,7 @@ are.
 ## 1. What we preregister
 
 The policy gate is a deterministic check that runs before the clone gate and
-executes nothing (spec #1, `GLOSSARY.md`, ADRs 0001-0004). We measure it with
+executes nothing (spec #1, `GLOSSARY.md`, ADRs 0001-0005). We measure it with
 four protocols, scored by the same protocol evaluation as P0-P3:
 
 | Protocol | Layers |

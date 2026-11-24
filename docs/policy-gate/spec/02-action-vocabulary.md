@@ -39,7 +39,7 @@ records which steps share a transaction (needed by X-rules).
 ## Default deny (reject, or escalate where noted)
 
 `AlterSystemStmt` in a SQL step (settings go through config steps, ADR 0003),
-`DoStmt`, `CreateFunctionStmt` in the same CR, `EXECUTE` of a built string,
+`DoStmt` unless its body is plain SQL (a plain body is classified statement by statement, ADR 0005), `CreateFunctionStmt` in the same CR, `EXECUTE` of a built string,
 `VACUUM FULL`, `CLUSTER`, `pg_terminate_backend`/`pg_cancel_backend` (escalate),
 `ALTER SYSTEM RESET ALL`, a SELECT that calls a function not known to be
 read-only or locks rows, any statement type not listed.
