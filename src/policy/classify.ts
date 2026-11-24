@@ -76,8 +76,8 @@ export type Denial = {
 
 export type Classification = { actions: ClassifiedAction[]; denials: Denial[] };
 
-/** An action before classify() stamps its transaction. */
-type ActionDraft = Omit<ClassifiedAction, "txn">;
+/** An action before annotate() stamps its transaction and session state. */
+type ActionDraft = ClassifiedAction;
 
 type Classified = { actions: ActionDraft[]; denials: Denial[] };
 
