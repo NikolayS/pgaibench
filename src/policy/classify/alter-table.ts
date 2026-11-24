@@ -1,7 +1,7 @@
 import { LOCK_PROFILES, type ActionLock } from "../locks";
 import type { StateSnapshot } from "../snapshot";
 import { calledFunctions, defElemValue, qualify, typeName, type Node } from "./ast";
-import { deny, ok, type Classified, type ActionDraft, type ConstraintInfo, type StatementClassifier } from "./types";
+import { deny, ok, type Classified, type ActionDraft, type ClassifiedAction, type ConstraintInfo, type StatementClassifier } from "./types";
 
 const CONSTRAINT_TYPES: Record<string, ConstraintInfo["type"]> = {
   CONSTR_CHECK: "check", CONSTR_NOTNULL: "not_null", CONSTR_FOREIGN: "foreign_key",
@@ -115,3 +115,32 @@ function classifyAlterTable(body: Node, step: number, snapshot: StateSnapshot): 
 export const ALTER_TABLE_STATEMENTS: Record<string, StatementClassifier> = {
   AlterTableStmt: ({ body, step, snapshot }) => classifyAlterTable(body, step, snapshot),
 };
+
+/** The column a catalog constraint definition proves NOT NULL, if any. */
+export function provenColumn(definition: string): string | undefined {
+  const m = /^NOT NULL "?(\w+)"?$/i.exec(definition.trim()) ?? /^CHECK \(+"?(\w+)"? IS NOT NULL\)+$/i.exec(definition.trim());
+  return m?.[1];
+}
+
+/**
+ * Marks each SET NOT NULL with the earlier action, on the same table, that
+ * validates a constraint proving its column: a NOT NULL check added with
+ * validation, or a VALIDATE of one added NOT VALID earlier or already in the
+ * catalog. A constraint validated before the change request is the check's to
+ * read from the snapshot.
+ */
+export function markNotNullProofs(actions: ClassifiedAction[], snapshot: StateSnapshot): ClassifiedAction[] {
+  return actions.map((a, i) => {
+    if (a.action !== "ddl.set_not_null") return a;
+    const table = a.objects[0];
+    const column = a.column;
+    const earlier = actions.slice(0, i).filter((x) => x.objects[0] === table);
+    const proves = (name: string | undefined) =>
+      earlier.some((x) => x.action === "ddl.add_check_not_valid" && x.constraint.name === name && x.constraint.not_null_column === column)
+      || snapshot.constraints.some((c) => c.table === table && c.name === name && provenColumn(c.definition) === column);
+    const proof = earlier.find((x) =>
+      (x.action === "ddl.add_constraint_validating" && x.constraint.not_null_column === column)
+      || (x.action === "ddl.validate_constraint" && proves(x.constraint.name)));
+    return proof ? { ...a, proof_step: proof.step } : a;
+  });
+}

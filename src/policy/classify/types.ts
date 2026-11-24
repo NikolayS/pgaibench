@@ -44,7 +44,12 @@ type ActionPayloads = [
   /** SET, SET LOCAL or RESET in the change request's own session. */
   { action: "cfg.set_session"; setting: string },
   /** A column-level ALTER TABLE action: the column it changes. */
-  { action: "ddl.add_column" | "ddl.set_not_null" | "ddl.drop_column"; column: string },
+  { action: "ddl.add_column" | "ddl.drop_column"; column: string },
+  /**
+   * The column SET NOT NULL makes NOT NULL, and the step of an earlier action
+   * in the change request that validates a constraint proving it, if any.
+   */
+  { action: "ddl.set_not_null"; column: string; proof_step?: number },
   /** The column and its new type as written, e.g. "float8" or "varchar(20)". */
   { action: "ddl.alter_column_type"; column: string; new_type: string },
   /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */

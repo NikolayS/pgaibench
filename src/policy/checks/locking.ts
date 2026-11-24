@@ -1,4 +1,5 @@
-import type { ClassifiedAction } from "../classify";
+import type { ActionOf, ClassifiedAction } from "../classify";
+import { provenColumn } from "../classify/alter-table";
 import { lockStrength, type LockMode } from "../locks";
 import { thresholdValue } from "../rule-data";
 import { byTxn, ofKind } from "./shared";
@@ -74,24 +75,12 @@ const lockedScanSize: Check = (ctx) => {
     });
 };
 
-// The column a catalog constraint definition proves NOT NULL, if any.
-function provenColumn(definition: string): string | undefined {
-  const m = /^NOT NULL "?(\w+)"?$/i.exec(definition.trim()) ?? /^CHECK \(+"?(\w+)"? IS NOT NULL\)+$/i.exec(definition.trim());
-  return m?.[1];
-}
-
 // Whether a validated constraint proves the column NOT NULL before the action
-// runs: one already in the catalog, or one validated earlier in the change request.
-function notNullProven(ctx: CheckContext, a: ClassifiedAction, table: string, column: string): boolean {
-  const catalog = ctx.snapshot.constraints.filter((c) => c.table === table);
-  if (catalog.some((c) => c.validated && provenColumn(c.definition) === column)) return true;
-  const earlier = ctx.actions.slice(0, ctx.actions.indexOf(a)).filter((x) => x.objects[0] === table);
-  const proves = (name: string | undefined) =>
-    earlier.some((x) => x.action === "ddl.add_check_not_valid" && x.constraint.name === name && x.constraint.not_null_column === column)
-    || catalog.some((c) => c.name === name && provenColumn(c.definition) === column);
-  return earlier.some((x) =>
-    (x.action === "ddl.add_constraint_validating" && x.constraint.not_null_column === column)
-    || (x.action === "ddl.validate_constraint" && proves(x.constraint.name)));
+// runs: one already in the catalog, or one validated earlier in the change
+// request, which the classifier records as proof_step.
+function notNullProven(ctx: CheckContext, a: ActionOf<"ddl.set_not_null">, table: string): boolean {
+  if (a.proof_step !== undefined) return true;
+  return ctx.snapshot.constraints.some((c) => c.table === table && c.validated && provenColumn(c.definition) === a.column);
 }
 
 // L-4: SET NOT NULL scans the table under ACCESS EXCLUSIVE unless a validated
@@ -100,7 +89,7 @@ const setNotNullProven: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ofKind(ctx.actions, "ddl.set_not_null").filter((a) => appliesTo(ctx, a)).flatMap((a) => {
     const size = targetSize(ctx, a);
-    if (!size || size.total_bytes <= limit || notNullProven(ctx, a, size.relation, a.column)) return [];
+    if (!size || size.total_bytes <= limit || notNullProven(ctx, a, size.relation)) return [];
     return [{
       step: a.step,
       reason: `${describe(a)} scans ${size.relation} (${gib(size.total_bytes)}, above S_scan ${gib(limit)}) under ACCESS EXCLUSIVE to check ${a.column}, because no validated constraint proves ${a.column} NOT NULL.`,
