@@ -23,10 +23,11 @@ Postgres does; `src/policy/sql-names.test.ts` blocks that cast).
 
 A test for one policy rule asserts the findings of that rule, and of default
 deny, with `fired()` from `src/policy/test-kit.ts`. It does not assert the
-verdict of the whole gate or the full list of findings. Whole-gate verdicts
-belong in `src/policy/review.test.ts`, where `onlyRules()` silences every rule
-the test does not name, and in a golden suite over the reference and corpus
-change requests (planned in issue #20).
+full list of findings, or a whole-gate verdict that another rule could change:
+approve, defer or escalate. A reject verdict is fine, since no rule outranks
+it. Other whole-gate verdicts belong in `src/policy/review.test.ts`, where
+`onlyRules()` silences every rule the test does not name, and in
+`src/policy/golden.test.ts` over the reference and corpus change requests.
 
 Why: a near miss that expects `{ verdict: "approve", findings: [] }` also
 asserts that every other rule stays silent, so a rule added by another ticket

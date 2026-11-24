@@ -12,6 +12,7 @@ import type { Connection, HostResult, SqlClient } from "../schema/types";
 import { loadScenarios } from "../scenarios/schema";
 import { createClient } from "../telemetry/collect";
 import type { PolicyChangeRequest } from "./classify";
+import { BASELINE_DIR } from "./replay-cases";
 import { listScopeIds, loadScope } from "./scope-files";
 import { stateSnapshotSchema, type StateSnapshot } from "./snapshot";
 import { collectSnapshot, type CollectOptions, type NodeConnections } from "./snapshot-collect";
@@ -28,7 +29,7 @@ import { collectSnapshot, type CollectOptions, type NodeConnections } from "./sn
 // documented lab default) and goes only to the client. We never log it, and
 // we refuse to write a fixture in which findSecrets() finds anything.
 
-export const BASELINE_DIR = join(import.meta.dir, "fixtures", "baselines");
+export { BASELINE_DIR };
 const REPO_DIR = join(import.meta.dir, "..", "..");
 export const LAB_DEFAULT_PASSWORD = "pgaibench";
 const PRIMARY_PORT = 5432, STANDBY_PORT = 5433;
