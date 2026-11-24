@@ -1,6 +1,6 @@
 # 02 — Action vocabulary
 
-Every CR step must classify into exactly one of the 27 actions below, or the gate
+Every CR step must classify into exactly one of the 28 actions below, or the gate
 rejects it (default deny). Classification uses the libpg_query parse tree (e.g. the
 `libpg-query` npm package; verify it works under bun, else shell out to a small
 helper), so the gate sees the real statement, not the Analyst's description.
@@ -36,6 +36,7 @@ records which steps share a transaction (needed by X-rules).
 | `maint.vacuum_analyze` | `VacuumStmt` without FULL | SHARE UPDATE EXCLUSIVE | outside txn |
 | `dml.bounded` | `UpdateStmt`, `DeleteStmt`, `InsertStmt` | ROW EXCLUSIVE; WAL scales with rows | any |
 | `lock.table` | `LockStmt` | the mode it names (ACCESS EXCLUSIVE by default), held to COMMIT; changes nothing | inside a txn (denied outside one) |
+| `priv.revoke` | `GrantStmt` revoking table or column privileges on named tables, RESTRICT | no table lock recorded (to confirm on a lab VM); changes who may access the table | any |
 | `query.read` | `SelectStmt` with no `INTO`, no locking clause, no data-modifying `WITH`, and only read-only built-in functions (ADR 0003) | ACCESS SHARE; writes nothing; touches no object for ticket scope | any |
 
 ## Default deny (reject, or escalate where noted)
@@ -43,7 +44,7 @@ records which steps share a transaction (needed by X-rules).
 `AlterSystemStmt` in a SQL step (settings go through config steps, ADR 0003),
 `DoStmt` unless its body is plain SQL (a plain body is classified statement by statement, ADR 0005), `CreateFunctionStmt` in the same CR, `EXECUTE` of a built string,
 `VACUUM FULL`, `CLUSTER`, `pg_terminate_backend`/`pg_cancel_backend` (escalate),
-`ALTER SYSTEM RESET ALL`, `LOCK TABLE` outside a transaction, `DROP CONSTRAINT ... CASCADE`, a SELECT that calls a function not known to be
+`ALTER SYSTEM RESET ALL`, `LOCK TABLE` outside a transaction, `DROP CONSTRAINT ... CASCADE`, `GRANT` and every other privilege change (`GRANT OPTION FOR`, `CASCADE`, `ALL TABLES IN SCHEMA`, non-table objects, role membership), a SELECT that calls a function not known to be
 read-only or locks rows, any statement type not listed.
 
 ## Implementation notes

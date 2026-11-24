@@ -8,6 +8,7 @@ import { classifyConfig } from "./config";
 import { DENIED_STATEMENTS } from "./denied";
 import { DO_STATEMENTS, plainDoBody } from "./do-block";
 import { LOCK_STATEMENTS } from "./lock-table";
+import { PRIVILEGE_STATEMENTS } from "./privileges";
 import { DML_STATEMENT_CLASSIFIERS, DML_STATEMENTS } from "./dml";
 import { OBJECT_STATEMENTS } from "./objects";
 import { SELECT_STATEMENTS } from "./select";
@@ -22,7 +23,7 @@ export type {
 // family. A statement type in two families is an error, not an override; a
 // type in no table is outside the vocabulary and is denied.
 const STATEMENTS: Record<string, StatementClassifier> = mergeDisjoint("statement type",
-  SESSION_STATEMENTS, SELECT_STATEMENTS, DML_STATEMENT_CLASSIFIERS, OBJECT_STATEMENTS, ALTER_TABLE_STATEMENTS, DENIED_STATEMENTS, DO_STATEMENTS, LOCK_STATEMENTS);
+  SESSION_STATEMENTS, SELECT_STATEMENTS, DML_STATEMENT_CLASSIFIERS, OBJECT_STATEMENTS, ALTER_TABLE_STATEMENTS, DENIED_STATEMENTS, DO_STATEMENTS, LOCK_STATEMENTS, PRIVILEGE_STATEMENTS);
 
 function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
   const [type] = Object.keys(stmt);

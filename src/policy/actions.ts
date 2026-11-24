@@ -14,7 +14,7 @@ export const ACTION_KINDS = [
   "idx.drop_concurrent", "idx.drop_blocking",
   "obj.create", "obj.drop", "obj.truncate",
   "ext.create", "maint.vacuum_analyze", "dml.bounded",
-  "query.read", "lock.table",
+  "query.read", "lock.table", "priv.revoke",
 ] as const;
 
 export const actionKindSchema = z.enum(ACTION_KINDS);

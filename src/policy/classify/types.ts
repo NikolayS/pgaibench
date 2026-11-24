@@ -49,6 +49,8 @@ type ActionPayloads = [
   { action: "ddl.alter_column_type"; column: string; new_type: string },
   /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */
   { action: "ddl.add_check_not_valid" | "ddl.add_constraint_validating" | "ddl.validate_constraint" | "ddl.drop_constraint"; constraint: ConstraintInfo },
+  /** Table privileges revoked, e.g. ["insert", "update (status)"] or ["all"], and from whom ("PUBLIC" or role names). */
+  { action: "priv.revoke"; privilege: { privileges: string[]; grantees: string[] } },
   /** Storage parameters set, e.g. { autovacuum_enabled: "false" }, and any RESET to their defaults. */
   { action: "ddl.set_reloption"; options: Record<string, string>; reset?: string[] },
   /** True with CASCADE. */
@@ -102,7 +104,7 @@ export type DenyCode =
   | "do_block" | "dynamic_sql" | "function_in_cr" | "vacuum_full" | "cluster" | "alter_system"
   | "session_kill" | "unknown_statement" | "parse_error" | "unknown_setting" | "unsettable_setting"
   | "unsafe_session_setting" | "prepared_transaction" | "malformed_step" | "locking_read" | "unknown_function"
-  | "lock_outside_txn";
+  | "lock_outside_txn" | "privilege_change";
 
 /** A statement or step the classifier refuses (default deny). Session kills escalate. */
 export type Denial = {

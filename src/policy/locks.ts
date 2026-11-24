@@ -61,6 +61,10 @@ export const LOCK_PROFILES: Record<ActionKind, LockProfile> = {
   "query.read": lock("AccessShareLock", true),
   // LOCK TABLE takes the mode it names; the classifier sets it.
   "lock.table": lock("AccessExclusiveLock"),
+  // REVOKE updates the table's pg_class row. We record no table lock; to be
+  // confirmed on a lab VM (pg_locks during a REVOKE in an open transaction)
+  // before the freeze (#22).
+  "priv.revoke": none,
 };
 
 /** The lock an action takes and the relations it takes it on. */
