@@ -3,7 +3,7 @@ import { qualify, type Node } from "./ast";
 import { deny, ok, type StatementClassifier } from "./types";
 
 // Privilege changes (#22). REVOKE of table or column privileges on named
-// tables is priv.revoke, so a change request can stop writes to a table
+// tables is priv.revoke, under ACCESS SHARE, so a change request can stop writes to a table
 // without dropping it (O3). Ticket scope judges it like any action: the
 // revoked tables are its objects. Everything else stays denied: GRANT widens
 // access, GRANT OPTION FOR and CASCADE reach grantees the statement does not

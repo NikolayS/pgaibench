@@ -8,13 +8,13 @@ import { classify } from "./index";
 const run = (sql: string) => classify(cr(sql), cleanSnapshot);
 
 describe("REVOKE on named tables", () => {
-  test("is priv.revoke on the tables, with the privileges and grantees, and no table lock", () => {
+  test("is priv.revoke on the tables, with the privileges and grantees, under ACCESS SHARE", () => {
     const { actions, denials } = run("REVOKE INSERT, UPDATE, DELETE ON public.notes_archive, secret_lookup FROM PUBLIC, bob");
     expect(denials).toEqual([]);
     expect(actions).toEqual([expect.objectContaining({
       step: 0, action: "priv.revoke", objects: ["public.notes_archive", "public.secret_lookup"],
       privilege: { privileges: ["insert", "update", "delete"], grantees: ["PUBLIC", "bob"] },
-      lock: expect.objectContaining({ mode: null }),
+      lock: expect.objectContaining({ mode: "AccessShareLock" }),
     })]);
   });
 

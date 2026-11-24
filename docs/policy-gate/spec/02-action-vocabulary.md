@@ -36,7 +36,7 @@ records which steps share a transaction (needed by X-rules).
 | `maint.vacuum_analyze` | `VacuumStmt` without FULL | SHARE UPDATE EXCLUSIVE | outside txn |
 | `dml.bounded` | `UpdateStmt`, `DeleteStmt`, `InsertStmt` | ROW EXCLUSIVE; WAL scales with rows | any |
 | `lock.table` | `LockStmt` | the mode it names (ACCESS EXCLUSIVE by default), held to COMMIT; changes nothing | inside a txn (denied outside one) |
-| `priv.revoke` | `GrantStmt` revoking table or column privileges on named tables, RESTRICT | no table lock recorded (to confirm on a lab VM); changes who may access the table | any |
+| `priv.revoke` | `GrantStmt` revoking table or column privileges on named tables, RESTRICT | ACCESS SHARE (checked on Postgres 18.6); changes who may access the table | any |
 | `query.read` | `SelectStmt` with no `INTO`, no locking clause, no data-modifying `WITH`, and only read-only built-in functions (ADR 0003) | ACCESS SHARE; writes nothing; touches no object for ticket scope | any |
 
 ## Default deny (reject, or escalate where noted)
