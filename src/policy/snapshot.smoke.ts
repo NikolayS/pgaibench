@@ -25,6 +25,18 @@ const docker = (...args: string[]) => {
   return r.stdout.toString().trim();
 };
 
+// Each drop, its target, and what Postgres's notice says it drops, as the
+// closure names those objects.
+const DROPS: [string, string, string[]][] = [
+  ["DROP TABLE public.orders CASCADE", "public.orders", [
+    "order_items_order_id_fkey on public.order_items", "public.orders_overview", "public.orders_totals", "public.paid_orders"]],
+  ["DROP TABLE public.customers CASCADE", "public.customers", ["orders_customer_id_fkey on public.orders"]],
+  ["DROP VIEW public.orders_overview CASCADE", "public.orders_overview", ["public.paid_orders"]],
+  ["DROP TABLE public.events CASCADE", "public.events", ["public.events_2026_view"]],
+  ["DROP TABLE public.tickets CASCADE", "public.tickets", []],
+  ["DROP TYPE public.order_status_enum CASCADE", "public.order_status_enum", ["public.order_status_history.status"]],
+];
+
 let sql: postgres.Sql;
 let snapshot: StateSnapshot;
 const notices: string[] = [];
@@ -56,7 +68,7 @@ beforeAll(async () => {
     },
     async end() {},
   };
-  const cr = { id: "smoke", task: "smoke", steps: [{ sql: "DROP TABLE public.orders CASCADE" }, { sql: "DROP TYPE public.order_status_enum CASCADE" }] };
+  const cr = { id: "smoke", task: "smoke", steps: DROPS.map(([sql]) => ({ sql })) };
   snapshot = await collectSnapshot({ primary, standby }, cr, { usageWindowStart: new Date(Date.now() - 3_600_000) });
 }, 120_000);
 
@@ -105,13 +117,9 @@ describe("the snapshot SQL on Postgres 18", () => {
   });
 
   // What DROP ... CASCADE really drops comes from Postgres itself: drop inside a
-  // transaction, read the "drop cascades to" notice, roll back. The closure may
-  // reach more (it over-approximates by design) but must cover all of these.
-  test.each([
-    ["DROP TABLE public.orders CASCADE", "public.orders",
-      ["order_items_order_id_fkey on public.order_items", "public.orders_overview", "public.orders_totals"]],
-    ["DROP TYPE public.order_status_enum CASCADE", "public.order_status_enum", ["public.order_status_history.status"]],
-  ])("the cascade closure covers what %s drops", async (drop, target, expected) => {
+  // transaction, read the "drop cascades to" notice, roll back. The closure
+  // must name exactly those objects (#42), as the notice names them.
+  test.each(DROPS)("the cascade closure is what %s drops", async (drop, target, expected) => {
     notices.length = 0;
     await sql.begin(async (tx) => { await tx.unsafe(drop); throw new Error("rollback"); }).catch((e) => {
       if ((e as Error).message !== "rollback") throw e;
@@ -119,9 +127,6 @@ describe("the snapshot SQL on Postgres 18", () => {
     const dropped = notices.join("\n").split("\n")
       .filter((l) => l.startsWith("drop cascades to ") && !/^drop cascades to \d+ other objects$/.test(l));
     expect(dropped).toHaveLength(expected.length);
-    const reaches = snapshot.cascade[target]!.reaches.map((r) => r.identity);
-    for (const object of expected) {
-      expect(reaches.some((r) => r === object || r.endsWith(` on ${object}`))).toBe(true);
-    }
+    expect(snapshot.cascade[target]!.reaches.map((r) => r.identity).sort()).toEqual([...expected].sort());
   });
 });
