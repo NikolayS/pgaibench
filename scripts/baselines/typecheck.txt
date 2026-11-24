@@ -1,0 +1,119 @@
+# Known types failures. Regenerate with: bun run check types --update
+site/src/limits.ts TS18047 'r.heldout' is possibly 'null'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'c' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'cost' does not exist on type 'never'.
+site/src/mainchart.ts TS2339 Property 'cost' does not exist on type 'never'.
+site/src/pages.ts TS2300 Duplicate identifier 'ADDENDUM'.
+site/src/pages.ts TS2300 Duplicate identifier 'ADDENDUM'.
+site/src/pages.ts TS2739 Type '{ acted: string; right_given_acted: string; harmful_given_acted: string; harmful_pattern_only: string; harmful_stopped_at_rehearsal: string; acted_on_must_refuse: string; correct_refusals: string; escalated_safe_existed: string; ineffective: string; ... 4 more ...; risky_pattern_any: string; }' is missing the following properties from type 'Record<"acted" | "acted_on_must_refuse" | "correct_refusals" | "escalated_safe_existed" | "harmful_any" | "harmful_given_acted" | "harmful_pattern_only" | "harmful_stopped_at_rehearsal" | ... 7 more ... | "unscorable", string>': invalid_answer, truncated_at_cap
+site/src/safety.ts TS2322 Type '({ id: string; samples: number; missing: number[]; included: boolean; why: string | null; score: number; dangerous: number; done: number; lo: number | null; hi: number | null; place: number | null; ... 11 more ...; unread?: number | undefined; } | { ...; })[]' is not assignable to type 'ProvRow[]'.
+site/src/safety.ts TS2322 Type '({ id: string; samples: number; missing: number[]; included: boolean; why: string | null; score: number; dangerous: number; done: number; lo: number | null; hi: number | null; place: number | null; ... 11 more ...; unread?: number | undefined; } | { ...; })[]' is not assignable to type 'ProvRow[]'.
+site/src/safety.ts TS2339 Property 'answers' does not exist on type '{ upper: number; }'.
+site/src/safety.ts TS2339 Property 'answers' does not exist on type '{ upper: number; }'.
+site/src/safety.ts TS2339 Property 'base' does not exist on type 'ProvRow'.
+site/src/safety.ts TS2339 Property 'base' does not exist on type 'ProvRow'.
+site/src/safety.ts TS2339 Property 'base' does not exist on type 'ProvRow'.
+site/src/safety.ts TS2339 Property 'base' does not exist on type 'ProvRow'.
+site/src/safety.ts TS2339 Property 'base' does not exist on type 'ProvRow'.
+site/src/safety.ts TS2339 Property 'count' does not exist on type '{ upper: number; }'.
+site/src/safety.ts TS2339 Property 'count' does not exist on type '{ upper: number; }'.
+site/src/safety.ts TS2345 Argument of type 'number | null' is not assignable to parameter of type 'number'.
+site/src/safety.ts TS2345 Argument of type 'number | null' is not assignable to parameter of type 'number'.
+site/src/safety.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; n: number; family: string; model: string; effort: string; main: boolean; }[]; xMax: number; origin: "median"; baselines: { label: string; x: number; y: number; }[]; caption: string; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/src/safety.ts TS2345 Argument of type '{ id: string; samples: number; missing: number[]; included: boolean; why: string | null; score: number; dangerous: number; done: number; lo: number | null; hi: number | null; place: number | null; ... 11 more ...; unread?: number | undefined; } | { ...; }' is not assignable to parameter of type '{ score: number; lo: number | null; hi: number | null; }'.
+site/src/svg.ts TS2339 Property 'unit' does not exist on type '{ id: string; title: string; desc: string; aria: string; groups: { name: string; rows: StackRow[]; }[]; total: number; legend: { name: string; items: { cls: string; label: string; }[]; }[]; width: number; line?: number | undefined; }'.
+site/test/axes.test.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; }[]; xMax: number; caption: string; baselines: { label: string; x: number; y: number; }[]; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/axes.test.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; }[]; xMax: number; caption: string; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/axes.test.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; }[]; xMax: number; caption: string; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/effort-labels.test.ts TS2353 Object literal may only specify known properties, and 'answers' does not exist in type '{ median: number; }'.
+site/test/family.test.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; family: string; }[]; xMax: number; caption: string; baselines: { label: string; x: number; y: number; }[]; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/pooled.test.ts TS2339 Property 'paired' does not exist on type '{ id: string; samples: number; missing: number[]; included: boolean; why: null; score: number; dangerous: number; done: number; lo: number; hi: number; dangerousLo: number; dangerousHi: number; doneLo: number; ... 11 more ...; worst: { ...; }; }'.
+site/test/prompt.test.ts TS2345 Argument of type 'string | null' is not assignable to parameter of type 'string'.
+site/test/safety.test.ts TS2345 Argument of type '{ id: string; points: { label: string; x: number; y: number; }[]; xMax: number; origin: "median"; baselines: { label: string; x: number; y: number; }[]; caption: string; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/switcher.test.ts TS2345 Argument of type '{ id: string; points: QPoint[]; xMax: number; caption: string; }' is not assignable to parameter of type '{ id: string; points: QPoint[]; xMax: number; yMax?: number | undefined; width: number; origin?: "absolute" | "median" | undefined; baselines?: QPoint[] | undefined; line?: number | undefined; names?: boolean | undefined; } & { ...; }'.
+site/test/switcher.test.ts TS7016 Could not find a declaration file for module '../assets/plot.js'. 'site/assets/plot.js' implicitly has an 'any' type.
+src/actor/actor-clone-standby.test.ts TS2769 No overload matches this call.
+src/actor/actor.test.ts TS2769 No overload matches this call.
+src/actor/actor.test.ts TS2769 No overload matches this call.
+src/actor/actor.test.ts TS2769 No overload matches this call.
+src/actor/actor.test.ts TS2769 No overload matches this call.
+src/actor/actor.test.ts TS2769 No overload matches this call.
+src/analysis/model-report.test.ts TS2531 Object is possibly 'null'.
+src/analysis/pooled.test.ts TS2531 Object is possibly 'null'.
+src/analysis/score-text.test.ts TS2345 Argument of type '{ id: string; task: string; claims: never[]; steps: { sql: string; expect: {}; }[]; rehearsal: { workload: string; minutes: number; metrics: never[]; thresholds: {}; }; rollback: string[]; postconditions: never[]; risk: { class_guess: string; blast_radius: string; }; }' is not assignable to parameter of type '{ id: string; task: string; claims: { text: string; verify_sql: string; expect: string; }[]; steps: ({ sql: string; expected_rows?: number | undefined; retries?: number | undefined; expect: Record<string, string>; } | { ...; } | { ...; })[]; rehearsal: { ...; }; rollback: string[]; postconditions: string[]; risk: { ...'.
+src/analysis/score-text.test.ts TS2345 Argument of type '{ id: string; task: string; claims: never[]; steps: { sql: string; expect: {}; }[]; rehearsal: { workload: string; minutes: number; metrics: never[]; thresholds: {}; }; rollback: string[]; postconditions: never[]; risk: { class_guess: string; blast_radius: string; }; }' is not assignable to parameter of type '{ id: string; task: string; claims: { text: string; verify_sql: string; expect: string; }[]; steps: ({ sql: string; expected_rows?: number | undefined; retries?: number | undefined; expect: Record<string, string>; } | { ...; } | { ...; })[]; rehearsal: { ...; }; rollback: string[]; postconditions: string[]; risk: { ...'.
+src/analysis/score-text.test.ts TS2345 Argument of type '{ id: string; task: string; claims: never[]; steps: { sql: string; expect: {}; }[]; rehearsal: { workload: string; minutes: number; metrics: never[]; thresholds: {}; }; rollback: string[]; postconditions: never[]; risk: { class_guess: string; blast_radius: string; }; }' is not assignable to parameter of type '{ id: string; task: string; claims: { text: string; verify_sql: string; expect: string; }[]; steps: ({ sql: string; expected_rows?: number | undefined; retries?: number | undefined; expect: Record<string, string>; } | { ...; } | { ...; })[]; rehearsal: { ...; }; rollback: string[]; postconditions: string[]; risk: { ...'.
+src/analysis/score.test.ts TS2769 No overload matches this call.
+src/analysis/score.ts TS2741 Property 'provider_error' is missing in type '{ right: number; correct_refusal: number; right_with_reservation: number; correct_stop: number; over_cautious: number; ineffective: number; stopped_at_rehearsal: number; invalid_answer: number; unscorable: number; risky_pattern: number; harmful_lab: number; pending_review: null; rerun: null; under_review: null; not_...' but required in type 'Record<"correct_refusal" | "correct_stop" | "harmful_lab" | "ineffective" | "invalid_answer" | "not_run" | "over_cautious" | "pending_review" | "provider_error" | "rerun" | "right" | ... 4 more ... | "unscorable", number | null>'.
+src/analysis/sensitivity.ts TS7053 Element implicitly has an 'any' type because expression of type 'number' can't be used to index type 'Record<number, number> | { [k: string]: number; }'.
+src/analysis/sensitivity.ts TS7053 Element implicitly has an 'any' type because expression of type 'number' can't be used to index type 'Record<number, number> | { [k: string]: number; }'.
+src/analysis/site-data.test.ts TS2339 Property 'safety' does not exist on type 'Provisional'.
+src/analysis/site-data.test.ts TS2339 Property 'safety' does not exist on type 'Provisional'.
+src/analysis/site-data.test.ts TS2339 Property 'safety' does not exist on type 'Provisional'.
+src/analysis/site-data.test.ts TS2339 Property 'subscription' does not exist on type 'ModelInfo'.
+src/analysis/site-data.test.ts TS2339 Property 'subscription' does not exist on type 'ModelInfo'.
+src/analysis/site-data.test.ts TS2345 Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/analysis/site-data.test.ts TS7006 Parameter 'c' implicitly has an 'any' type.
+src/analysis/site-data.test.ts TS7006 Parameter 'c' implicitly has an 'any' type.
+src/analysis/site-data.test.ts TS7006 Parameter 'x' implicitly has an 'any' type.
+src/analysis/site-data.test.ts TS7006 Parameter 'x' implicitly has an 'any' type.
+src/analysis/site-data.ts TS2322 Type '{ id: string; vendor: string; open_weights: boolean | null; provider: string | null; access: "agy-cli" | "claude-cli" | "codex-cli" | "openrouter"; }[]' is not assignable to type 'ModelInfo[]'.
+src/analysis/site-data.ts TS2353 Object literal may only specify known properties, and 'safety' does not exist in type 'Provisional'.
+src/analysis/site-data.ts TS2783 'id' is specified more than once, so this usage will be overwritten.
+src/analysis/site-data.ts TS2783 'scenario_set' is specified more than once, so this usage will be overwritten.
+src/auditor/items.ts TS2488 Type 'string[] | Record<string, string> | Record<string, number[]> | undefined' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/auditor/items.ts TS2488 Type 'string[] | Record<string, string> | Record<string, number[]>' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/control/capture-clone.test.ts TS2769 No overload matches this call.
+src/generate/generate.test.ts TS2322 Type '(id: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: { order: string[]; allow_fallbacks: false; }; reasoning: null; price_in: number; price_out: number; }' is not assignable to type '(m: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { effort?: "high" | ... 5 more ... | undefined; max_tokens?: number | undefined; } | null | undefined; ... 8 more ...; codex_catalog_b...'.
+src/generate/generate.test.ts TS2322 Type '(id: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: { order: string[]; allow_fallbacks: false; }; reasoning: null; price_in: number; price_out: number; }' is not assignable to type '(m: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { effort?: "high" | ... 5 more ... | undefined; max_tokens?: number | undefined; } | null | undefined; ... 8 more ...; codex_catalog_b...'.
+src/generate/generate.test.ts TS2322 Type '(m: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: null; reasoning: null; default_effort: "medium"; }' is not assignable to type '(model: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { ...; } | ... 1 more ... | undefined; ... 8 more ...; codex_catalog_base?: string | undefined; } | undefined'.
+src/generate/generate.test.ts TS2322 Type '(m: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: null; reasoning: null; default_effort: "medium"; }' is not assignable to type '(model: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { ...; } | ... 1 more ... | undefined; ... 8 more ...; codex_catalog_base?: string | undefined; } | undefined'.
+src/generate/generate.test.ts TS2322 Type '(m: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: null; reasoning: null; price_in: number; price_out: number; max_tokens: number; }' is not assignable to type '(model: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { ...; } | ... 1 more ... | undefined; ... 8 more ...; codex_catalog_base?: string | undefined; } | undefined'.
+src/generate/generate.test.ts TS2322 Type '(m: string) => { id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: null; reasoning: null; price_in: number; price_out: number; max_tokens: number; }' is not assignable to type '(model: string) => { id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { ...; } | ... 1 more ... | undefined; ... 8 more ...; codex_catalog_base?: string | undefined; } | undefined'.
+src/generate/generate.test.ts TS2741 Property 'access' is missing in type '{ id: string; vendor: string; tier: "mid"; open_weights: boolean; provider: null; reasoning: null; price_in: number; price_out: number; max_tokens: number; }' but required in type '{ id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { effort?: "high" | "low" | ... 4 more ... | undefined; max_tokens?: number | undefined; } | null | undefined; ... 8 more ...; codex_catalog_base?: s...'.
+src/generate/generate.ts TS2322 Type '{ models: "all" | string[]; scenarios: "all" | string[]; samples: number; out: string; concurrency: number; codexConcurrency: number; claudeConcurrency: number; maxUsd: number | undefined; ... 8 more ...; modelsFile?: string | undefined; }' is not assignable to type 'GenerateArgs'.
+src/generate/generate.ts TS2352 Conversion of type 'LLMResult' to type '{ model_served: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/generate/generate.ts TS7053 Element implicitly has an 'any' type because expression of type '"agy-cli" | "claude-cli" | "codex-cli"' can't be used to index type 'Record<"claude-cli" | "codex-cli", number>'.
+src/guardrails/g1-locks.ts TS2345 Argument of type 'CatalogObject[]' is not assignable to parameter of type '{ definition?: unknown; }[]'.
+src/llm/analyst.test.ts TS2741 Property 'allowed_changed_tables' is missing in type '{ id: string; goal: string; context_sql: string[]; success: never[]; }' but required in type 'Task'.
+src/llm/cli-gen.test.ts TS2345 Argument of type 'string' is not assignable to parameter of type '"HOME"'.
+src/llm/cli-gen.test.ts TS2345 Argument of type 'string' is not assignable to parameter of type '"LANG" | "LOGNAME" | "PATH" | "TERM" | "TMPDIR" | "USER"'.
+src/llm/models-v02.test.ts TS2307 Cannot find module '../../models.ablation.json' or its corresponding type declarations.
+src/llm/models-v02.test.ts TS2769 No overload matches this call.
+src/llm/models-v02.test.ts TS7006 Parameter 'row' implicitly has an 'any' type.
+src/llm/openrouter.test.ts TS2339 Property 'message' does not exist on type 'Error | OpenRouterResult'.
+src/llm/openrouter.test.ts TS2339 Property 'message' does not exist on type 'Error | OpenRouterResult'.
+src/llm/openrouter.test.ts TS2339 Property 'message' does not exist on type 'Error | OpenRouterResult'.
+src/llm/openrouter.test.ts TS2339 Property 'reason' does not exist on type 'OpenRouterResult | (Error & { reason?: string | undefined; usd?: number | undefined; })'.
+src/llm/openrouter.test.ts TS2741 Property 'access' is missing in type '{ id: string; vendor: string; tier: "large"; open_weights: true; provider: { order: string[]; allow_fallbacks: false; }; reasoning: { effort: "high"; }; }' but required in type '{ id: string; vendor: string; tier: "large" | "mid" | "small"; open_weights: boolean | null; provider: { order: string[]; allow_fallbacks: false; } | null; reasoning?: { effort?: "high" | "low" | ... 4 more ... | undefined; max_tokens?: number | undefined; } | null | undefined; ... 8 more ...; codex_catalog_base?: s...'.
+src/llm/openrouter.test.ts TS2769 No overload matches this call.
+src/monitor/run.ts TS2322 Type 'Promise<MonitorResult>' is not assignable to type 'Promise<MonitorResult & Record<string, unknown>>'.
+src/run/batch.ts TS2345 Argument of type '{ task: string; condition: Condition; seed: number; scenario?: string; arm?: string; sample?: number; idSuffix?: string; host: Host; ports: Ports; llm: LLMCall; analystSpec: string; runsDir: string; toolVersions: Record<...>; noop: boolean; attackPolicy: AttackPolicy; }' is not assignable to parameter of type 'RunEpisodeInput'.
+src/run/episode.ts TS7053 Element implicitly has an 'any' type because expression of type '"dev-a" | "dev-b" | "openrouter" | "reference"' can't be used to index type '{ readonly "dev-a": "codex:gpt-6-sol"; readonly "dev-b": "claude:claude-sonnet-5-5"; }'.
+src/run/gate-rerun.ts TS2305 Module '"./types"' has no exported member 'OracleCheck'.
+src/run/guardrail-context.test.ts TS2305 Module '"./types"' has no exported member 'Row'.
+src/run/guardrail-context.ts TS2305 Module '"./types"' has no exported member 'Row'.
+src/run/lab.test.ts TS2353 Object literal may only specify known properties, and ''rowcount:events'' does not exist in type '{ p99_rel: string; }'.
+src/run/lab.test.ts TS2353 Object literal may only specify known properties, and ''rowcount:events'' does not exist in type '{ p99_rel: string; }'.
+src/run/lab.test.ts TS2353 Object literal may only specify known properties, and ''rowcount:orders'' does not exist in type '{ p99_rel: string; }'.
+src/run/lab.ts TS2352 Conversion of type '{ [k: string]: string | number | boolean | string[] | { command: string | null; count: number | null; }[] | { metric: string; reason: string; }[] | { metric: string; reason: NonNullable<"no_baseline_here" | ... 4 more ... | undefined>; }[] | Record<...>; }' to type 'ActorStepRecord' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/run/scenario-episode.test.ts TS2353 Object literal may only specify known properties, and '"shape_post_p50_ms:q07"' does not exist in type '{ p99_rel: string; }'.
+src/run/scenario-episode.test.ts TS2353 Object literal may only specify known properties, and 'metrics' does not exist in type 'ActorStepRecord'.
+src/run/scenario-episode.test.ts TS2353 Object literal may only specify known properties, and 'metrics' does not exist in type 'ActorStepRecord'.
+src/run/scenario-episode.test.ts TS2353 Object literal may only specify known properties, and 'metrics' does not exist in type 'ActorStepRecord'.
+src/run/v02-wiring.test.ts TS2339 Property 'restarts' does not exist on type '{ steps: ActorStepRecord[]; aborted: boolean; rolledBack: boolean; rollbackErrors: string[]; logPath: string; }'.
+src/run/v02-wiring.test.ts TS2339 Property 'restarts' does not exist on type '{ steps: ActorStepRecord[]; aborted: boolean; rolledBack: boolean; rollbackErrors: string[]; logPath: string; }'.
+src/scenarios/golden-existing.test.ts TS2307 Cannot find module '../../scripts/golden-existing' or its corresponding type declarations.
+src/scenarios/reference.test.ts TS2345 Argument of type 'string' is not assignable to parameter of type 'ReferenceKind'.
+src/scenarios/schema.test.ts TS2769 No overload matches this call.
+src/scenarios/schema.test.ts TS2769 No overload matches this call.
+src/scoring/bounds.test.ts TS2536 Type '"steps"' cannot be used to index type 'NonNullable<A>'.
+src/scoring/outcome.ts TS2339 Property 'attempts' does not exist on type 'ActorStepRecord'.
+src/scoring/outcome.ts TS2339 Property 'attempts' does not exist on type 'ActorStepRecord'.
+src/telemetry/collect.ts TS2339 Property 'catch' does not exist on type 'PromiseLike<Row[]>'.
