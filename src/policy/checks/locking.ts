@@ -1,11 +1,12 @@
-import type { Check, CheckContext } from "./checks";
-import type { ClassifiedAction } from "./classify";
-import { lockStrength, type LockMode } from "./locks";
-import { thresholdValue } from "./rule-data";
+import type { ClassifiedAction } from "../classify";
+import { lockStrength, type LockMode } from "../locks";
+import { thresholdValue } from "../rule-data";
+import { byTxn } from "./shared";
+import type { Check, CheckContext } from "./types";
 
 // Locking and transaction-structure rules L-1 to L-4 and X-1 to X-4 (issue #10).
 // They read the lock, transaction and session data the classifier attaches to
-// each action (locks.ts).
+// each action (../locks.ts).
 
 /** A threshold from the rule data in ms (durations) or bytes (sizes). */
 const threshold = (ctx: CheckContext, name: string): number => thresholdValue(ctx.thresholds, name);
@@ -16,7 +17,7 @@ const describe = (a: ClassifiedAction) => `Step ${a.step} (${a.action} on ${a.lo
 
 // L-1: a step taking SHARE or stronger runs with lock_timeout <= T_lock set in
 // its own session (SET, or SET LOCAL in the same transaction), and declares retries.
-export const lockTimeoutSet: Check = (ctx) => {
+const lockTimeoutSet: Check = (ctx) => {
   const limit = threshold(ctx, "T_lock");
   return ctx.actions.filter((a) => atLeast(a, "ShareLock")).flatMap((a) => {
     const ms = a.session?.lock_timeout_ms ?? null;
@@ -57,7 +58,7 @@ const scansOrRewrites = (a: ClassifiedAction) =>
   : a.action === "ddl.add_column" ? a.lock?.rewrites || a.lock?.scans
   : true;
 
-export const lockedScanSize: Check = (ctx) => {
+const lockedScanSize: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ctx.actions
     .filter((a) => appliesTo(ctx, a) && scansOrRewrites(a))
@@ -95,7 +96,7 @@ function notNullProven(ctx: CheckContext, a: ClassifiedAction, table: string, co
 
 // L-4: SET NOT NULL scans the table under ACCESS EXCLUSIVE unless a validated
 // constraint already proves the column, so a table above S_scan needs the proof.
-export const setNotNullProven: Check = (ctx) => {
+const setNotNullProven: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ctx.actions.filter((a) => appliesTo(ctx, a)).flatMap((a) => {
     const size = targetSize(ctx, a);
@@ -113,7 +114,7 @@ export const setNotNullProven: Check = (ctx) => {
 // concurrent index build or VACUUM inside one (a multi-statement step is an
 // implicit block), and a config step or reload takes effect at once, outside
 // the transaction's rollback.
-export const outsideTxnBlock: Check = (ctx) =>
+const outsideTxnBlock: Check = (ctx) =>
   ctx.actions.filter((a) => appliesTo(ctx, a) && a.txn && a.txn.block !== "none").map((a) => ({
     step: a.step,
     reason: a.txn!.block === "explicit"
@@ -123,16 +124,9 @@ export const outsideTxnBlock: Check = (ctx) =>
     evidence: { action: a.action, block: a.txn!.block, txn_group: a.txn!.group },
   }));
 
-// Actions grouped by the transaction they run in, in change-request order.
-function byTxn(actions: readonly ClassifiedAction[]): ClassifiedAction[][] {
-  const groups = new Map<number, ClassifiedAction[]>();
-  for (const a of actions) if (a.txn) groups.set(a.txn.group, [...(groups.get(a.txn.group) ?? []), a]);
-  return [...groups.values()];
-}
-
 // X-3: locks are held until COMMIT, so a second ACCESS EXCLUSIVE statement on a
 // large relation in the same transaction stretches the time it stays locked.
-export const oneBigExclusivePerTxn: Check = (ctx) => {
+const oneBigExclusivePerTxn: Check = (ctx) => {
   const limit = threshold(ctx, "S_scan");
   const big = (a: ClassifiedAction) => a.lock?.mode === "AccessExclusiveLock"
     && a.lock.relations.find((r) => (ctx.snapshot.relations[r]?.total_bytes ?? 0) > limit);
@@ -154,7 +148,7 @@ export const oneBigExclusivePerTxn: Check = (ctx) => {
 
 // X-4: DML in the same transaction as a SHARE ROW EXCLUSIVE or stronger lock
 // keeps that lock held while the DML runs, which grows with the rows it changes.
-export const noDdlWithDml: Check = (ctx) => byTxn(ctx.actions).flatMap((group) => {
+const noDdlWithDml: Check = (ctx) => byTxn(ctx.actions).flatMap((group) => {
   const dml = group.find((a) => a.action === "dml.bounded");
   if (!dml) return [];
   return group.filter((a) => a !== dml && a.action !== "dml.bounded" && atLeast(a, "ShareRowExclusiveLock")).map((a) => ({
@@ -167,7 +161,7 @@ export const noDdlWithDml: Check = (ctx) => byTxn(ctx.actions).flatMap((group) =
 
 // X-2: a NOT VALID add holds its ACCESS EXCLUSIVE lock until COMMIT, so a
 // VALIDATE in the same transaction scans the table under that lock.
-export const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
+const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
   if (v.action !== "ddl.validate_constraint") return [];
   const add = ctx.actions.slice(0, i).find((a) =>
     a.action === "ddl.add_check_not_valid" && a.objects[0] === v.objects[0] && a.txn?.group === v.txn?.group
@@ -185,7 +179,7 @@ export const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
 // the step locks at SHARE or stronger. The review never waits: it defers, and
 // the live driver rechecks (ADR 0004). Locks are read from the primary, where
 // the step runs; the oldest blocker is reported.
-export const noOldBlocker: Check = (ctx) => {
+const noOldBlocker: Check = (ctx) => {
   const limitS = threshold(ctx, "A_txn") / 1000;
   const locks = ctx.snapshot.nodes.primary.locks;
   return ctx.actions.filter((a) => atLeast(a, "ShareLock")).flatMap((a) => {
@@ -201,4 +195,9 @@ export const noOldBlocker: Check = (ctx) => {
       evidence: { action: a.action, relation: l.relation, mode: l.mode, granted: l.granted, pid: l.pid, xact_age_s: l.xact_age_s, blockers: old.length },
     }];
   });
+};
+
+export const LOCKING_CHECKS: Record<string, Check> = {
+  "L-1": lockTimeoutSet, "L-2": noOldBlocker, "L-3": lockedScanSize, "L-4": setNotNullProven,
+  "X-1": outsideTxnBlock, "X-2": notValidCommitted, "X-3": oneBigExclusivePerTxn, "X-4": noDdlWithDml,
 };

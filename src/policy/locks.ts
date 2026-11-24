@@ -4,7 +4,7 @@ import { lockModes } from "./snapshot";
 
 // Lock, scan and rewrite behavior of each action, as data, and the transaction
 // and session state each action runs under (issue #10). The classifier attaches
-// both to every action; the locking and transaction rules (lock-rules.ts) read
+// both to every action; the locking and transaction rules (checks/locking.ts) read
 // them instead of hard-coding Postgres semantics.
 
 export type LockMode = (typeof lockModes)[number];
