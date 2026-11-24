@@ -18,3 +18,18 @@ regclass cast, which drops the schema, and six rules would have silently
 skipped on real data. The collector test passed because its fake rows were
 already schema-qualified (`src/policy/snapshot-collect.test.ts` now renders as
 Postgres does; `src/policy/sql-names.test.ts` blocks that cast).
+
+## A policy rule test asserts its own rule, not the whole gate
+
+A test for one policy rule asserts the findings of that rule, and of default
+deny, with `fired()` from `src/policy/test-kit.ts`. It does not assert the
+verdict of the whole gate or the full list of findings. Whole-gate verdicts
+belong in `src/policy/review.test.ts`, where `onlyRules()` silences every rule
+the test does not name, and in a golden suite over the reference and corpus
+change requests (planned in issue #20).
+
+Why: a near miss that expects `{ verdict: "approve", findings: [] }` also
+asserts that every other rule stays silent, so a rule added by another ticket
+breaks it. In the spec #1 run this broke the L-1 and X-1 fixtures across
+parallel tickets (issue #20). Including default deny keeps a near miss from
+passing only because its statement no longer classifies.
