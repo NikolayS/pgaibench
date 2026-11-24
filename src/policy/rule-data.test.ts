@@ -36,6 +36,15 @@ describe("rule data", () => {
     expect(() => parseRuleData(withDuplicate)).toThrow(/duplicate/i);
   });
 
+  // #31: the Actor enforces no row or index postcondition; G6 and G3 check
+  // those in clone rehearsal. The rule data must not claim otherwise.
+  test("the rule data claims nothing the Actor does not enforce", () => {
+    const text = readFileSync(RULES_YAML_PATH, "utf8");
+    expect(text).not.toMatch(/postcondition/i);
+    const good = Bun.YAML.parse(text) as Record<string, unknown>;
+    expect(() => parseRuleData({ ...good, postconditions: [{ after: "dml.bounded", check: "x" }] })).toThrow();
+  });
+
   test("every threshold reads as one number, sizes in bytes and durations in ms", () => {
     const { thresholds } = loadRuleData();
     expect(thresholdValue(thresholds, "S_scan")).toBe(1024 ** 3);

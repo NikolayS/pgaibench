@@ -34,8 +34,6 @@ export function renderRulesMarkdown(data: RuleData): string {
     const appliesTo = r.applies_to.map((a) => `\`${a}\``).join(", ");
     out.push(`| \`${r.id}\` | ${r.scope} | ${appliesTo} | ${condition} | ${r.verdict} | ${r.targets.join(", ") || "—"} |`);
   }
-  out.push("", "## Actor postconditions", "");
-  for (const p of data.postconditions) out.push(`- After \`${p.after}\`: ${p.check}`);
   out.push("", "## Notes", "",
     "- The R-2 settings are the ones a hot standby must match or exceed (PG docs, Hot Standby).",
     "- Numeric parts of R-1, R-2 and R-4 are small linear constraints; an SMT solver is",

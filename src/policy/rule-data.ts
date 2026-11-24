@@ -22,7 +22,6 @@ export const ruleDataSchema = z.object({
   version: z.number().int().nonnegative(),
   thresholds: z.record(z.string(), z.object({ value: z.union([z.string(), z.number()]), meaning: z.string().min(1) }).strict()),
   rules: z.array(ruleSchema).min(1),
-  postconditions: z.array(z.object({ after: z.string().min(1), check: z.string().min(1) }).strict()),
 }).strict().superRefine((data, ctx) => {
   const seen = new Set<string>();
   data.rules.forEach((r, i) => {
