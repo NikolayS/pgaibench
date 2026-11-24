@@ -163,7 +163,7 @@ const constraintSchema = z.object({
   definition: z.string(),
 }).strict();
 
-/** What DROP ... CASCADE of one target reaches (an over-approximation; see cascade_closure.sql). */
+/** What DROP ... CASCADE of one target drops, as Postgres's notice lists it (see cascade_closure.sql). */
 const cascadeClosureSchema = z.object({
   refclass: z.enum(["pg_class", "pg_type"]),
   /** pg_identify_object type and identity, e.g. { object_type: "view", identity: "public.v" }. */
