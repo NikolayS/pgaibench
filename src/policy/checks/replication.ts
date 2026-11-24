@@ -1,13 +1,12 @@
-import type { NodeName } from "./actions";
-import type { Check, RuleFinding } from "./checks";
-import { MEMORY_UNITS, TIME_UNITS } from "./rule-data";
-import type { Setting } from "./snapshot";
+import type { NodeName } from "../actions";
+import { MEMORY_UNITS, TIME_UNITS } from "../rule-data";
+import type { Setting } from "../snapshot";
+import { NODES } from "./shared";
+import type { Check, RuleFinding } from "./types";
 
 // Checks for the replication and settings rules R-1 to R-4 and R-6 to R-9
 // (issue #9). R-5 is retired: the Actor always restarts after a
 // postmaster-context config step, and ALTER SYSTEM in a SQL step is denied.
-
-const NODES: readonly NodeName[] = ["primary", "standby"];
 
 // R-2: for the hot-standby settings, the standby's running value never drops
 // below the primary's. The Actor restarts a node after each postmaster-context
