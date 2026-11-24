@@ -14,43 +14,82 @@ export type PolicyStep =
 /** The full change-request schema or the reduced Track 2 item shape. */
 export type PolicyChangeRequest = { id: string; task: string; steps: readonly unknown[] };
 
-export type ClassifiedAction = {
+/** What every classified action carries, whatever its kind. */
+type ActionBase = {
   /** Zero-based index of the change-request step this action comes from. */
   step: number;
-  action: ActionKind;
   /** Schema-qualified objects the action touches or creates that must be in ticket scope. */
   objects: string[];
-  /** Nodes a config step or implied restart acts on. */
-  nodes?: NodeName[];
-  /** The setting a config step or role setting changes. */
-  setting?: string;
-  /** The new value a config step or role setting writes, as written in the change request. */
-  value?: string;
-  /** Storage parameters a ddl.set_reloption step sets, e.g. { autovacuum_enabled: "false" }. */
-  options?: Record<string, string>;
-  /** obj.drop and obj.truncate: true with CASCADE. */
-  cascade?: boolean;
-  /** The column a column-level ALTER TABLE action changes. */
-  column?: string;
-  /** ddl.alter_column_type: the new type as written, e.g. "float8" or "varchar(20)". */
-  new_type?: string;
-  /** Lock, scan and rewrite behavior (locks.ts); classify() always sets it. */
-  lock?: ActionLock;
-  /** The transaction the action runs in; classify() always sets it. */
-  txn?: TxnInfo;
-  /** Session state in effect when the action runs; classify() always sets it. */
-  session?: SessionState;
+  /** Lock, scan and rewrite behavior (locks.ts). */
+  lock: ActionLock;
+  /** The transaction the action runs in. */
+  txn: TxnInfo;
+  /** Session state in effect when the action runs. */
+  session: SessionState;
   /** The retry count the step declares, if any. */
   retries?: number;
-  /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */
-  constraint?: ConstraintInfo;
-  /** dml.bounded: the statement kind, and the row count of an INSERT ... VALUES. */
-  dml?: { statement: "update" | "delete" | "insert"; values_rows?: number };
-  /** dml.bounded: the expected_rows its step declares, if the step has exactly one DML statement. */
-  expected_rows?: number;
-  /** ext.create: the extension's name. */
-  extension?: string;
 };
+
+/**
+ * Each action kind with the facts it carries beyond ActionBase. A kind
+ * appears in exactly one entry; the check below fails the typecheck otherwise.
+ */
+type ActionPayloads = [
+  /** A config step: the nodes it acts on, the setting and its new value, as written. */
+  { action: "cfg.set_reload" | "cfg.set_restart"; nodes: NodeName[]; setting: string; value: string },
+  /** The restart a postmaster-context config step implies, one per node (ADR 0003). */
+  { action: "node.restart"; nodes: NodeName[]; setting: string },
+  /** ALTER ROLE or ALTER DATABASE ... SET or RESET; value only for SET name = value. */
+  { action: "cfg.set_role"; setting?: string; value?: string },
+  /** SET, SET LOCAL or RESET in the change request's own session. */
+  { action: "cfg.set_session"; setting: string },
+  /** A column-level ALTER TABLE action: the column it changes. */
+  { action: "ddl.add_column" | "ddl.set_not_null" | "ddl.drop_column"; column: string },
+  /** The column and its new type as written, e.g. "float8" or "varchar(20)". */
+  { action: "ddl.alter_column_type"; column: string; new_type: string },
+  /** The constraint an ADD CONSTRAINT or VALIDATE CONSTRAINT acts on. */
+  { action: "ddl.add_check_not_valid" | "ddl.add_constraint_validating" | "ddl.validate_constraint"; constraint: ConstraintInfo },
+  /** Storage parameters set, e.g. { autovacuum_enabled: "false" }. */
+  { action: "ddl.set_reloption"; options: Record<string, string> },
+  /** True with CASCADE. */
+  { action: "obj.drop" | "obj.truncate"; cascade: boolean },
+  /**
+   * The statement kind and the row count of an INSERT ... VALUES; expected_rows
+   * is the step's, if the step has exactly one DML statement.
+   */
+  { action: "dml.bounded"; dml: { statement: "update" | "delete" | "insert"; values_rows?: number }; expected_rows?: number },
+  /** The extension's name. */
+  { action: "ext.create"; extension: string },
+  {
+    action: "node.reload" | "obj.create" | "maint.vacuum_analyze" | "query.read"
+      | "idx.create_concurrent" | "idx.create_blocking" | "idx.drop_concurrent" | "idx.drop_blocking";
+  },
+];
+
+type ActionPayload = ActionPayloads[number];
+
+/** A classified action: its kind's payload on top of what every action carries. */
+export type ClassifiedAction = ActionPayload extends infer P ? P extends ActionPayload ? ActionBase & P : never : never;
+
+/**
+ * The classified actions of the given kinds, with action narrowed to them. A
+ * variant shared by several kinds (e.g. obj.drop and obj.truncate) is kept
+ * for the kinds asked for.
+ */
+export type ActionOf<K extends ActionKind> = ClassifiedAction extends infer A
+  ? A extends { action: infer X } ? ([Extract<X, K>] extends [never] ? never : A & { action: Extract<X, K> }) : never
+  : never;
+
+// Compile-time check: the payload entries cover the vocabulary in actions.ts,
+// each kind exactly once. A missing kind or a kind in two entries is a type error here.
+type KindsOf<T extends readonly unknown[]> = { [I in keyof T]: T[I] extends { action: infer A } ? A : never };
+type Overlaps<T extends readonly unknown[], Seen = never> =
+  T extends readonly [infer H, ...infer R] ? ([H & Seen] extends [never] ? Overlaps<R, Seen | H> : H & Seen) : never;
+type Exactly<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const actionKindsCovered: Exactly<KindsOf<ActionPayloads>[number], ActionKind> = true;
+const actionKindsOnce: [Overlaps<KindsOf<ActionPayloads>>] extends [never] ? true : false = true;
+void actionKindsCovered;
+void actionKindsOnce;
 
 export type ConstraintInfo = {
   name?: string;
@@ -76,8 +115,13 @@ export type Denial = {
 
 export type Classification = { actions: ClassifiedAction[]; denials: Denial[] };
 
-/** An action before annotate() stamps its transaction and session state. */
-export type ActionDraft = ClassifiedAction;
+/**
+ * An action before annotate() adds its transaction and session state. A
+ * classifier may set lock itself (ALTER TABLE does, from the subcommand);
+ * annotate() fills in the default lock profile otherwise.
+ */
+export type ActionDraft = ClassifiedAction extends infer A
+  ? A extends ClassifiedAction ? Omit<A, "lock" | "txn" | "session" | "retries"> & { lock?: ActionLock } : never : never;
 
 export type Classified = { actions: ActionDraft[]; denials: Denial[] };
 

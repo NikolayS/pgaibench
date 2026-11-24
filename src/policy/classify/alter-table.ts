@@ -1,6 +1,6 @@
 import { LOCK_PROFILES, type ActionLock } from "../locks";
 import { calledFunctions, defElemValue, qualify, typeName, type Node } from "./ast";
-import { deny, ok, type Classified, type ClassifiedAction, type ConstraintInfo, type StatementClassifier } from "./types";
+import { deny, ok, type Classified, type ActionDraft, type ConstraintInfo, type StatementClassifier } from "./types";
 
 const CONSTRAINT_TYPES: Record<string, ConstraintInfo["type"]> = {
   CONSTR_CHECK: "check", CONSTR_NOTNULL: "not_null", CONSTR_FOREIGN: "foreign_key",
@@ -34,7 +34,7 @@ function classifyAlterTable(body: Node, step: number): Classified {
       "Use only statements the policy gate can classify, or escalate.", { statement: "AlterTableStmt", objtype: body.objtype });
   }
   const target = qualify(body.relation.schemaname, body.relation.relname);
-  const actions: ClassifiedAction[] = [];
+  const actions: ActionDraft[] = [];
   let reloptions: Record<string, string> | undefined;
   for (const { AlterTableCmd: cmd } of body.cmds as Node[]) {
     const base = { step, objects: [target] };
