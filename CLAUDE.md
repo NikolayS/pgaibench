@@ -1,7 +1,8 @@
 # PGAIBench: rules for contributors and coding agents
 
 - TypeScript and Bun only. Red/green tests: write the test, see it fail,
-  then make it pass. Run `bun test` before every commit.
+  then make it pass. `bun run check` must pass before every commit (the
+  pre-commit hook runs it).
 - No emojis in code, docs or commit messages. Commit subjects are at most
   72 characters. Add explicit paths; do not use `git add -A`.
 - Plain English in docs and comments; use "we".
@@ -26,6 +27,12 @@
 ## Tests
 
 ```bash
-bun install
-bun test
+bun install          # also installs the git hooks
+bun run check        # typecheck and full test suite, against the baselines
+bun test <path>      # one file or directory while working
 ```
+
+The typecheck and the suite are not clean on main. `bun run check` compares
+each with its list of known failures in `scripts/baselines/` and fails only on
+a new one. After fixing a known failure, drop it with
+`bun run check types --update` or `bun run check tests --update`.
