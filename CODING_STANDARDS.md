@@ -34,3 +34,18 @@ asserts that every other rule stays silent, so a rule added by another ticket
 breaks it. In the spec #1 run this broke the L-1 and X-1 fixtures across
 parallel tickets (issue #20). Including default deny keeps a near miss from
 passing only because its statement no longer classifies.
+
+## Classifier facts land before the rule tickets that use them
+
+When several rule tickets will need the same new fact from the classifier
+(a new action kind, a field on `ClassifiedAction`, a new statement type, or
+how statements group into transactions), we add that fact in its own PR
+first, with its tests, and the rule tickets build on it. A rule ticket does
+not add its own version of a fact another ticket also needs.
+
+Why: in the spec #1 run, tickets #8 and #10 were written in parallel and each
+added its own DML classification and its own grouping of actions by
+transaction. The duplicates compiled, and one set of DML cases could never be
+reached (fixed in `5f42deb50`). Splitting the classifier into one module per
+statement family (`src/policy/classify/`) removes the merge conflicts, but
+not the duplicated concepts (issue #20).
