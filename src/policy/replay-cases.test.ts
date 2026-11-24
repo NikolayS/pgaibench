@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { judge, knownProblems, replayCases, type KnownList, type ReplayCase } from "./replay-cases";
+import { judge, knownProblems, OUT_OF_GATE_CATCHERS, replayCases, targetingRules, type KnownList, type ReplayCase } from "./replay-cases";
 import type { Finding, ReviewResult } from "./review";
 
 // The replay cases and their expectations (issue #20, C1; the zero-false-block
@@ -51,6 +51,13 @@ describe("judge: trapped references must be caught by their target rules", () =>
   test("a scenario no rule targets may be caught by any block, default deny included", () => {
     expect(judge(at("trapped", "L14"), result(finding("default-deny"))).ok).toBe(true);
     expect(judge(at("trapped", "L14"), result()).ok).toBe(false);
+  });
+
+  // Prereg section 6.1: D15 is caught outside the gate (#25).
+  test("a scenario caught outside the gate passes unblocked, and no rule may target it", () => {
+    expect(judge(at("trapped", "D15"), result())).toEqual({ ok: true, rules: [] });
+    expect(judge(at("trapped", "D15"), result(finding("TS-7"))).ok).toBe(true);
+    for (const scenario of Object.keys(OUT_OF_GATE_CATCHERS)) expect(targetingRules(scenario)).toEqual([]);
   });
 });
 
