@@ -7,7 +7,8 @@
   72 characters. Add explicit paths; do not use `git add -A`.
 - Plain English in docs and comments; use "we".
 - Heavy work (Postgres, pgbench) runs on disposable lab VMs, not on a
-  laptop. See `env/README.md`.
+  laptop. See `env/README.md`. Exception: `bun run policy:smoke` starts one
+  throwaway `postgres:18.4` container to run the snapshot SQL (#21).
 - Model API keys come from the environment. Never log them or write them
   to disk.
 - Do not add scored results or result files. See CONTRIBUTING.md.
@@ -34,6 +35,7 @@
 bun install          # also installs the git hooks
 bun run check        # typecheck and full test suite, against the baselines
 bun test <path>      # one file or directory while working
+bun run policy:smoke # opt-in: the snapshot SQL in a postgres:18.4 container (Docker)
 ```
 
 The typecheck and the suite are not clean on main. `bun run check` compares

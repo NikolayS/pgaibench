@@ -324,8 +324,8 @@ Rule behavior (#9, #10, #11):
 Snapshot and fixtures (#6, #7):
 
 25. Keep the collector test outside the agreed seams (#6 Q1)?
-26. No baseline fixtures are captured yet. The snapshot SQL has never run on
-    Postgres 18, and C18, O1, O2, O3, R18 and S1 lack setup SQL and the C18
+26. No baseline fixtures are captured yet. The snapshot SQL has run on
+    Postgres 18.4 only in the smoke test against a small schema (#21), and C18, O1, O2, O3, R18 and S1 lack setup SQL and the C18
     sidecar. Should the captured fixtures be pinned in
     `src/policy/prereg-inputs.sha256` at freeze?
 

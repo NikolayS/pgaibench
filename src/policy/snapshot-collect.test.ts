@@ -3,8 +3,9 @@ import type { Row, SqlClient } from "../schema/types";
 import { collectSnapshot } from "./snapshot-collect";
 
 // The collector's one entry point, against fake connections that answer with
-// rows in the shape the design pack's SQL emits. The SQL itself first runs
-// against Postgres in the baseline-capture ticket (#7); no database here.
+// rows in the shape the design pack's SQL emits; no database here. The SQL
+// itself runs against Postgres in the opt-in smoke test (snapshot.smoke.ts,
+// #21) and in the baseline capture (#7).
 
 type Call = { query: string; params?: unknown[] };
 

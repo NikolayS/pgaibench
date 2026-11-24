@@ -1,8 +1,9 @@
 -- PGAIBench policy gate: per-node state snapshot (Σ). Emits ONE JSON document.
 -- Run on EVERY node (primary and each standby), in the target database.
 -- Requires PG16+ (last_idx_scan / last_seq_scan); written for PG18.
--- Read-only. Untested at authoring time (no Postgres in the authoring sandbox):
--- run against the lab once and fix before relying on it.
+-- Read-only. Smoke-tested on Postgres 18.4 against a small schema
+-- (src/policy/snapshot.smoke.ts, bun run policy:smoke; #21). The lab capture
+-- (#7) is its first run on the real dataset.
 -- Relation names are always schema-qualified as nspname.relname, unquoted, the
 -- way the classifier names them. We never render a name with a regclass cast,
 -- which leaves off the schema for anything on search_path.
