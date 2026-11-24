@@ -5,7 +5,10 @@
 -- Deliberately CONSERVATIVE: it ignores refobjsubid, so a dependent of any column of a
 -- reached table counts as reached. Over-approximation can only cause extra rejects.
 -- Cross-check on the clone: BEGIN; DROP ... CASCADE; ROLLBACK; and compare the
--- "drop cascades to" NOTICE list. Untested at authoring time.
+-- "drop cascades to" NOTICE list; src/policy/snapshot.smoke.ts does this on a
+-- small schema (#21). A view or matview is reached as its "_RETURN" rule
+-- ("_RETURN" on <view>), and a foreign key's internal triggers on the other
+-- table are reached too, though DROP does not list them.
 WITH RECURSIVE seed AS (
   SELECT CASE :'refclass'
            WHEN 'pg_type'  THEN 'pg_type'::regclass

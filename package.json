@@ -31,6 +31,7 @@
     "auditor:score": "bun run src/auditor/report.ts --score",
     "auditor:report": "bun run src/auditor/report.ts",
     "policy:rules-md": "bun run src/policy/gen-rules-md.ts",
+    "policy:smoke": "bun test ./src/policy/snapshot.smoke.ts",
     "capture-baselines": "bun run scripts/capture-baselines.ts",
     "typecheck": "tsc -p .",
     "check": "bun run scripts/check.ts",
