@@ -9,12 +9,12 @@ export const ACTION_KINDS = [
   "node.reload", "node.restart",
   "ddl.add_column", "ddl.add_check_not_valid", "ddl.validate_constraint",
   "ddl.add_constraint_validating", "ddl.set_not_null", "ddl.alter_column_type",
-  "ddl.drop_column", "ddl.set_reloption",
+  "ddl.drop_column", "ddl.set_reloption", "ddl.drop_constraint",
   "idx.create_concurrent", "idx.create_blocking",
   "idx.drop_concurrent", "idx.drop_blocking",
   "obj.create", "obj.drop", "obj.truncate",
   "ext.create", "maint.vacuum_analyze", "dml.bounded",
-  "query.read",
+  "query.read", "lock.table",
 ] as const;
 
 export const actionKindSchema = z.enum(ACTION_KINDS);

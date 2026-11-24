@@ -7,6 +7,7 @@ import type { Node } from "./ast";
 import { classifyConfig } from "./config";
 import { DENIED_STATEMENTS } from "./denied";
 import { DO_STATEMENTS, plainDoBody } from "./do-block";
+import { LOCK_STATEMENTS } from "./lock-table";
 import { DML_STATEMENT_CLASSIFIERS, DML_STATEMENTS } from "./dml";
 import { OBJECT_STATEMENTS } from "./objects";
 import { SELECT_STATEMENTS } from "./select";
@@ -21,7 +22,7 @@ export type {
 // family. A statement type in two families is an error, not an override; a
 // type in no table is outside the vocabulary and is denied.
 const STATEMENTS: Record<string, StatementClassifier> = mergeDisjoint("statement type",
-  SESSION_STATEMENTS, SELECT_STATEMENTS, DML_STATEMENT_CLASSIFIERS, OBJECT_STATEMENTS, ALTER_TABLE_STATEMENTS, DENIED_STATEMENTS, DO_STATEMENTS);
+  SESSION_STATEMENTS, SELECT_STATEMENTS, DML_STATEMENT_CLASSIFIERS, OBJECT_STATEMENTS, ALTER_TABLE_STATEMENTS, DENIED_STATEMENTS, DO_STATEMENTS, LOCK_STATEMENTS);
 
 function classifyStatement(stmt: Node, step: number, snapshot: StateSnapshot): Classified {
   const [type] = Object.keys(stmt);
@@ -50,6 +51,20 @@ function annotate(c: Classified, at: { txn: TxnInfo; session: SessionState }, re
       ...(typeof retries === "number" ? { retries } : {}),
     }) as ClassifiedAction),
     denials: c.denials,
+  };
+}
+
+// Postgres rejects LOCK TABLE outside a transaction block, so the gate denies
+// it there rather than approve a step that cannot run.
+function lockInTxn(c: Annotated): Annotated {
+  const outside = c.actions.filter((a) => a.action === "lock.table" && a.txn.block === "none");
+  if (outside.length === 0) return c;
+  return {
+    actions: c.actions.filter((a) => !outside.includes(a)),
+    denials: [...c.denials, ...outside.map((a) => deny(a.step, "lock_outside_txn",
+      `Step ${a.step} runs LOCK TABLE outside a transaction, which Postgres rejects: the lock would end with the statement.`,
+      "Put the LOCK TABLE and the statements it protects in one transaction: BEGIN ... COMMIT, one multi-statement step, or a DO block.",
+      { relations: a.lock.relations }).denials[0])],
   };
 }
 
@@ -82,9 +97,11 @@ export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Clas
       }
       // A DO block with a plain body runs its statements in order, in one
       // transaction, so it is classified as those statements (ADR 0005).
+      let inDoBlock = false;
       const expand = (st: Node): Node[] => {
         if (!st.DoStmt) return [st];
         const b = plainDoBody(st.DoStmt);
+        if (b.plain) inDoBlock = true;
         return b.plain ? b.statements.flatMap(expand) : [st];
       };
       const stmts = parsed.stmts.flatMap(({ stmt }) => (stmt ? expand(stmt as Node) : []));
@@ -92,11 +109,11 @@ export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Clas
       // A step's expected_rows bounds its DML only when there is exactly one DML statement to bound.
       const expected = stmts.filter(isDml).length === 1 && typeof s.expected_rows === "number"
         ? { expected_rows: s.expected_rows } : {};
-      tracker.beginStep(stmts.length);
+      tracker.beginStep(stmts.length, inDoBlock);
       for (const stmt of stmts) {
         const at = tracker.statement(stmt);
         const c = classifyStatement(stmt, step, snapshot);
-        add(at ? annotate(c, at, s.retries) : unannotated(c, step), isDml(stmt) ? expected : {});
+        add(lockInTxn(at ? annotate(c, at, s.retries) : unannotated(c, step)), isDml(stmt) ? expected : {});
       }
       tracker.endStep();
     } else if ("config" in s && typeof s.config?.name === "string") {

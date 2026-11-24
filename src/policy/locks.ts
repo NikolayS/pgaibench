@@ -45,6 +45,9 @@ export const LOCK_PROFILES: Record<ActionKind, LockProfile> = {
   "ddl.alter_column_type": lock("AccessExclusiveLock", true, true),
   "ddl.drop_column": lock("AccessExclusiveLock"),
   "ddl.set_reloption": lock("ShareUpdateExclusiveLock"),
+  // Dropping a foreign key also locks the referenced table; the classifier
+  // names it. We assume ACCESS EXCLUSIVE there too, the stronger reading.
+  "ddl.drop_constraint": lock("AccessExclusiveLock"),
   "idx.create_concurrent": lock("ShareUpdateExclusiveLock", true),
   "idx.create_blocking": lock("ShareLock", true),
   "idx.drop_concurrent": lock("ShareUpdateExclusiveLock"),
@@ -56,6 +59,8 @@ export const LOCK_PROFILES: Record<ActionKind, LockProfile> = {
   "maint.vacuum_analyze": lock("ShareUpdateExclusiveLock", true),
   "dml.bounded": lock("RowExclusiveLock", true),
   "query.read": lock("AccessShareLock", true),
+  // LOCK TABLE takes the mode it names; the classifier sets it.
+  "lock.table": lock("AccessExclusiveLock"),
 };
 
 /** The lock an action takes and the relations it takes it on. */
@@ -100,8 +105,10 @@ export class TxnTracker {
   private statements = 0;
 
   /** Call before the statements of a SQL step. */
-  beginStep(statementCount: number): void {
-    this.multi = statementCount > 1;
+  beginStep(statementCount: number, inBlock = false): void {
+    // A DO block runs its statements in a transaction even when it is the
+    // step's only statement (inBlock), as does a step with several statements.
+    this.multi = statementCount > 1 || inBlock;
   }
 
   /** Call after the statements of a SQL step: an implicit transaction ends with its step. */
