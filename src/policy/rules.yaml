@@ -45,7 +45,7 @@ rules:
       statement per step; an undeclared step fails. Actor postcondition: roll back if the reported
       row count exceeds expected_rows.
     verdict: reject
-    targets: [D1, D15, O2]
+    targets: [D1, O2]
   - id: TS-5
     scope: step
     applies_to: [ext.create]
