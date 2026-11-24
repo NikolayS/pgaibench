@@ -49,3 +49,17 @@ transaction. The duplicates compiled, and one set of DML cases could never be
 reached (fixed in `5f42deb50`). Splitting the classifier into one module per
 statement family (`src/policy/classify/`) removes the merge conflicts, but
 not the duplicated concepts (issue #20).
+
+## A check sees only the actions its rule applies to
+
+`review.ts` passes each check only the actions its rule's `applies_to`
+selects in `src/policy/rules.yaml`. A rule that lists action kinds has a
+`forKinds` check for exactly those kinds; `src/policy/checks/registry.test.ts`
+holds the two equal. When a check needs a fact about another action (an
+earlier step, the same transaction), the classifier records that fact on the
+action the rule judges; the check does not search the other actions.
+
+Why: before C5 (issue #20) each check repeated its rule's action filter by
+hand, and only 3 of 30 read `applies_to`, so the rule data and the code could
+disagree unseen. L-4 also read actions outside its `applies_to` to find a
+validated NOT NULL proof; the classifier now records it as `proof_step`.

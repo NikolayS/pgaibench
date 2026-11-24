@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
+import { appliesToError } from "./applies-to";
 
 // The policy rules and thresholds, loaded from rules.yaml (the source of truth
 // for rule text) and validated with zod.
@@ -10,7 +11,10 @@ export const RULES_YAML_PATH = join(import.meta.dir, "rules.yaml");
 const ruleSchema = z.object({
   id: z.string().regex(/^(TS|R|L|X|I|U|T|S)-\d+$/),
   scope: z.enum(["step", "plan"]),
-  applies_to: z.array(z.string().min(1)).min(1),
+  applies_to: z.array(z.string().min(1)).min(1).superRefine((entries, ctx) => {
+    const error = appliesToError(entries);
+    if (error) ctx.addIssue({ code: "custom", message: error });
+  }),
   settings: z.array(z.string().min(1)).optional(),
   condition: z.string().trim().min(1),
   verdict: z.enum(["reject", "defer", "escalate", "reject_or_escalate"]),
