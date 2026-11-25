@@ -193,6 +193,14 @@ describe("verdict precedence", () => {
   const outOfScope = sqlCR("VACUUM (ANALYZE) public.customers");
   const s = scope({ allowed_objects: ["public.orders"] });
 
+  test("a check sees only the actions its rule applies to", () => {
+    // TS-4 applies to dml.bounded only.
+    let seen: string[] = [];
+    const spy: Check = ({ actions }) => { seen = actions.map((a) => a.action); return []; };
+    review(sqlCR("VACUUM (ANALYZE) public.orders", "UPDATE public.orders SET status = 'x' WHERE id = 1"), s, [], { "TS-4": spy });
+    expect(seen).toEqual(["dml.bounded"]);
+  });
+
   test("with no findings the change request is approved", () => {
     expect(review(inScope, s, ["TS-1"]).verdict).toBe("approve");
   });

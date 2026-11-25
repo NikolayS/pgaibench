@@ -2,7 +2,7 @@ import type { ActionOf, ClassifiedAction } from "../classify";
 import { provenColumn } from "../classify/alter-table";
 import { lockStrength, type LockMode } from "../locks";
 import { thresholdValue } from "../rule-data";
-import { byTxn, ofKind } from "./shared";
+import { byTxn, forKinds } from "./shared";
 import type { Check, CheckContext } from "./types";
 
 // Locking and transaction-structure rules L-1 to L-4 and X-1 to X-4 (issue #10).
@@ -20,7 +20,7 @@ const describe = (a: ClassifiedAction) => `Step ${a.step} (${a.action} on ${a.lo
 // its own session (SET, or SET LOCAL in the same transaction), and declares retries.
 const lockTimeoutSet: Check = (ctx) => {
   const limit = threshold(ctx, "T_lock");
-  return ctx.actions.filter((a) => atLeast(a, "ShareLock")).flatMap((a) => {
+  return ctx.actions.flatMap((a) => {
     const ms = a.session.lock_timeout_ms ?? null;
     const protectedStep = ms !== null && ms > 0 && ms <= limit;
     const retries = (a.retries ?? 0) > 0;
@@ -38,7 +38,6 @@ const lockTimeoutSet: Check = (ctx) => {
   });
 };
 
-const appliesTo = (ctx: CheckContext, a: ClassifiedAction) => ctx.rule.applies_to.includes(a.action);
 
 /** The size of the relation an action acts on (its first locked relation); undefined when the snapshot does not list it. */
 function targetSize(ctx: CheckContext, a: ClassifiedAction): { relation: string; total_bytes: number } | undefined {
@@ -59,10 +58,10 @@ const scansOrRewrites = (a: ClassifiedAction) =>
   : a.action === "ddl.add_column" ? a.lock.rewrites || a.lock.scans
   : true;
 
-const lockedScanSize: Check = (ctx) => {
+const lockedScanSize = forKinds(["ddl.add_constraint_validating", "idx.create_blocking", "ddl.alter_column_type", "ddl.add_column"], (ctx) => {
   const limit = threshold(ctx, "S_scan");
   return ctx.actions
-    .filter((a) => appliesTo(ctx, a) && scansOrRewrites(a))
+    .filter((a) => scansOrRewrites(a))
     .flatMap((a) => {
       const size = targetSize(ctx, a);
       if (!size || size.total_bytes <= limit) return [];
@@ -73,7 +72,7 @@ const lockedScanSize: Check = (ctx) => {
         evidence: { action: a.action, relation: size.relation, total_bytes: size.total_bytes, limit_bytes: limit, lock: a.lock.mode },
       }];
     });
-};
+});
 
 // Whether a validated constraint proves the column NOT NULL before the action
 // runs: one already in the catalog, or one validated earlier in the change
@@ -85,9 +84,9 @@ function notNullProven(ctx: CheckContext, a: ActionOf<"ddl.set_not_null">, table
 
 // L-4: SET NOT NULL scans the table under ACCESS EXCLUSIVE unless a validated
 // constraint already proves the column, so a table above S_scan needs the proof.
-const setNotNullProven: Check = (ctx) => {
+const setNotNullProven = forKinds(["ddl.set_not_null"], (ctx) => {
   const limit = threshold(ctx, "S_scan");
-  return ofKind(ctx.actions, "ddl.set_not_null").filter((a) => appliesTo(ctx, a)).flatMap((a) => {
+  return ctx.actions.flatMap((a) => {
     const size = targetSize(ctx, a);
     if (!size || size.total_bytes <= limit || notNullProven(ctx, a, size.relation)) return [];
     return [{
@@ -97,21 +96,21 @@ const setNotNullProven: Check = (ctx) => {
       evidence: { action: a.action, relation: size.relation, column: a.column, total_bytes: size.total_bytes, limit_bytes: limit },
     }];
   });
-};
+});
 
 // X-1: these actions must run outside a transaction block. Postgres refuses a
 // concurrent index build or VACUUM inside one (a multi-statement step is an
 // implicit block), and a config step or reload takes effect at once, outside
 // the transaction's rollback.
-const outsideTxnBlock: Check = (ctx) =>
-  ctx.actions.filter((a) => appliesTo(ctx, a) && a.txn.block !== "none").map((a) => ({
+const outsideTxnBlock = forKinds(["idx.create_concurrent", "idx.drop_concurrent", "cfg.set_reload", "cfg.set_restart", "maint.vacuum_analyze", "node.reload"], (ctx) =>
+  ctx.actions.filter((a) => a.txn.block !== "none").map((a) => ({
     step: a.step,
     reason: a.txn.block === "explicit"
       ? `Step ${a.step} (${a.action}) runs while a BEGIN is open; it must run outside a transaction block.`
       : `Step ${a.step} (${a.action}) shares its SQL step with other statements, which run as one implicit transaction; it must run outside a transaction block.`,
     fix_hint: "Put the statement in its own SQL step, after the COMMIT of any open transaction.",
     evidence: { action: a.action, block: a.txn.block, txn_group: a.txn.group },
-  }));
+  })));
 
 // X-3: locks are held until COMMIT, so a second ACCESS EXCLUSIVE statement on a
 // large relation in the same transaction stretches the time it stays locked.
@@ -150,7 +149,7 @@ const noDdlWithDml: Check = (ctx) => byTxn(ctx.actions).flatMap((group) => {
 
 // X-2: a NOT VALID add holds its ACCESS EXCLUSIVE lock until COMMIT, so a
 // VALIDATE in the same transaction scans the table under that lock.
-const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
+const notValidCommitted = forKinds(["ddl.add_check_not_valid", "ddl.validate_constraint"], (ctx) => ctx.actions.flatMap((v, i) => {
   if (v.action !== "ddl.validate_constraint") return [];
   const add = ctx.actions.slice(0, i).find((a) =>
     a.action === "ddl.add_check_not_valid" && a.objects[0] === v.objects[0] && a.txn.group === v.txn.group
@@ -162,7 +161,7 @@ const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
     fix_hint: "COMMIT after the NOT VALID add, then VALIDATE CONSTRAINT in its own transaction.",
     evidence: { constraint: v.constraint.name, relation: v.objects[0], add_step: add.step, txn_group: v.txn.group },
   }];
-});
+}));
 
 // L-2: no transaction older than A_txn holds or waits on a lock on a relation
 // the step locks at SHARE or stronger. The review never waits: it defers, and
@@ -171,7 +170,7 @@ const notValidCommitted: Check = (ctx) => ctx.actions.flatMap((v, i) => {
 const noOldBlocker: Check = (ctx) => {
   const limitS = threshold(ctx, "A_txn") / 1000;
   const locks = ctx.snapshot.nodes.primary.locks;
-  return ctx.actions.filter((a) => atLeast(a, "ShareLock")).flatMap((a) => {
+  return ctx.actions.flatMap((a) => {
     const old = locks
       .filter((l) => a.lock.relations.includes(l.relation) && (l.xact_age_s ?? 0) > limitS)
       .sort((x, y) => (y.xact_age_s ?? 0) - (x.xact_age_s ?? 0));

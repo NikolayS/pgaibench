@@ -1,6 +1,7 @@
 import type { NodeName } from "../actions";
 import type { ActionKind } from "../actions";
 import type { ActionOf, ClassifiedAction } from "../classify";
+import type { Check, CheckContext, RuleFinding } from "./types";
 
 // Helpers that more than one rule family uses.
 
@@ -23,3 +24,18 @@ export function byTxn<A extends ClassifiedAction>(actions: readonly A[]): A[][] 
 export function ofKind<K extends ActionKind>(actions: readonly ClassifiedAction[], ...kinds: K[]): ActionOf<K>[] {
   return actions.filter((a): a is ActionOf<K> => (kinds as readonly ActionKind[]).includes(a.action));
 }
+
+/**
+ * A check that judges only actions of the given kinds, typed by kind. The kinds
+ * stay readable on the check (kindsOf), so a test can hold them equal to the
+ * rule's applies_to in rules.yaml, which review.ts filters by (#20, C5).
+ */
+export function forKinds<K extends ActionKind>(
+  kinds: readonly K[], fn: (ctx: Omit<CheckContext, "actions"> & { actions: ActionOf<K>[] }) => RuleFinding[],
+): Check {
+  const check: Check = (ctx) => fn({ ...ctx, actions: ofKind(ctx.actions, ...kinds) });
+  return Object.assign(check, { kinds });
+}
+
+/** The kinds a forKinds check narrows to, or undefined for any other check. */
+export const kindsOf = (check: Check): readonly ActionKind[] | undefined => (check as { kinds?: readonly ActionKind[] }).kinds;
