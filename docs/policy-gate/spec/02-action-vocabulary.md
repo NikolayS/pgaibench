@@ -20,7 +20,7 @@ records which steps share a transaction (needed by X-rules).
 | `ddl.add_check_not_valid` | `AT_AddConstraint` (CHECK, NOT NULL, FK), `skip_validation = true` | brief lock, no scan; FK also locks referenced table | must COMMIT before matching validate |
 | `ddl.validate_constraint` | `AT_ValidateConstraint` | SHARE UPDATE EXCLUSIVE during scan | own txn |
 | `ddl.add_constraint_validating` | `AT_AddConstraint`, `skip_validation = false` | ACCESS EXCLUSIVE (SHARE ROW EXCLUSIVE for FK) across full scan | any |
-| `ddl.set_not_null` | `AT_SetNotNull` | ACCESS EXCLUSIVE; scans unless a validated proof exists | any |
+| `ddl.set_not_null` | `AT_SetNotNull` | ACCESS EXCLUSIVE; scans unless a validated proof exists (records `proof_step`, the earlier step in the change request that validates one) | any |
 | `ddl.alter_column_type` | `AT_AlterColumnType` | ACCESS EXCLUSIVE; may rewrite | any |
 | `ddl.drop_column` | `AT_DropColumn` | brief ACCESS EXCLUSIVE; irreversible | any |
 | `ddl.set_reloption` | `AT_SetRelOptions`, `AT_ResetRelOptions` (SET and RESET in one statement are one action) | SHARE UPDATE EXCLUSIVE (autovacuum params) | any |

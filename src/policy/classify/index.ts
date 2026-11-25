@@ -2,7 +2,7 @@ import { LOCK_PROFILES, TxnTracker, type SessionState, type TxnInfo } from "../l
 import { mergeDisjoint } from "../merge-disjoint";
 import { parseSql } from "../parse";
 import type { StateSnapshot } from "../snapshot";
-import { ALTER_TABLE_STATEMENTS } from "./alter-table";
+import { ALTER_TABLE_STATEMENTS, markNotNullProofs } from "./alter-table";
 import type { Node } from "./ast";
 import { classifyConfig } from "./config";
 import { DENIED_STATEMENTS } from "./denied";
@@ -124,5 +124,5 @@ export function classify(cr: PolicyChangeRequest, snapshot: StateSnapshot): Clas
         "Use only SQL steps and config steps.", { statement: Object.keys(s as object)[0] }), step));
     }
   });
-  return out;
+  return { ...out, actions: markNotNullProofs(out.actions, snapshot) };
 }

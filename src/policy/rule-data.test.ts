@@ -45,6 +45,12 @@ describe("rule data", () => {
     expect(() => parseRuleData({ ...good, postconditions: [{ after: "dml.bounded", check: "x" }] })).toThrow();
   });
 
+  test("an applies_to entry that selects nothing is refused at load", () => {
+    const good = Bun.YAML.parse(readFileSync(RULES_YAML_PATH, "utf8")) as { rules: Record<string, unknown>[] };
+    const typo = { ...good, rules: [{ ...good.rules[0], applies_to: ["dml.unbounded"] }, ...good.rules.slice(1)] };
+    expect(() => parseRuleData(typo)).toThrow(/dml.unbounded is not an action kind/);
+  });
+
   test("every threshold reads as one number, sizes in bytes and durations in ms", () => {
     const { thresholds } = loadRuleData();
     expect(thresholdValue(thresholds, "S_scan")).toBe(1024 ** 3);

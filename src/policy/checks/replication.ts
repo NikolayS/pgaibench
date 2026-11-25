@@ -1,7 +1,7 @@
 import type { NodeName } from "../actions";
 import { MEMORY_UNITS, TIME_UNITS } from "../rule-data";
 import type { Setting } from "../snapshot";
-import { NODES, ofKind } from "./shared";
+import { NODES, forKinds } from "./shared";
 import type { Check, RuleFinding } from "./types";
 
 // Checks for the replication and settings rules R-1 to R-4 and R-6 to R-9
@@ -13,7 +13,7 @@ import type { Check, RuleFinding } from "./types";
 // config step and orders a both-node step itself (ADR 0003), so the plan is
 // unsafe only when separate steps leave the standby below the primary.
 // Modeled in docs/policy-gate/tla/HotStandbyParam.tla.
-const hotStandbyOrder: Check = ({ actions, snapshot, rule }) => {
+const hotStandbyOrder = forKinds(["cfg.set_restart", "node.restart"], ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
   const running = new Map<string, Record<NodeName, string>>();
   const findings: RuleFinding[] = [];
@@ -40,12 +40,12 @@ const hotStandbyOrder: Check = ({ actions, snapshot, rule }) => {
     });
   }
   return findings;
-};
+});
 
 // R-3: every restart a config step implies is allowed by TS-2 (node.restart is
 // not forbidden) and falls on a node the ticket allows downtime for.
-const restartAllowed: Check = ({ actions, scope }) =>
-  ofKind(actions, "node.restart").flatMap((a) => {
+const restartAllowed = forKinds(["node.restart"], ({ actions, scope }) =>
+  actions.flatMap((a) => {
     const node = a.nodes[0];
     const forbidden = scope.forbidden_actions.includes("node.restart");
     if (!forbidden && scope.downtime_allowed.includes(node)) return [];
@@ -57,7 +57,7 @@ const restartAllowed: Check = ({ actions, scope }) =>
       fix_hint: "Reach the goal with a reload-context, role or table setting, or escalate for a maintenance window.",
       evidence: { node, setting: a.setting, downtime_allowed: scope.downtime_allowed, restart_forbidden: forbidden },
     }];
-  });
+  }));
 
 // synchronous_standby_names: "FIRST n (a, b)", "ANY n (a, b)", "n (a, b)" or a
 // plain list, which means FIRST 1. Postgres matches names case-insensitively.
@@ -73,11 +73,11 @@ function parseSyncNames(value: string): { count: number; names: string[] } | und
 
 // R-4: every synchronous standby name matches a streaming standby (or is *),
 // and the number required is no more than the standbys that match.
-const syncStandbyNames: Check = ({ actions, snapshot, rule }) => {
+const syncStandbyNames = forKinds(["cfg.set_reload"], ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
   const streaming = snapshot.nodes.primary.replication.replicas
     .filter((r) => r.state === "streaming").map((r) => r.application_name);
-  return ofKind(actions, "cfg.set_reload").filter((a) => settings.has(a.setting)).flatMap((a) => {
+  return actions.filter((a) => settings.has(a.setting)).flatMap((a) => {
     const parsed = parseSyncNames(a.value);
     const matching = parsed ? streaming.filter((s) => parsed.names.some((n) => n === "*" || n === s.toLowerCase())) : [];
     const unknown = parsed ? parsed.names.filter((n) => n !== "*" && !streaming.some((s) => s.toLowerCase() === n)) : [];
@@ -94,13 +94,13 @@ const syncStandbyNames: Check = ({ actions, snapshot, rule }) => {
       evidence: { value: a.value, streaming, unknown, required: parsed?.count ?? null, matching },
     }];
   });
-};
+});
 
 const WAL_LEVELS = ["minimal", "replica", "logical"];
 
 // R-6: wal_level stays at least replica while a standby, a physical slot or WAL
 // archiving exists, and stays logical while a logical slot exists.
-const walLevelKept: Check = ({ actions, snapshot, rule }) => {
+const walLevelKept = forKinds(["cfg.set_restart"], ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
   const { primary, standby } = snapshot.nodes;
   const slots = [...primary.replication.slots, ...standby.replication.slots];
@@ -111,7 +111,7 @@ const walLevelKept: Check = ({ actions, snapshot, rule }) => {
   const archiving = NODES.some((n) => ["on", "always"].includes(snapshot.nodes[n].settings.archive_mode?.value ?? "off"));
   const needs = logicalSlots.length > 0 ? "logical"
     : hasStandby || physicalSlots.length > 0 || archiving ? "replica" : "minimal";
-  return ofKind(actions, "cfg.set_restart").filter((a) => settings.has(a.setting)).flatMap((a) => {
+  return actions.filter((a) => settings.has(a.setting)).flatMap((a) => {
     const value = a.value.trim().toLowerCase();
     const rank = WAL_LEVELS.indexOf(value === "archive" || value === "hot_standby" ? "replica" : value);
     // An unknown value is R-1's concern.
@@ -125,7 +125,7 @@ const walLevelKept: Check = ({ actions, snapshot, rule }) => {
       evidence: { value: a.value, needs, standbys, physical_slots: physicalSlots, logical_slots: logicalSlots, archive_mode: archiving },
     }];
   });
-};
+});
 
 const libraryList = (value: string) =>
   value.split(",").map((l) => l.trim().replace(/^"(.*)"$/s, "$1")).filter((l) => l !== "");
@@ -133,9 +133,9 @@ const libraryList = (value: string) =>
 // R-7: a new preload library list keeps every library loaded now on each node
 // the step targets. Ticket scope has no field that names a removal, so every
 // removal is rejected (TS-6: scope comes only from structured fields).
-const preloadLibrariesKept: Check = ({ actions, snapshot, rule }) => {
+const preloadLibrariesKept = forKinds(["cfg.set_reload", "cfg.set_restart"], ({ actions, snapshot, rule }) => {
   const settings = new Set(rule.settings ?? []);
-  return ofKind(actions, "cfg.set_reload", "cfg.set_restart").filter((a) => settings.has(a.setting)).flatMap((a) => {
+  return actions.filter((a) => settings.has(a.setting)).flatMap((a) => {
     const next = new Set(libraryList(a.value));
     const current = a.nodes.flatMap((n) => libraryList(snapshot.nodes[n].settings[a.setting]?.value ?? ""));
     const dropped = [...new Set(current.filter((l) => !next.has(l)))];
@@ -147,7 +147,7 @@ const preloadLibrariesKept: Check = ({ actions, snapshot, rule }) => {
       evidence: { setting: a.setting, value: a.value, current: [...new Set(current)], dropped },
     }];
   });
-};
+});
 
 /** Postgres boolean input (parse_bool): on/off, true/false, yes/no, 1/0 and unique prefixes. */
 export function parseBool(value: string): boolean | undefined {
@@ -164,7 +164,7 @@ const isPlannerToggle = (setting: string) => setting === "autovacuum" || setting
 
 // R-8: autovacuum and the enable_* planner toggles are never turned off
 // cluster-wide (reject); a table-level autovacuum_enabled = false escalates.
-const noToggleOff: Check = ({ actions }) => actions.flatMap((a): RuleFinding[] => {
+const noToggleOff = forKinds(["cfg.set_reload", "cfg.set_restart", "ddl.set_reloption"], ({ actions }) => actions.flatMap((a): RuleFinding[] => {
   if ((a.action === "cfg.set_reload" || a.action === "cfg.set_restart") && isPlannerToggle(a.setting) && parseBool(a.value) === false) {
     return [{
       step: a.step,
@@ -188,14 +188,14 @@ const noToggleOff: Check = ({ actions }) => actions.flatMap((a): RuleFinding[] =
       }));
   }
   return [];
-});
+}));
 
 // R-9: standby-only settings go on the standby alone (reject otherwise), and an
 // unlimited delay (-1), which lets a standby query hold replay back forever,
 // escalates.
-const standbyOnlySettings: Check = ({ actions, rule }) => {
+const standbyOnlySettings = forKinds(["cfg.set_reload"], ({ actions, rule }) => {
   const settings = new Set(rule.settings ?? []);
-  return ofKind(actions, "cfg.set_reload").filter((a) => settings.has(a.setting)).flatMap((a): RuleFinding[] => {
+  return actions.filter((a) => settings.has(a.setting)).flatMap((a): RuleFinding[] => {
     const nodes = a.nodes;
     if (nodes.includes("primary")) {
       return [{
@@ -217,7 +217,7 @@ const standbyOnlySettings: Check = ({ actions, rule }) => {
     }
     return [];
   });
-};
+});
 
 // Unit multipliers as Postgres reads them in setting values (guc.c).
 
@@ -271,8 +271,8 @@ function typeError(value: string, s: Setting): string | undefined {
 
 // R-1: every new setting value type-checks against pg_settings on each node it
 // targets (role settings against the primary's).
-const valueTypeChecks: Check = ({ actions, snapshot }) =>
-  ofKind(actions, "cfg.set_reload", "cfg.set_restart", "cfg.set_role").flatMap((a) => {
+const valueTypeChecks = forKinds(["cfg.set_reload", "cfg.set_restart", "cfg.set_role"], ({ actions, snapshot }) =>
+  actions.flatMap((a) => {
     const { setting, value } = a;
     // A role setting may be RESET (no value) or name no setting (RESET ALL).
     if (!setting || value === undefined) return [];
@@ -289,7 +289,7 @@ const valueTypeChecks: Check = ({ actions, snapshot }) =>
       }];
     }
     return [];
-  });
+  }));
 
 export const REPLICATION_CHECKS: Record<string, Check> = {
   "R-1": valueTypeChecks,
