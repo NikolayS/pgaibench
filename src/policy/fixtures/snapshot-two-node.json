@@ -1,0 +1,79 @@
+{
+  "collected_at": "2026-11-23T10:00:00.000+00:00",
+  "usage_window_start": "2026-11-23T09:30:00.000+00:00",
+  "database": "pgaibench",
+  "nodes": {
+    "primary": {
+      "collected_at": "2026-11-23T10:00:00.000+00:00",
+      "server_version_num": 180001,
+      "settings": {
+        "max_locks_per_transaction": { "value": "64", "unit": null, "context": "postmaster", "vartype": "integer", "min_val": "10", "max_val": "2147483647", "enumvals": null, "source": "default", "pending_restart": false },
+        "wal_level": { "value": "replica", "unit": null, "context": "postmaster", "vartype": "enum", "min_val": null, "max_val": null, "enumvals": ["minimal", "replica", "logical"], "source": "configuration file", "pending_restart": false },
+        "work_mem": { "value": "4096", "unit": "kB", "context": "user", "vartype": "integer", "min_val": "64", "max_val": "2147483647", "enumvals": null, "source": "default", "pending_restart": false }
+      },
+      "replication": {
+        "in_recovery": false,
+        "replicas": [{ "application_name": "standby1", "client_addr": "10.0.0.3", "state": "streaming", "sync_state": "async", "sync_priority": 0, "replay_lag_s": 0.002 }],
+        "wal_receiver": null,
+        "slots": [{ "slot_name": "standby1", "slot_type": "physical", "active": true }]
+      },
+      "sessions": { "client_backends": 12, "idle": 8, "idle_in_txn": 1, "oldest_xact_age_s": 95.5 },
+      "locks": [{ "relation": "public.orders", "mode": "AccessShareLock", "granted": true, "pid": 4242, "xact_age_s": 95.5 }],
+      "usage": {
+        "indexes": {
+          "public.orders_pkey": { "table": "public.orders", "idx_scan": 50210, "last_idx_scan": "2026-11-23T09:59:59.000+00:00" },
+          "public.orders_customer_created_idx": { "table": "public.orders", "idx_scan": 3, "last_idx_scan": "2026-11-20T08:00:00.000+00:00" }
+        },
+        "tables": {
+          "public.orders": { "seq_scan": 4, "last_seq_scan": "2026-11-22T12:00:00.000+00:00", "idx_scan": 50213, "last_idx_scan": "2026-11-23T09:59:59.000+00:00", "n_live_tup": 2000000, "n_dead_tup": 1500 }
+        }
+      },
+      "query_stats": [{ "queryid": "-8312904481220455912", "query": "SELECT * FROM public.orders WHERE id = $1", "calls": 50210, "mean_exec_time_ms": 0.08, "rows": 50210 }]
+    },
+    "standby": {
+      "collected_at": "2026-11-23T10:00:00.250+00:00",
+      "server_version_num": 180001,
+      "settings": {
+        "max_locks_per_transaction": { "value": "64", "unit": null, "context": "postmaster", "vartype": "integer", "min_val": "10", "max_val": "2147483647", "enumvals": null, "source": "default", "pending_restart": false },
+        "hot_standby_feedback": { "value": "off", "unit": null, "context": "sighup", "vartype": "bool", "min_val": null, "max_val": null, "enumvals": null, "source": "default", "pending_restart": false }
+      },
+      "replication": {
+        "in_recovery": true,
+        "replicas": [],
+        "wal_receiver": { "status": "streaming", "sender_host": "10.0.0.2", "sender_port": 5432, "slot_name": "standby1" },
+        "slots": []
+      },
+      "sessions": { "client_backends": 3, "idle": 3, "idle_in_txn": 0, "oldest_xact_age_s": null },
+      "locks": [],
+      "usage": {
+        "indexes": {
+          "public.orders_pkey": { "table": "public.orders", "idx_scan": 0, "last_idx_scan": null },
+          "public.orders_customer_created_idx": { "table": "public.orders", "idx_scan": 812, "last_idx_scan": "2026-11-23T09:58:00.000+00:00" }
+        },
+        "tables": {
+          "public.orders": { "seq_scan": 0, "last_seq_scan": null, "idx_scan": 812, "last_idx_scan": "2026-11-23T09:58:00.000+00:00", "n_live_tup": 0, "n_dead_tup": 0 }
+        }
+      },
+      "query_stats": null
+    }
+  },
+  "relations": {
+    "public.orders": { "kind": "table", "total_bytes": 1567640576, "reltuples": 2000000, "persistence": "permanent", "reloptions": ["fillfactor=90"], "replica_identity": "default" },
+    "public.orders_pkey": { "kind": "index", "table": "public.orders", "total_bytes": 44941312, "valid": true, "primary": true, "unique": true, "replica_identity": false },
+    "public.orders_customer_created_idx": { "kind": "index", "table": "public.orders", "total_bytes": 60301312, "valid": true, "primary": false, "unique": false, "replica_identity": false }
+  },
+  "constraints": [
+    { "name": "orders_pkey", "type": "primary_key", "validated": true, "table": "public.orders", "index": "public.orders_pkey", "references": null, "definition": "PRIMARY KEY (id)" },
+    { "name": "orders_amount_check", "type": "check", "validated": false, "table": "public.orders", "index": null, "references": null, "definition": "CHECK ((amount >= 0)) NOT VALID" }
+  ],
+  "role_db_settings": [{ "role": "shipping_api", "database": null, "settings": ["statement_timeout=5s"] }],
+  "cascade": {
+    "public.orders": {
+      "refclass": "pg_class",
+      "reaches": [
+        { "object_type": "index", "identity": "public.orders_pkey" },
+        { "object_type": "table constraint", "identity": "orders_pkey on public.orders" }
+      ]
+    }
+  }
+}
